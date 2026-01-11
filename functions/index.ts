@@ -23,6 +23,7 @@ export { checkBookingWaste } from "./src/booking/checkBookingWaste";
 export { sendBookingConfirmation } from "./src/notifications/bookingConfirmation";
 export { sendBookingUpdateWhatsApp } from "./src/notifications/bookingUpdate";
 export { sendBookingCancellationWhatsApp } from "./src/notifications/bookingCancellation";
+export { sendDailyReminders } from "./src/notifications/dailyReminder";
 
 // ============================================
 // OTP FUNCTIONS

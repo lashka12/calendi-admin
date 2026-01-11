@@ -2,6 +2,7 @@ import { onCall, HttpsError } from "firebase-functions/v2/https";
 import * as admin from "firebase-admin";
 import { FieldValue } from "firebase-admin/firestore";
 import { sendWhatsAppMessage } from "../messaging/whatsAppService";
+import { getMessage } from "../messaging/messageTemplates";
 
 /**
  * Send OTP via WhatsApp
@@ -180,13 +181,10 @@ export const sendOTPWhatsApp = onCall(
         });
       }
 
-      // 📱 Send WhatsApp message
-      const message = `Hi! Your verification code is *${code}*
-
-It expires in 5 minutes, so use it soon!
-
-Don't share this with anyone. 🔒`;
-
+      // 📱 Send WhatsApp message using centralized template
+      // TODO: Get language from settings or client when multi-lang is implemented
+      const lang = "en";
+      const message = getMessage("otp", lang, { code });
       await sendWhatsAppMessage(phone, message);
 
       // 📊 Track IP request for rate limiting

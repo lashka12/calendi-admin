@@ -1,5 +1,6 @@
 import { onDocumentUpdated } from "firebase-functions/v2/firestore";
 import { sendWhatsAppMessage } from "../messaging/whatsAppService";
+import { getMessage, formatDateForMessage } from "../messaging/messageTemplates";
 
 /**
  * Send Booking Update WhatsApp
@@ -42,20 +43,15 @@ export const sendBookingUpdateWhatsApp = onDocumentUpdated(
 
     console.log("📞 Sending update WhatsApp to:", afterData.phone);
 
-    // Format date nicely
-    const dateObj = new Date(afterData.date);
-    const formattedDate = dateObj.toLocaleDateString("en-US", {
-      weekday: "long",
-      month: "long",
-      day: "numeric",
+    // Build message using centralized template
+    // TODO: Get language from settings when multi-lang is implemented
+    const lang = "en";
+    const message = getMessage("bookingUpdated", lang, {
+      clientName: afterData.clientName,
+      date: formatDateForMessage(afterData.date, lang),
+      time: afterData.time,
+      service: afterData.service,
     });
-
-    // WhatsApp message - conversational format
-    const message = `Hi ${afterData.clientName},
-
-Just wanted to let you know we've updated your appointment to *${formattedDate}* at *${afterData.time}* for ${afterData.service}.
-
-Any questions? Feel free to reach out!`;
 
     try {
       const response = await sendWhatsAppMessage(afterData.phone, message);
@@ -71,4 +67,3 @@ Any questions? Feel free to reach out!`;
     }
   }
 );
-
