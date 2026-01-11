@@ -1,0 +1,1226 @@
+openapi: 3.0.3
+info:
+  title: Calendi Firebase Cloud Functions API
+  description: |
+    API documentation for all Firebase Cloud Functions callable endpoints.
+    
+    ## Authentication
+    - **Public APIs**: No authentication required (but may require anonymous auth for Firestore rules)
+    - **Admin APIs**: Firebase Authentication token required in Authorization header
+    
+    ## Base URL
+    Firebase Cloud Functions are callable functions. The base URL format is:
+    `https://{region}-{project-id}.cloudfunctions.net/{functionName}`
+    
+    ## Error Format
+    All errors follow Firebase HttpsError format:
+    ```json
+    {
+      "code": "error-code",
+      "message": "Error message"
+    }
+    ```
+    
+    ## Common Error Codes
+    - `invalid-argument`: Invalid request parameters
+    - `unauthenticated`: Authentication required
+    - `failed-precondition`: Business logic validation failed
+    - `resource-exhausted`: Rate limit exceeded
+    - `internal`: Server error
+    
+  version: 1.0.0
+  contact:
+    name: Calendi API Support
+
+servers:
+  - url: https://{region}-{project-id}.cloudfunctions.net
+    description: Firebase Cloud Functions (replace with your project details)
+    variables:
+      region:
+        default: us-central1
+        description: Firebase Functions region
+      project-id:
+        default: your-project-id
+        description: Firebase project ID
+
+tags:
+  - name: Booking
+    description: Public booking APIs for clients
+  - name: OTP
+    description: OTP verification via WhatsApp
+  - name: Availability
+    description: Admin APIs for managing availability
+  - name: Booking Management
+    description: Admin APIs for checking and analyzing bookings
+  - name: Messaging
+    description: Admin APIs for sending WhatsApp messages
+
+security:
+  - FirebaseAuth: []
+
+paths:
+  /getServices:
+    post:
+      tags:
+        - Booking
+      summary: Get all active services
+      description: Returns a list of all active services, sorted alphabetically
+      security: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties: {}
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  services:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          description: Service document ID
+                        name:
+                          type: string
+                          description: Service name (legacy)
+                        names:
+                          type: object
+                          description: Service names by language
+                          properties:
+                            en:
+                              type: string
+                            he:
+                              type: string
+                        duration:
+                          type: number
+                          description: Service duration in minutes
+                        price:
+                          type: number
+                          description: Service price
+                        active:
+                          type: boolean
+                          description: Whether service is active
+                        deletedAt:
+                          type: string
+                          nullable: true
+                          description: Deletion timestamp if deleted
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /getAvailableTimeSlots:
+    post:
+      tags:
+        - Booking
+      summary: Get available time slots for a date
+      description: |
+        Returns available time slots for a specific date.
+        
+        Algorithm:
+        1. Validates date is not in the past (returns empty if past)
+        2. Checks special days (if closed, returns empty)
+        3. Checks planned dates (if exists, uses those slots)
+        4. Falls back to weekly template
+        5. Filters out booked slots and past times (if today)
+        6. If serviceDuration provided, filters slots that can fit the service
+        
+        Note: Past dates are rejected for privacy and security reasons.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - date
+              properties:
+                date:
+                  type: string
+                  format: date
+                  pattern: '^\d{4}-\d{2}-\d{2}$'
+                  description: Date in YYYY-MM-DD format
+                  example: "2025-12-11"
+                serviceDuration:
+                  type: number
+                  description: Optional service duration in minutes (filters slots that can fit)
+                  example: 45
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - type: object
+                    properties:
+                      success:
+                        type: boolean
+                        example: true
+                      date:
+                        type: string
+                        example: "2025-12-11"
+                      slots:
+                        type: array
+                        items:
+                          type: string
+                          pattern: '^([0-1][0-9]|2[0-3]):[0-5][0-9]$'
+                          example: "09:00"
+                        description: Available time slots in HH:MM format
+                      totalAvailable:
+                        type: number
+                        example: 5
+                  - type: object
+                    properties:
+                      success:
+                        type: boolean
+                        example: true
+                      date:
+                        type: string
+                      slots:
+                        type: array
+                        items: {}
+                        example: []
+                      reason:
+                        type: string
+                        enum: [past_date, closed, no_availability]
+        '400':
+          $ref: '#/components/responses/InvalidArgumentError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /sendOTPWhatsApp:
+    post:
+      tags:
+        - OTP
+      summary: Send OTP code via WhatsApp
+      description: |
+        Sends a 4-digit OTP code to the specified phone number via WhatsApp.
+        
+        Rate Limits:
+        - Max 5 codes per phone number per hour
+        - Max 10 requests per IP address per hour
+        - Minimum 30 seconds between requests for same phone
+        
+        Security: Blocks requests with unknown IP (except in emulator mode)
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - phone
+              properties:
+                phone:
+                  type: string
+                  description: Israeli phone number (e.g., "0501234567")
+                  pattern: '^0[2-9]\d{7,8}$'
+                  example: "0501234567"
+      responses:
+        '200':
+          description: OTP sent successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "OTP sent successfully"
+        '400':
+          $ref: '#/components/responses/InvalidArgumentError'
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                tooManyRequests:
+                  value:
+                    code: "resource-exhausted"
+                    message: "Too many verification requests. Please try again later."
+                waitTime:
+                  value:
+                    code: "resource-exhausted"
+                    message: "Please wait 15 seconds before requesting a new code"
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /verifyOTPWhatsApp:
+    post:
+      tags:
+        - OTP
+      summary: Verify OTP code
+      description: |
+        Verifies the OTP code sent to a phone number.
+        
+        - Max 3 verification attempts per code
+        - Code expires after 5 minutes
+        - Code is deleted after successful verification (one-time use)
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - phone
+                - code
+              properties:
+                phone:
+                  type: string
+                  description: Israeli phone number
+                  example: "0501234567"
+                code:
+                  type: string
+                  description: 4-digit OTP code
+                  pattern: '^\d{4}$'
+                  example: "1234"
+      responses:
+        '200':
+          description: Verification result
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - type: object
+                    properties:
+                      success:
+                        type: boolean
+                        example: true
+                      message:
+                        type: string
+                        example: "Verification successful"
+                  - type: object
+                    properties:
+                      success:
+                        type: boolean
+                        example: false
+                      error:
+                        type: string
+                        examples:
+                          - "No verification code found"
+                          - "Code expired. Please request a new one"
+                          - "Too many failed attempts. Please request a new code"
+                          - "Invalid code. 2 attempts remaining"
+        '400':
+          $ref: '#/components/responses/InvalidArgumentError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /createPendingRequest:
+    post:
+      tags:
+        - Booking
+      summary: Create a new pending booking request
+      description: |
+        Creates a new pending booking request with integrated OTP verification.
+        
+        **Important:** OTP verification happens internally. The OTP code must be valid and not expired.
+        
+        Validations:
+        - OTP code is required and must be valid (verified internally)
+        - All required fields must be provided
+        - Phone number must be valid Israeli format
+        - Date must be in YYYY-MM-DD format
+        - Time must be in HH:MM format and align with slot boundaries
+        - Booking cannot be in the past
+        - Time must be within availability windows (weekly template, planned dates)
+        - Time must be within business hours (if configured)
+        - Service duration must fit at the selected time
+        - Slot must be available (not already booked)
+        
+        Note: Service duration is rounded up to full slots based on slotDuration setting.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - code
+                - clientName
+                - phone
+                - date
+                - time
+                - serviceId
+              properties:
+                code:
+                  type: string
+                  description: OTP verification code (4 digits)
+                  pattern: '^\d{4}$'
+                  example: "1234"
+                clientName:
+                  type: string
+                  description: Client's full name
+                  minLength: 2
+                  example: "John Doe"
+                phone:
+                  type: string
+                  description: Israeli phone number (must match OTP phone)
+                  pattern: '^0[2-9]\d{7,8}$'
+                  example: "0501234567"
+                date:
+                  type: string
+                  format: date
+                  pattern: '^\d{4}-\d{2}-\d{2}$'
+                  description: Booking date in YYYY-MM-DD format
+                  example: "2025-12-11"
+                time:
+                  type: string
+                  pattern: '^([0-1][0-9]|2[0-3]):[0-5][0-9]$'
+                  description: Booking time in HH:MM format (24-hour). Must align with slot boundaries (e.g., :00, :15, :30, :45 for 15-min slots)
+                  example: "14:30"
+                serviceId:
+                  type: string
+                  description: Service document ID
+                  example: "service123"
+      responses:
+        '200':
+          description: Booking created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  bookingId:
+                    type: string
+                    description: Firestore document ID of the created booking
+                    example: "booking123"
+                  message:
+                    type: string
+                    example: "Booking request submitted successfully"
+        '400':
+          $ref: '#/components/responses/InvalidArgumentError'
+        '412':
+          description: Business logic validation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                pastBooking:
+                  value:
+                    code: "failed-precondition"
+                    message: "Cannot create bookings in the past"
+                slotUnavailable:
+                  value:
+                    code: "failed-precondition"
+                    message: "This time slot is no longer available. Please select another time."
+                invalidOTP:
+                  value:
+                    code: "unauthenticated"
+                    message: "Invalid verification code. 2 attempts remaining."
+                timeNotAligned:
+                  value:
+                    code: "failed-precondition"
+                    message: "Time 14:23 must align with 15-minute slot boundaries (e.g., :00, :15, :30, :45, etc.)"
+                outsideAvailability:
+                  value:
+                    code: "failed-precondition"
+                    message: "Time 14:30 is outside available hours for this date"
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /setWeeklyTemplate:
+    post:
+      tags:
+        - Availability
+      summary: Set weekly availability template
+      description: |
+        Sets the weekly availability template for recurring schedules.
+        
+        Validations:
+        - At least one day must have time slots
+        - All time slots must be in HH:MM format
+        - Time ranges must align with slotDuration setting
+        - Cannot remove slots that have existing bookings
+        
+        Priority: Weekly template is the lowest priority (used when no planned date or special day exists)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - template
+              properties:
+                template:
+                  $ref: '#/components/schemas/WeeklyTemplate'
+      responses:
+        '200':
+          description: Template updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Weekly template updated successfully"
+        '400':
+          $ref: '#/components/responses/InvalidArgumentError'
+        '401':
+          $ref: '#/components/responses/UnauthenticatedError'
+        '412':
+          description: Cannot modify template due to existing bookings
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /setPlannedDate:
+    post:
+      tags:
+        - Availability
+      summary: Set custom availability for specific date
+      description: |
+        Sets custom time slots for a specific date (overrides weekly template).
+        
+        Validations:
+        - Date must be in YYYY-MM-DD format
+        - Date cannot be in the past
+        - All time slots must be in HH:MM format
+        - Time ranges must align with slotDuration setting
+        - Cannot remove slots that have existing bookings
+        
+        Priority: Planned dates have medium priority (overrides weekly template, but special days take precedence)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - date
+                - slots
+              properties:
+                date:
+                  type: string
+                  format: date
+                  pattern: '^\d{4}-\d{2}-\d{2}$'
+                  description: Date in YYYY-MM-DD format
+                  example: "2025-12-25"
+                slots:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/TimeSlot'
+                  minItems: 1
+                  description: Array of time slot ranges
+      responses:
+        '200':
+          description: Planned date set successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Planned date updated successfully"
+        '400':
+          $ref: '#/components/responses/InvalidArgumentError'
+        '401':
+          $ref: '#/components/responses/UnauthenticatedError'
+        '412':
+          description: Cannot modify date due to existing bookings
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /deletePlannedDate:
+    post:
+      tags:
+        - Availability
+      summary: Delete planned date
+      description: |
+        Deletes a planned date, falling back to weekly template.
+        
+        Validations:
+        - Cannot delete if date has existing bookings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - date
+              properties:
+                date:
+                  type: string
+                  format: date
+                  pattern: '^\d{4}-\d{2}-\d{2}$'
+                  description: Date in YYYY-MM-DD format
+                  example: "2025-12-25"
+      responses:
+        '200':
+          description: Planned date deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Planned date deleted successfully"
+        '400':
+          $ref: '#/components/responses/InvalidArgumentError'
+        '401':
+          $ref: '#/components/responses/UnauthenticatedError'
+        '404':
+          description: Planned date not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '412':
+          description: Cannot delete due to existing bookings
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /setSpecialDay:
+    post:
+      tags:
+        - Availability
+      summary: Set special day (block/close dates)
+      description: |
+        Creates or updates a special day to block/close specific dates.
+        
+        Validations:
+        - Name and dates are required
+        - All dates must be in YYYY-MM-DD format
+        - Dates cannot be in the past
+        - Cannot block dates with existing bookings
+        - If id is provided, updates existing special day
+        
+        Priority: Special days have highest priority (overrides planned dates and weekly template)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - dates
+                - recurring
+              properties:
+                id:
+                  type: string
+                  description: Special day document ID (for updates)
+                  example: "special123"
+                name:
+                  type: string
+                  description: Name of the special day (e.g., "Holiday", "Maintenance")
+                  example: "New Year's Day"
+                dates:
+                  type: array
+                  items:
+                    type: string
+                    format: date
+                    pattern: '^\d{4}-\d{2}-\d{2}$'
+                  minItems: 1
+                  description: Array of dates to block
+                  example: ["2025-01-01", "2025-01-02"]
+                recurring:
+                  type: boolean
+                  description: Whether this special day recurs annually
+                  example: false
+                recurringPattern:
+                  type: string
+                  description: Recurring pattern (if recurring is true)
+                  example: "MM-DD"
+                isClosed:
+                  type: boolean
+                  description: "Whether dates are closed (default: true)"
+      responses:
+        '200':
+          description: Special day set successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Special day updated successfully"
+                  id:
+                    type: string
+                    description: Special day document ID
+                    example: "special123"
+        '400':
+          $ref: '#/components/responses/InvalidArgumentError'
+        '401':
+          $ref: '#/components/responses/UnauthenticatedError'
+        '412':
+          description: Cannot block dates with existing bookings
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /deleteSpecialDay:
+    post:
+      tags:
+        - Availability
+      summary: Delete special day
+      description: Deletes a special day (unblocks dates)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - id
+              properties:
+                id:
+                  type: string
+                  description: Special day document ID
+                  example: "special123"
+      responses:
+        '200':
+          description: Special day deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Special day deleted successfully"
+        '400':
+          $ref: '#/components/responses/InvalidArgumentError'
+        '401':
+          $ref: '#/components/responses/UnauthenticatedError'
+        '404':
+          description: Special day not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /setAvailableSlots:
+    post:
+      tags:
+        - Availability
+      summary: Set available slots for a date (Legacy)
+      description: |
+        Legacy function for setting available time slots for a specific date.
+        Note: This is a legacy function. Prefer using setPlannedDate or setWeeklyTemplate.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - date
+                - slots
+              properties:
+                date:
+                  type: string
+                  format: date
+                  pattern: '^\d{4}-\d{2}-\d{2}$'
+                  example: "2025-12-11"
+                slots:
+                  type: array
+                  items:
+                    type: string
+                    pattern: '^([0-1][0-9]|2[0-3]):[0-5][0-9]$'
+                  description: Array of time slots in HH:MM format
+                  example: ["09:00", "09:30", "10:00"]
+      responses:
+        '200':
+          description: Slots set successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Available slots set successfully"
+        '400':
+          $ref: '#/components/responses/InvalidArgumentError'
+        '401':
+          $ref: '#/components/responses/UnauthenticatedError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /checkBookingsForDate:
+    post:
+      tags:
+        - Booking Management
+      summary: Check bookings for a specific date
+      description: Returns all bookings (sessions and pending) for a specific date
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - date
+              properties:
+                date:
+                  type: string
+                  format: date
+                  pattern: '^\d{4}-\d{2}-\d{2}$'
+                  description: Date in YYYY-MM-DD format
+                  example: "2025-12-11"
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  hasBookings:
+                    type: boolean
+                    description: Whether date has any bookings
+                  count:
+                    type: number
+                    description: Total number of bookings
+                  sessions:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        clientName:
+                          type: string
+                        time:
+                          type: string
+                        service:
+                          type: string
+                    description: Approved/pending sessions
+                  pendingBookings:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        clientName:
+                          type: string
+                        time:
+                          type: string
+                        service:
+                          type: string
+                    description: Pending booking requests
+        '400':
+          $ref: '#/components/responses/InvalidArgumentError'
+        '401':
+          $ref: '#/components/responses/UnauthenticatedError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /checkBookingsForTimeRange:
+    post:
+      tags:
+        - Booking Management
+      summary: Check bookings for a time range
+      description: Returns all bookings that overlap with a specific time range on a date
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - date
+                - startTime
+                - endTime
+              properties:
+                date:
+                  type: string
+                  format: date
+                  pattern: '^\d{4}-\d{2}-\d{2}$'
+                  example: "2025-12-11"
+                startTime:
+                  type: string
+                  pattern: '^([0-1][0-9]|2[0-3]):[0-5][0-9]$'
+                  description: Start time in HH:MM format
+                  example: "09:00"
+                endTime:
+                  type: string
+                  pattern: '^([0-1][0-9]|2[0-3]):[0-5][0-9]$'
+                  description: End time in HH:MM format
+                  example: "17:00"
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  hasBookings:
+                    type: boolean
+                    description: Whether time range has overlapping bookings
+                  count:
+                    type: number
+                    description: Number of overlapping bookings
+                  sessions:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        clientName:
+                          type: string
+                        time:
+                          type: string
+                        endTime:
+                          type: string
+                        service:
+                          type: string
+                  pendingBookings:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        clientName:
+                          type: string
+                        time:
+                          type: string
+                        endTime:
+                          type: string
+                        service:
+                          type: string
+        '400':
+          $ref: '#/components/responses/InvalidArgumentError'
+        '401':
+          $ref: '#/components/responses/UnauthenticatedError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /checkBookingWaste:
+    post:
+      tags:
+        - Booking Management
+      summary: Analyze booking waste/buffer time
+      description: |
+        Analyzes the difference between service duration and booked slot duration.
+        Returns detailed statistics about waste/buffer time for bookings.
+        
+        Can analyze a specific date or all bookings.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                date:
+                  type: string
+                  format: date
+                  pattern: '^\d{4}-\d{2}-\d{2}$'
+                  description: Optional date to filter by (if not provided, analyzes all bookings)
+                  example: "2025-12-11"
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  slotDuration:
+                    type: number
+                    description: Slot duration in minutes
+                    example: 30
+                  totalBookings:
+                    type: number
+                    description: Total number of bookings analyzed
+                  totalServiceDuration:
+                    type: number
+                    description: Total service duration in minutes
+                  totalBookedDuration:
+                    type: number
+                    description: Total booked slot duration in minutes
+                  totalWaste:
+                    type: number
+                    description: Total waste/buffer time in minutes
+                  wastePercentage:
+                    type: number
+                    description: Waste as percentage of total booked duration
+                  averageWastePerBooking:
+                    type: number
+                    description: Average waste per booking in minutes
+                  bookings:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        type:
+                          type: string
+                          enum: [session, pending]
+                        date:
+                          type: string
+                        time:
+                          type: string
+                        endTime:
+                          type: string
+                        service:
+                          type: string
+                        serviceDuration:
+                          type: number
+                        bookedDuration:
+                          type: number
+                        slotsNeeded:
+                          type: number
+                        waste:
+                          type: number
+                  bookingsByDate:
+                    type: object
+                    additionalProperties:
+                      type: array
+                      items:
+                        type: object
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /sendCustomWhatsApp:
+    post:
+      tags:
+        - Messaging
+      summary: Send custom WhatsApp message
+      description: Allows admin to send custom WhatsApp messages to clients
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - to
+                - message
+              properties:
+                to:
+                  type: string
+                  description: Phone number to send message to
+                  example: "0501234567"
+                message:
+                  type: string
+                  description: Message content
+                  example: "Your booking has been confirmed!"
+      responses:
+        '200':
+          description: Message sent successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  messageId:
+                    type: string
+                    description: WhatsApp message ID
+                    example: "msg123"
+                  to:
+                    type: string
+                    description: Recipient phone number
+        '400':
+          $ref: '#/components/responses/InvalidArgumentError'
+        '401':
+          $ref: '#/components/responses/UnauthenticatedError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+components:
+  securitySchemes:
+    FirebaseAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Firebase Authentication JWT token
+
+  schemas:
+    TimeSlot:
+      type: object
+      required:
+        - start
+        - end
+      properties:
+        start:
+          type: string
+          pattern: '^([0-1][0-9]|2[0-3]):[0-5][0-9]$'
+          description: Start time in HH:MM format (24-hour)
+          example: "09:00"
+        end:
+          type: string
+          pattern: '^([0-1][0-9]|2[0-3]):[0-5][0-9]$'
+          description: End time in HH:MM format (24-hour)
+          example: "17:00"
+
+    WeeklyTemplate:
+      type: object
+      description: Weekly availability template with day keys
+      properties:
+        monday:
+          type: array
+          items:
+            $ref: '#/components/schemas/TimeSlot'
+        tuesday:
+          type: array
+          items:
+            $ref: '#/components/schemas/TimeSlot'
+        wednesday:
+          type: array
+          items:
+            $ref: '#/components/schemas/TimeSlot'
+        thursday:
+          type: array
+          items:
+            $ref: '#/components/schemas/TimeSlot'
+        friday:
+          type: array
+          items:
+            $ref: '#/components/schemas/TimeSlot'
+        saturday:
+          type: array
+          items:
+            $ref: '#/components/schemas/TimeSlot'
+        sunday:
+          type: array
+          items:
+            $ref: '#/components/schemas/TimeSlot'
+      example:
+        monday:
+          - start: "09:00"
+            end: "17:00"
+        tuesday:
+          - start: "09:00"
+            end: "17:00"
+        wednesday:
+          - start: "09:00"
+            end: "17:00"
+        thursday:
+          - start: "09:00"
+            end: "17:00"
+        friday:
+          - start: "09:00"
+            end: "14:00"
+        saturday: []
+        sunday: []
+
+    Error:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          description: Firebase HttpsError code
+          enum:
+            - invalid-argument
+            - unauthenticated
+            - failed-precondition
+            - resource-exhausted
+            - internal
+            - not-found
+        message:
+          type: string
+          description: Error message
+
+  responses:
+    InvalidArgumentError:
+      description: Invalid request parameters
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            code: "invalid-argument"
+            message: "Date is required"
+
+    UnauthenticatedError:
+      description: Authentication required
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            code: "unauthenticated"
+            message: "You must be logged in to perform this action"
+
+    InternalError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            code: "internal"
+            message: "An error occurred. Please try again."
+

@@ -1,0 +1,501 @@
+{
+  "info": {
+    "name": "Calendi Firebase Functions API",
+    "description": "Complete API collection for Calendi Firebase Cloud Functions",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "🔐 Authentication",
+      "item": [
+        {
+          "name": "Login - Get Auth Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const response = pm.response.json();",
+                  "",
+                  "if (response.idToken) {",
+                  "    pm.environment.set(\"auth_token\", response.idToken);",
+                  "    pm.environment.set(\"token_expires_in\", response.expiresIn);",
+                  "    console.log(\"✅ Token saved successfully!\");",
+                  "    console.log(\"Token:\", response.idToken.substring(0, 50) + \"...\");",
+                  "} else {",
+                  "    console.error(\"❌ Failed to get token:\", response);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@test.com\",\n  \"password\": \"admin123\",\n  \"returnSecureToken\": true\n}"
+            },
+            "url": {
+              "raw": "http://localhost:9099/identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=dummy-key",
+              "protocol": "http",
+              "host": ["localhost:9099"],
+              "path": ["identitytoolkit.googleapis.com", "v1", "accounts:signInWithPassword"],
+              "query": [
+                {
+                  "key": "key",
+                  "value": "dummy-key"
+                }
+              ]
+            },
+            "description": "Sign in and get Firebase ID token. Token is automatically saved to environment variable."
+          }
+        }
+      ]
+    },
+    {
+      "name": "📖 Booking APIs (Public)",
+      "item": [
+        {
+          "name": "getServices",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"data\": {}\n}"
+            },
+            "url": {
+              "raw": "http://localhost:5001/bussiness-managment-syst-da008/us-central1/getServices",
+              "protocol": "http",
+              "host": ["localhost:5001"],
+              "path": ["bussiness-managment-syst-da008", "us-central1", "getServices"]
+            },
+            "description": "Get all active services. No authentication required."
+          }
+        },
+        {
+          "name": "getAvailableTimeSlots",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"data\": {\n    \"date\": \"2025-12-11\",\n    \"serviceDuration\": 45\n  }\n}"
+            },
+            "url": {
+              "raw": "http://localhost:5001/bussiness-managment-syst-da008/us-central1/getAvailableTimeSlots",
+              "protocol": "http",
+              "host": ["localhost:5001"],
+              "path": ["bussiness-managment-syst-da008", "us-central1", "getAvailableTimeSlots"]
+            },
+            "description": "Get available time slots for a specific date. Optional serviceDuration filters slots that can fit the service. No authentication required."
+          }
+        },
+        {
+          "name": "createPendingRequest",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"data\": {\n    \"code\": \"1234\",\n    \"clientName\": \"John Doe\",\n    \"phone\": \"0501234567\",\n    \"date\": \"2025-12-15\",\n    \"time\": \"14:30\",\n    \"serviceId\": \"service123\"\n  }\n}"
+            },
+            "url": {
+              "raw": "http://localhost:5001/bussiness-managment-syst-da008/us-central1/createPendingRequest",
+              "protocol": "http",
+              "host": ["localhost:5001"],
+              "path": ["bussiness-managment-syst-da008", "us-central1", "createPendingRequest"]
+            },
+            "description": "Create a new pending booking request with integrated OTP verification. OTP code is required and verified internally before booking creation. No authentication required."
+          }
+        }
+      ]
+    },
+    {
+      "name": "🔐 OTP Verification",
+      "item": [
+        {
+          "name": "sendOTPWhatsApp",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"data\": {\n    \"phone\": \"0501234567\"\n  }\n}"
+            },
+            "url": {
+              "raw": "http://localhost:5001/bussiness-managment-syst-da008/us-central1/sendOTPWhatsApp",
+              "protocol": "http",
+              "host": ["localhost:5001"],
+              "path": ["bussiness-managment-syst-da008", "us-central1", "sendOTPWhatsApp"]
+            },
+            "description": "Send OTP code via WhatsApp. Rate limited: Max 5 codes per phone/hour, max 10 requests per IP/hour, minimum 30 seconds between requests. No authentication required."
+          }
+        },
+        {
+          "name": "verifyOTPWhatsApp",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"data\": {\n    \"phone\": \"0501234567\",\n    \"code\": \"1234\"\n  }\n}"
+            },
+            "url": {
+              "raw": "http://localhost:5001/bussiness-managment-syst-da008/us-central1/verifyOTPWhatsApp",
+              "protocol": "http",
+              "host": ["localhost:5001"],
+              "path": ["bussiness-managment-syst-da008", "us-central1", "verifyOTPWhatsApp"]
+            },
+            "description": "Verify OTP code. Max 3 attempts per code. Code expires after 5 minutes. No authentication required."
+          }
+        }
+      ]
+    },
+    {
+      "name": "📅 Availability Management",
+      "item": [
+        {
+          "name": "setWeeklyTemplate",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"data\": {\n    \"template\": {\n      \"monday\": [\n        {\"start\": \"09:00\", \"end\": \"17:00\"}\n      ],\n      \"tuesday\": [\n        {\"start\": \"09:00\", \"end\": \"17:00\"}\n      ],\n      \"wednesday\": [\n        {\"start\": \"09:00\", \"end\": \"17:00\"}\n      ],\n      \"thursday\": [\n        {\"start\": \"09:00\", \"end\": \"17:00\"}\n      ],\n      \"friday\": [\n        {\"start\": \"09:00\", \"end\": \"14:00\"}\n      ],\n      \"saturday\": [],\n      \"sunday\": []\n    }\n  }\n}"
+            },
+            "url": {
+              "raw": "http://localhost:5001/bussiness-managment-syst-da008/us-central1/setWeeklyTemplate",
+              "protocol": "http",
+              "host": ["localhost:5001"],
+              "path": ["bussiness-managment-syst-da008", "us-central1", "setWeeklyTemplate"]
+            },
+            "description": "Set weekly availability template. Requires authentication. Time ranges must align with slotDuration setting."
+          }
+        },
+        {
+          "name": "setPlannedDate",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"data\": {\n    \"date\": \"2025-12-25\",\n    \"slots\": [\n      {\"start\": \"10:00\", \"end\": \"14:00\"},\n      {\"start\": \"15:00\", \"end\": \"18:00\"}\n    ]\n  }\n}"
+            },
+            "url": {
+              "raw": "http://localhost:5001/bussiness-managment-syst-da008/us-central1/setPlannedDate",
+              "protocol": "http",
+              "host": ["localhost:5001"],
+              "path": ["bussiness-managment-syst-da008", "us-central1", "setPlannedDate"]
+            },
+            "description": "Set custom availability for a specific date. Requires authentication. Date cannot be in the past."
+          }
+        },
+        {
+          "name": "deletePlannedDate",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"data\": {\n    \"date\": \"2025-12-25\"\n  }\n}"
+            },
+            "url": {
+              "raw": "http://localhost:5001/bussiness-managment-syst-da008/us-central1/deletePlannedDate",
+              "protocol": "http",
+              "host": ["localhost:5001"],
+              "path": ["bussiness-managment-syst-da008", "us-central1", "deletePlannedDate"]
+            },
+            "description": "Delete planned date (falls back to weekly template). Requires authentication. Cannot delete if date has bookings."
+          }
+        },
+        {
+          "name": "setSpecialDay",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"data\": {\n    \"name\": \"New Year's Day\",\n    \"dates\": [\"2025-01-01\", \"2025-01-02\"],\n    \"recurring\": false,\n    \"isClosed\": true\n  }\n}"
+            },
+            "url": {
+              "raw": "http://localhost:5001/bussiness-managment-syst-da008/us-central1/setSpecialDay",
+              "protocol": "http",
+              "host": ["localhost:5001"],
+              "path": ["bussiness-managment-syst-da008", "us-central1", "setSpecialDay"]
+            },
+            "description": "Set special day (block/close dates). Requires authentication. Cannot block dates with existing bookings. To update, include 'id' field."
+          }
+        },
+        {
+          "name": "deleteSpecialDay",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"data\": {\n    \"id\": \"special123\"\n  }\n}"
+            },
+            "url": {
+              "raw": "http://localhost:5001/bussiness-managment-syst-da008/us-central1/deleteSpecialDay",
+              "protocol": "http",
+              "host": ["localhost:5001"],
+              "path": ["bussiness-managment-syst-da008", "us-central1", "deleteSpecialDay"]
+            },
+            "description": "Delete special day (unblocks dates). Requires authentication."
+          }
+        },
+        {
+          "name": "setAvailableSlots (Legacy)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"data\": {\n    \"date\": \"2025-12-11\",\n    \"slots\": [\"09:00\", \"09:30\", \"10:00\", \"10:30\", \"11:00\"]\n  }\n}"
+            },
+            "url": {
+              "raw": "http://localhost:5001/bussiness-managment-syst-da008/us-central1/setAvailableSlots",
+              "protocol": "http",
+              "host": ["localhost:5001"],
+              "path": ["bussiness-managment-syst-da008", "us-central1", "setAvailableSlots"]
+            },
+            "description": "Legacy function for setting available time slots for a specific date. Prefer using setPlannedDate or setWeeklyTemplate."
+          }
+        }
+      ]
+    },
+    {
+      "name": "📊 Booking Management",
+      "item": [
+        {
+          "name": "checkBookingsForDate",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"data\": {\n    \"date\": \"2025-12-11\"\n  }\n}"
+            },
+            "url": {
+              "raw": "http://localhost:5001/bussiness-managment-syst-da008/us-central1/checkBookingsForDate",
+              "protocol": "http",
+              "host": ["localhost:5001"],
+              "path": ["bussiness-managment-syst-da008", "us-central1", "checkBookingsForDate"]
+            },
+            "description": "Check all bookings (sessions and pending) for a specific date. Requires authentication."
+          }
+        },
+        {
+          "name": "checkBookingsForTimeRange",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"data\": {\n    \"date\": \"2025-12-11\",\n    \"startTime\": \"09:00\",\n    \"endTime\": \"17:00\"\n  }\n}"
+            },
+            "url": {
+              "raw": "http://localhost:5001/bussiness-managment-syst-da008/us-central1/checkBookingsForTimeRange",
+              "protocol": "http",
+              "host": ["localhost:5001"],
+              "path": ["bussiness-managment-syst-da008", "us-central1", "checkBookingsForTimeRange"]
+            },
+            "description": "Check all bookings that overlap with a specific time range on a date. Requires authentication."
+          }
+        },
+        {
+          "name": "checkBookingWaste",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"data\": {\n    \"date\": \"2025-12-11\"\n  }\n}"
+            },
+            "url": {
+              "raw": "http://localhost:5001/bussiness-managment-syst-da008/us-central1/checkBookingWaste",
+              "protocol": "http",
+              "host": ["localhost:5001"],
+              "path": ["bussiness-managment-syst-da008", "us-central1", "checkBookingWaste"]
+            },
+            "description": "Analyze booking waste/buffer time. Can analyze a specific date or all bookings (omit date parameter). Requires authentication."
+          }
+        },
+        {
+          "name": "checkBookingWaste - All Bookings",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"data\": {}\n}"
+            },
+            "url": {
+              "raw": "http://localhost:5001/bussiness-managment-syst-da008/us-central1/checkBookingWaste",
+              "protocol": "http",
+              "host": ["localhost:5001"],
+              "path": ["bussiness-managment-syst-da008", "us-central1", "checkBookingWaste"]
+            },
+            "description": "Analyze booking waste for all bookings (no date filter)."
+          }
+        }
+      ]
+    },
+    {
+      "name": "💬 Messaging",
+      "item": [
+        {
+          "name": "sendCustomWhatsApp",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{auth_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"data\": {\n    \"to\": \"0501234567\",\n    \"message\": \"Your booking has been confirmed!\"\n  }\n}"
+            },
+            "url": {
+              "raw": "http://localhost:5001/bussiness-managment-syst-da008/us-central1/sendCustomWhatsApp",
+              "protocol": "http",
+              "host": ["localhost:5001"],
+              "path": ["bussiness-managment-syst-da008", "us-central1", "sendCustomWhatsApp"]
+            },
+            "description": "Send custom WhatsApp message. Admin only. Requires authentication."
+          }
+        }
+      ]
+    }
+  ]
+}
+

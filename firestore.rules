@@ -1,0 +1,177 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper function to check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Helper function to validate date is not in the past
+    function isValidFutureDate(dateString) {
+      // Parse YYYY-MM-DD into a timestamp at start of day (00:00:00 UTC)
+      let year = int(dateString.split('-')[0]);
+      let month = int(dateString.split('-')[1]);
+      let day = int(dateString.split('-')[2]);
+      
+      // Get today's date components
+      let todayYear = request.time.year();
+      let todayMonth = request.time.month();
+      let todayDay = request.time.day();
+      
+      // Compare: year first, then month, then day
+      return year > todayYear
+        || (year == todayYear && month > todayMonth)
+        || (year == todayYear && month == todayMonth && day >= todayDay);
+    }
+    
+      // Helper function to validate session/booking data
+      function isValidBookingData(data) {
+        // Check required fields exist (Sprint 2: added endTime, duration)
+        let hasRequiredFields = data.keys().hasAll(['clientName', 'phone', 'date', 'time', 'endTime', 'duration', 'service', 'status']);
+        
+        // Validate phone format (Israeli: 05X-XXXXXXX or 05XXXXXXXX)
+        let validPhone = data.phone.matches('^05[0-9]-?[0-9]{7}$');
+        
+        // Validate date format (YYYY-MM-DD) and not in past
+        let validDate = data.date.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$') 
+          && isValidFutureDate(data.date);
+        
+        // Validate time format (HH:MM)
+        let validTime = data.time.matches('^[0-9]{2}:[0-9]{2}$');
+        
+        // Validate endTime format (HH:MM)
+        let validEndTime = data.endTime.matches('^[0-9]{2}:[0-9]{2}$');
+        
+        // Validate duration (must be positive number, in 15-minute increments)
+        let validDuration = data.duration is number 
+          && data.duration > 0 
+          && data.duration % 15 == 0;
+        
+        // Validate status
+        let validStatus = data.status in ['approved', 'pending', 'cancelled'];
+        
+        return hasRequiredFields && validPhone && validDate && validTime && validEndTime && validDuration && validStatus;
+      }
+    
+    // Sessions collection (approved bookings)
+    // SECURE: Only authenticated users (admins) can read/create/modify sessions
+    // Note: Time validation (past time on today's date) is handled client-side
+    // TODO: Implement admin custom claims check (Sprint 1, Story 3) for stricter admin-only access
+    match /sessions/{sessionId} {
+      allow read: if isAuthenticated();  // 🔒 Only authenticated users (admins) can read
+      allow create: if isAuthenticated() && isValidBookingData(request.resource.data);
+      allow update: if isAuthenticated() && isValidBookingData(request.resource.data);
+      allow delete: if isAuthenticated();
+    }
+    
+    // Pending bookings collection
+    // SECURE: Only Cloud Functions can create bookings (using Admin SDK)
+    // Clients MUST use the createBooking Cloud Function
+    match /pendingBookings/{bookingId} {
+      allow read: if isAuthenticated();
+      allow create: if false;  // 🔒 BLOCK all client writes - use Cloud Function!
+      allow update, delete: if isAuthenticated();
+    }
+    
+    // Available slots collection
+    // 🔒 SECURE: Only Cloud Functions can create/update slots (using Admin SDK)
+    // Admins MUST use the setAvailableSlots Cloud Function to ensure validation
+    match /availableSlots/{slotId} {
+      allow read: if true;
+      allow create, update: if false;  // 🔒 BLOCK all client writes
+      allow delete: if isAuthenticated();  // Allow admins to delete
+    }
+    
+    // Services collection
+    // SECURE: Clients must use getServices Cloud Function (filters active services)
+    // Admins can read directly for real-time updates in admin dashboard
+    match /services/{serviceId} {
+      allow read: if isAuthenticated();  // 🔒 Only authenticated users (admins) can read directly
+      // Require authentication for writes
+      allow create, update: if isAuthenticated()
+        && request.resource.data.active is bool
+        && (
+          // Old format: single 'name' field
+          ('name' in request.resource.data && request.resource.data.name is string)
+          ||
+          // New format: multi-language 'names' object
+          ('names' in request.resource.data 
+           && request.resource.data.names is map
+           && 'en' in request.resource.data.names
+           && 'he' in request.resource.data.names
+           && 'ar' in request.resource.data.names)
+        );
+      allow delete: if isAuthenticated();
+    }
+    
+    // User preferences collection
+    match /userPreferences/{userId} {
+      allow read: if isAuthenticated() && request.auth.uid == userId;
+      allow create, update: if isAuthenticated() && request.auth.uid == userId;
+      allow delete: if isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    
+        // Blacklist collection (admin only)
+    match /blacklist/{blacklistId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated()
+        && request.resource.data.keys().hasAll(['phone', 'clientName', 'reason', 'dateAdded'])
+        && request.resource.data.phone is string
+        && request.resource.data.phone.size() > 0
+        && request.resource.data.phone.matches('^05[0-9]-?[0-9]{7}$')
+        && request.resource.data.clientName is string
+        && request.resource.data.clientName.size() > 0
+        && request.resource.data.reason is string
+        && request.resource.data.reason.size() > 0
+        && request.resource.data.reason.size() <= 200
+        && request.resource.data.dateAdded is timestamp;
+      allow delete: if isAuthenticated();
+    }
+    
+    // OTP Codes collection (Cloud Functions only)
+    // 🔒 SECURE: Only Cloud Functions can read/write OTP codes
+    // Clients cannot access this data directly - prevents OTP bypass
+    match /otpCodes/{phone} {
+      allow read, write: if false;  // Block all client access
+    }
+    
+    // OTP IP Rate Limiting collection (Cloud Functions only)
+    // 🔒 SECURE: Only Cloud Functions can read/write IP tracking
+    // Prevents attackers from viewing or manipulating rate limits
+    match /otpIPLimits/{ipAddress} {
+      allow read, write: if false;  // Block all client access
+    }
+    
+    // Settings collection (weekly template)
+    // SECURE: Only authenticated users can read/write
+    match /settings/{settingId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isAuthenticated();
+      allow delete: if isAuthenticated();
+    }
+    
+    // Planned dates collection
+    // SECURE: Only authenticated users can read/write
+    match /plannedDates/{plannedDateId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isAuthenticated();
+      allow delete: if isAuthenticated();
+    }
+    
+    // Special days collection
+    // SECURE: Only authenticated users can read/write
+    match /specialDays/{specialDayId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isAuthenticated();
+      allow delete: if isAuthenticated();
+    }
+    
+    // Deny all other collections by default
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
+

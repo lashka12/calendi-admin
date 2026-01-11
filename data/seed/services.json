@@ -1,0 +1,95 @@
+{
+  "services": [
+    {
+      "names": {
+        "en": "Manicure",
+        "he": "מניקור",
+        "ar": "مانيكير"
+      },
+      "descriptions": {
+        "en": "Professional nail care with polish application",
+        "he": "טיפול ציפורניים מקצועי עם צביעה",
+        "ar": "عناية احترافية بالأظافر مع طلاء"
+      },
+      "price": 150,
+      "duration": 60,
+      "active": true
+    },
+    {
+      "names": {
+        "en": "Pedicure",
+        "he": "פדיקור",
+        "ar": "باديكير"
+      },
+      "descriptions": {
+        "en": "Complete foot care treatment with polish",
+        "he": "טיפול רגליים מלא עם צביעה",
+        "ar": "علاج كامل للقدم مع طلاء"
+      },
+      "price": 180,
+      "duration": 75,
+      "active": true
+    },
+    {
+      "names": {
+        "en": "Gel Manicure",
+        "he": "מניקור ג'ל",
+        "ar": "مانيكير جل"
+      },
+      "descriptions": {
+        "en": "Long-lasting gel polish application",
+        "he": "צביעת ג'ל עמידה לאורך זמן",
+        "ar": "تطبيق طلاء جل طويل الأمد"
+      },
+      "price": 200,
+      "duration": 90,
+      "active": true
+    },
+    {
+      "names": {
+        "en": "Nail Art",
+        "he": "ציורי ציפורניים",
+        "ar": "فن الأظافر"
+      },
+      "descriptions": {
+        "en": "Custom nail art designs and decorations",
+        "he": "עיצובים וקישוטים מותאמים אישית",
+        "ar": "تصاميم وزخارف مخصصة للأظافر"
+      },
+      "price": 250,
+      "duration": 120,
+      "active": true
+    },
+    {
+      "names": {
+        "en": "Express Manicure",
+        "he": "מניקור מהיר",
+        "ar": "مانيكير سريع"
+      },
+      "descriptions": {
+        "en": "Quick nail shaping and polish for busy schedules",
+        "he": "עיצוב וצביעה מהירים ללוחות זמנים עמוסים",
+        "ar": "تشكيل سريع للأظافر وطلاء للجداول المزدحمة"
+      },
+      "price": 80,
+      "duration": 30,
+      "active": true
+    },
+    {
+      "names": {
+        "en": "Mani-Pedi Combo",
+        "he": "מניקור + פדיקור",
+        "ar": "مانيكير وباديكير معاً"
+      },
+      "descriptions": {
+        "en": "Complete hand and foot treatment package",
+        "he": "חבילת טיפול מלאה לידיים ורגליים",
+        "ar": "باقة علاج كاملة لليدين والقدمين"
+      },
+      "price": 280,
+      "duration": 120,
+      "active": true
+    }
+  ]
+}
+

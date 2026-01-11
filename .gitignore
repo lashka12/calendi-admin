@@ -1,0 +1,69 @@
+# Dependencies
+node_modules/
+/.pnp
+.pnp.js
+
+# Next.js build output
+.next/
+out/
+build/
+
+# Production
+dist/
+
+# Debug logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.log
+
+# Environment files (sensitive!)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Firebase
+.firebase/
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+database-debug.log
+pubsub-debug.log
+firestore_export/
+data/emulator/
+
+# Firebase Functions
+functions/node_modules/
+functions/lib/
+functions/.firebase/
+
+# TypeScript
+*.tsbuildinfo
+
+# IDE / Editor
+.idea/
+.vscode/
+.cursorrules
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+ehthumbs.db
+
+# Testing
+coverage/
+.nyc_output/
+
+# Vercel
+.vercel
+
+# Misc
+*.pem
+*.key
