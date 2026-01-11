@@ -14,6 +14,7 @@ export { createPendingRequest } from "./src/booking/createPendingRequest";
 export { createSession } from "./src/booking/createSession";
 export { getServices } from "./src/booking/getServices";
 export { getAvailableTimeSlots } from "./src/booking/getAvailableTimeSlots";
+export { getAvailableDatesInRange } from "./src/booking/getAvailableDatesInRange";
 export { checkBookingWaste } from "./src/booking/checkBookingWaste";
 
 // ============================================
