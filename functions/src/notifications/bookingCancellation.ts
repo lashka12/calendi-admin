@@ -1,5 +1,6 @@
 import { onDocumentDeleted } from "firebase-functions/v2/firestore";
 import { sendWhatsAppMessage } from "../messaging/whatsAppService";
+import { getMessage, formatDateForMessage } from "../messaging/messageTemplates";
 
 /**
  * Send Booking Cancellation WhatsApp
@@ -25,20 +26,15 @@ export const sendBookingCancellationWhatsApp = onDocumentDeleted(
 
     console.log("📞 Sending cancellation WhatsApp to:", deletedData.phone);
 
-    // Format date nicely
-    const dateObj = new Date(deletedData.date);
-    const formattedDate = dateObj.toLocaleDateString("en-US", {
-      weekday: "long",
-      month: "long",
-      day: "numeric",
+    // Build message using centralized template
+    // TODO: Get language from settings when multi-lang is implemented
+    const lang = "en";
+    const message = getMessage("bookingCancelled", lang, {
+      clientName: deletedData.clientName,
+      date: formatDateForMessage(deletedData.date, lang),
+      time: deletedData.time,
+      service: deletedData.service,
     });
-
-    // WhatsApp message - conversational format
-    const message = `Hi ${deletedData.clientName},
-
-Your appointment for ${deletedData.service} on *${formattedDate}* at *${deletedData.time}* has been cancelled.
-
-Want to reschedule? Just let us know!`;
 
     try {
       const response = await sendWhatsAppMessage(deletedData.phone, message);
@@ -54,8 +50,3 @@ Want to reschedule? Just let us know!`;
     }
   }
 );
-
-
-
-
-

@@ -1,5 +1,6 @@
 import { onDocumentCreated } from "firebase-functions/v2/firestore";
 import { sendWhatsAppMessage } from "../messaging/whatsAppService";
+import { getMessage, formatDateForMessage } from "../messaging/messageTemplates";
 
 /**
  * Send Booking Confirmation WhatsApp
@@ -28,20 +29,15 @@ export const sendBookingConfirmation = onDocumentCreated(
       return null;
     }
 
-    // Format date nicely
-    const dateObj = new Date(booking.date);
-    const formattedDate = dateObj.toLocaleDateString("en-US", {
-      weekday: "long",
-      month: "long",
-      day: "numeric",
+    // Build message using centralized template
+    // TODO: Get language from settings when multi-lang is implemented
+    const lang = "en";
+    const message = getMessage("bookingConfirmed", lang, {
+      clientName: booking.clientName,
+      date: formatDateForMessage(booking.date, lang),
+      time: booking.time,
+      service: booking.service,
     });
-
-    // WhatsApp message - conversational format
-    const message = `Hi ${booking.clientName}! 👋
-
-Your appointment is all set for *${formattedDate}* at *${booking.time}* for ${booking.service}.
-
-Looking forward to seeing you!`;
 
     try {
       const response = await sendWhatsAppMessage(booking.phone, message);
@@ -57,8 +53,3 @@ Looking forward to seeing you!`;
     }
   }
 );
-
-
-
-
-

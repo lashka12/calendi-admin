@@ -1,0 +1,207 @@
+================================================================================
+                        WHATSAPP MESSAGE TEMPLATES PREVIEW
+================================================================================
+
+This file shows all WhatsApp message templates in all supported languages.
+Example data used:
+  - Client Name: David
+  - Date: Sunday, January 12 / יום ראשון, 12 בינואר / الأحد، 12 يناير
+  - Time: 14:30
+  - Service: Haircut / תספורת / قص شعر
+  - OTP Code: 1234
+
+================================================================================
+                              BOOKING CONFIRMED
+================================================================================
+
+
+Hi David,
+
+Your appointment is confirmed for *Sunday, January 12* at *14:30* for Haircut.
+
+Looking forward to seeing you.
+
+
+שלום David,
+
+התור שלך אושר לתאריך *יום ראשון, 12 בינואר* בשעה *14:30* עבור תספורת.
+
+מחכים לראותך.
+
+
+مرحبا David,
+
+تم تأكيد موعدك في *الأحد، 12 يناير* الساعة *14:30* لـ قص شعر.
+
+نتطلع لرؤيتك.
+
+
+================================================================================
+                              BOOKING UPDATED
+================================================================================
+
+
+Hi David,
+
+Your appointment has been updated to *Sunday, January 12* at *14:30* for Haircut.
+
+If you have any questions, feel free to reach out.
+
+
+שלום David,
+
+התור שלך עודכן לתאריך *יום ראשון, 12 בינואר* בשעה *14:30* עבור תספורת.
+
+אם יש לך שאלות, אל תהסס לפנות אלינו.
+
+
+مرحبا David,
+
+تم تحديث موعدك إلى *الأحد، 12 يناير* الساعة *14:30* لـ قص شعر.
+
+إذا كان لديك أي أسئلة، لا تتردد في التواصل معنا.
+
+
+================================================================================
+                              BOOKING CANCELLED
+================================================================================
+
+
+Hi David,
+
+Your appointment for Haircut on *Sunday, January 12* at *14:30* has been cancelled.
+
+If you'd like to reschedule, please let us know.
+
+
+שלום David,
+
+התור שלך לתספורת בתאריך *יום ראשון, 12 בינואר* בשעה *14:30* בוטל.
+
+אם תרצה לקבוע תור חדש, אנא פנה אלינו.
+
+
+مرحبا David,
+
+تم إلغاء موعدك لـ قص شعر في *الأحد، 12 يناير* الساعة *14:30*.
+
+إذا كنت ترغب في إعادة الحجز، يرجى إعلامنا.
+
+
+================================================================================
+                              OTP (VERIFICATION CODE)
+================================================================================
+
+
+Your verification code is *1234*
+
+This code expires in 5 minutes.
+
+Do not share this code with anyone.
+
+
+קוד האימות שלך הוא *1234*
+
+הקוד תקף ל-5 דקות.
+
+אל תשתף את הקוד עם אף אחד.
+
+
+رمز التحقق الخاص بك هو *1234*
+
+ينتهي هذا الرمز خلال 5 دقائق.
+
+لا تشارك هذا الرمز مع أي شخص.
+
+
+================================================================================
+                              DAILY REMINDER
+================================================================================
+
+Day text based on daysBefore setting:
+  - daysBefore: 0 → "today" / "היום" / "اليوم"
+  - daysBefore: 1 → "tomorrow" / "מחר" / "غدا"
+  - daysBefore: 2+ → shows actual date instead
+
+--- ENGLISH (daysBefore: 1 - tomorrow) ---
+Hi David,
+
+This is a reminder about your appointment tomorrow:
+
+Date: Sunday, January 12
+Time: 14:30
+Service: Haircut
+
+We look forward to seeing you.
+
+If you need to reschedule, please contact us as soon as possible.
+
+--- ENGLISH (daysBefore: 3 - shows date) ---
+Hi David,
+
+This is a reminder about your upcoming appointment on Sunday, January 12:
+
+Date: Sunday, January 12
+Time: 14:30
+Service: Haircut
+
+We look forward to seeing you.
+
+If you need to reschedule, please contact us as soon as possible.
+
+--- HEBREW (daysBefore: 1 - מחר) ---
+שלום David,
+
+זוהי תזכורת לתור שלך מחר:
+
+תאריך: יום ראשון, 12 בינואר
+שעה: 14:30
+שירות: תספורת
+
+מחכים לראותך.
+
+אם אתה צריך לשנות את התור, אנא צור איתנו קשר בהקדם האפשרי.
+
+--- HEBREW (daysBefore: 3 - shows date) ---
+שלום David,
+
+זוהי תזכורת לתור שלך בתאריך יום ראשון, 12 בינואר:
+
+תאריך: יום ראשון, 12 בינואר
+שעה: 14:30
+שירות: תספורת
+
+מחכים לראותך.
+
+אם אתה צריך לשנות את התור, אנא צור איתנו קשר בהקדם האפשרי.
+
+--- ARABIC (daysBefore: 1 - غدا) ---
+مرحبا David,
+
+هذا تذكير بموعدك غدا:
+
+التاريخ: الأحد، 12 يناير
+الوقت: 14:30
+الخدمة: قص شعر
+
+نتطلع لرؤيتك.
+
+إذا كنت بحاجة إلى إعادة جدولة الموعد، يرجى الاتصال بنا في أقرب وقت ممكن.
+
+--- ARABIC (daysBefore: 3 - shows date) ---
+مرحبا David,
+
+هذا تذكير بموعدك في الأحد، 12 يناير:
+
+التاريخ: الأحد، 12 يناير
+الوقت: 14:30
+الخدمة: قص شعر
+
+نتطلع لرؤيتك.
+
+إذا كنت بحاجة إلى إعادة جدولة الموعد، يرجى الاتصال بنا في أقرب وقت ممكن.
+
+
+================================================================================
+                                    END
+================================================================================
