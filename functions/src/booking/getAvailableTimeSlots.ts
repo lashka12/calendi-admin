@@ -1,13 +1,11 @@
 import { onCall, HttpsError } from "firebase-functions/v2/https";
 import * as admin from "firebase-admin";
 import {
-  getSlotDuration,
   generateSlotsInRange,
   calculateSlotsNeeded,
   isTimeAlignedWithSlots,
 } from "../utils/slotHelpers";
 import {
-  getBusinessTimezone,
   isPastDateInTimezone,
   isTodayInTimezone,
   isPastTimeInTimezone,
@@ -76,14 +74,45 @@ export const getAvailableTimeSlots = onCall(
     try {
       const db = admin.firestore();
 
-      // Get business timezone first (needed for all timezone-aware checks)
-      const timezone = await getBusinessTimezone(db);
+      // ============================================================
+      // PARALLEL FETCH: Get all initial data in ONE network roundtrip
+      // ============================================================
+      const [
+        businessSettingsDoc,
+        serviceDoc,
+        specialSnapshot,
+        plannedSnapshot,
+        weeklyTemplateDoc,
+      ] = await Promise.all([
+        // 1. Business settings (timezone + slot duration)
+        db.collection("settings").doc("businessSettings").get(),
+        // 2. Service (if serviceId provided, otherwise resolve null)
+        serviceId 
+          ? db.collection("services").doc(serviceId).get() 
+          : Promise.resolve(null),
+        // 3. Special days (check if closed)
+        db.collection("specialDays").get(),
+        // 4. Planned dates (custom hours for specific date)
+        db.collection("plannedDates").where("date", "==", date).get(),
+        // 5. Weekly template (fallback schedule)
+        db.collection("settings").doc("weeklyTemplate").get(),
+      ]);
 
-      // Look up service duration if serviceId provided
+      // ============================================================
+      // PROCESS RESULTS
+      // ============================================================
+
+      // Extract business settings
+      const businessSettings = businessSettingsDoc.exists ? businessSettingsDoc.data() : {};
+      const timezone = businessSettings?.timezone || "Asia/Jerusalem";
+      const slotDuration = (typeof businessSettings?.slotDuration === "number" && businessSettings.slotDuration > 0) 
+        ? businessSettings.slotDuration 
+        : 15;
+
+      // Check service (if requested)
       let serviceDuration: number | undefined;
       if (serviceId) {
-        const serviceDoc = await db.collection("services").doc(serviceId).get();
-        if (serviceDoc.exists) {
+        if (serviceDoc && serviceDoc.exists) {
           const serviceData = serviceDoc.data();
           serviceDuration = serviceData?.duration;
           console.log(`📋 [getAvailableTimeSlots] Service ${serviceId} has duration: ${serviceDuration} min`);
@@ -106,10 +135,7 @@ export const getAvailableTimeSlots = onCall(
         };
       }
 
-      // 1. Check special days (highest priority)
-      const specialDaysRef = db.collection("specialDays");
-      const specialSnapshot = await specialDaysRef.get();
-      
+      // Check special days (is this date closed?)
       const specialDays = specialSnapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
@@ -128,38 +154,29 @@ export const getAvailableTimeSlots = onCall(
         };
       }
 
-      // 2. Check planned dates (medium priority)
-      const plannedRef = db.collection("plannedDates");
-      const plannedQuery = plannedRef.where("date", "==", date);
-      const plannedSnapshot = await plannedQuery.get();
-
+      // Determine available slots: plannedDates > weeklyTemplate
       let availableSlots: TimeSlot[] = [];
 
       if (!plannedSnapshot.empty) {
-        // Use planned date slots
+        // Use planned date slots (highest priority for specific date)
         const plannedData = plannedSnapshot.docs[0].data();
         availableSlots = plannedData.slots || [];
-      } else {
-        // 3. Fall back to weekly template (lowest priority)
-        const templateRef = db.collection("settings").doc("weeklyTemplate");
-        const templateDoc = await templateRef.get();
-
-        if (templateDoc.exists) {
-          const template = templateDoc.data() as WeeklyTemplate;
-          const dateObj = new Date(date + "T00:00:00");
-          const dayOfWeek = dateObj.getDay();
-          const dayNames = [
-            "sunday",
-            "monday",
-            "tuesday",
-            "wednesday",
-            "thursday",
-            "friday",
-            "saturday",
-          ];
-          const dayName = dayNames[dayOfWeek] as keyof WeeklyTemplate;
-          availableSlots = template[dayName] || [];
-        }
+      } else if (weeklyTemplateDoc.exists) {
+        // Fall back to weekly template
+        const template = weeklyTemplateDoc.data() as WeeklyTemplate;
+        const dateObj = new Date(date + "T00:00:00");
+        const dayOfWeek = dateObj.getDay();
+        const dayNames = [
+          "sunday",
+          "monday",
+          "tuesday",
+          "wednesday",
+          "thursday",
+          "friday",
+          "saturday",
+        ];
+        const dayName = dayNames[dayOfWeek] as keyof WeeklyTemplate;
+        availableSlots = template[dayName] || [];
       }
 
       if (availableSlots.length === 0) {
@@ -171,10 +188,7 @@ export const getAvailableTimeSlots = onCall(
         };
       }
 
-      // 4. Get slot duration from settings
-      const slotDuration = await getSlotDuration(db);
-
-      // 5. Generate slots from time ranges using slot duration
+      // 4. Generate slots from time ranges using slot duration (already fetched above)
       const allTimeSlots: string[] = [];
       for (const slot of availableSlots) {
         const slots = generateSlotsInRange(slot.start, slot.end, slotDuration);
@@ -273,19 +287,24 @@ async function getBookedTimes(
   excludeSessionId?: string
 ): Promise<Set<string>> {
   const bookedTimes = new Set<string>();
-  const { calculateSlotsNeeded } = await import("../utils/slotHelpers");
 
   console.log(`🔍 [getBookedTimes] Checking booked times for ${date} with slotDuration: ${slotDuration}${excludeSessionId ? `, excluding session: ${excludeSessionId}` : ''}`);
 
-  // Get sessions (approved bookings)
-  const sessionsRef = db.collection("sessions");
-  const sessionsQuery = sessionsRef
+  // Fetch sessions and pending bookings in PARALLEL
+  const sessionsQuery = db.collection("sessions")
     .where("date", "==", date)
     .where("status", "in", ["approved", "pending"]);
-  const sessionsSnapshot = await sessionsQuery.get();
+  const pendingQuery = db.collection("pendingBookings")
+    .where("date", "==", date);
 
-  console.log(`📊 [getBookedTimes] Found ${sessionsSnapshot.size} sessions`);
+  const [sessionsSnapshot, pendingSnapshot] = await Promise.all([
+    sessionsQuery.get(),
+    pendingQuery.get(),
+  ]);
 
+  console.log(`📊 [getBookedTimes] Found ${sessionsSnapshot.size} sessions, ${pendingSnapshot.size} pending bookings`);
+
+  // Process sessions
   sessionsSnapshot.docs.forEach((doc) => {
     // Skip the session being edited
     if (excludeSessionId && doc.id === excludeSessionId) {
@@ -308,13 +327,7 @@ async function getBookedTimes(
     slots.forEach((slot) => bookedTimes.add(slot));
   });
 
-  // Get pending bookings
-  const pendingRef = db.collection("pendingBookings");
-  const pendingQuery = pendingRef.where("date", "==", date);
-  const pendingSnapshot = await pendingQuery.get();
-
-  console.log(`📊 [getBookedTimes] Found ${pendingSnapshot.size} pending bookings`);
-
+  // Process pending bookings
   pendingSnapshot.docs.forEach((doc) => {
     const data = doc.data();
     const startTime = data.time;
