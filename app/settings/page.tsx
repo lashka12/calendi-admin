@@ -1,17 +1,27 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { 
   Save, User, Bell, Lock, CreditCard, Globe, 
   Building2, Users, Zap, AlertTriangle, Camera, 
   X, Eye, EyeOff, Download, Upload,
   Shield, Smartphone, Monitor, Mail,
   Calendar, MapPin, Phone, Trash2,
-  ExternalLink, Copy, CheckCircle2
+  ExternalLink, Copy, CheckCircle2, Clock, MessageSquare
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useSettings } from "../context/SettingsContext";
+import { db } from "../lib/firebase/config";
+import { doc, getDoc, setDoc } from "firebase/firestore";
+
+interface DailyReminderSettings {
+  enabled: boolean;
+  hour: number;
+  daysBefore: number;
+}
 
 export default function SettingsPage() {
+  const { settings } = useSettings();
   const [activeTab, setActiveTab] = useState("profile");
   const [showPassword, setShowPassword] = useState(false);
   const [notifications, setNotifications] = useState({
@@ -24,6 +34,57 @@ export default function SettingsPage() {
     cancellation: true,
     marketing: false,
   });
+  
+  // Daily reminder settings
+  const [dailyReminder, setDailyReminder] = useState<DailyReminderSettings>({
+    enabled: false,
+    hour: 8,
+    daysBefore: 1,
+  });
+  const [loadingReminder, setLoadingReminder] = useState(true);
+  const [savingReminder, setSavingReminder] = useState(false);
+
+  // Load daily reminder settings from Firestore
+  useEffect(() => {
+    const loadDailyReminderSettings = async () => {
+      try {
+        const docRef = doc(db, "settings", "notifications");
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists() && docSnap.data().dailyReminder) {
+          setDailyReminder(docSnap.data().dailyReminder);
+        }
+      } catch (error) {
+        console.error("Error loading daily reminder settings:", error);
+      } finally {
+        setLoadingReminder(false);
+      }
+    };
+    loadDailyReminderSettings();
+  }, []);
+
+  const [reminderSaved, setReminderSaved] = useState(false);
+
+  // Save daily reminder settings to Firestore
+  const saveDailyReminderSettings = async () => {
+    setSavingReminder(true);
+    setReminderSaved(false);
+    try {
+      const docRef = doc(db, "settings", "notifications");
+      await setDoc(docRef, { dailyReminder }, { merge: true });
+      setReminderSaved(true);
+      setTimeout(() => setReminderSaved(false), 3000);
+    } catch (error) {
+      console.error("Error saving daily reminder settings:", error);
+      alert("Failed to save settings. Please try again.");
+    } finally {
+      setSavingReminder(false);
+    }
+  };
+
+  // Format hour for display (24h format)
+  const formatHour = (hour: number) => {
+    return `${hour.toString().padStart(2, '0')}:00`;
+  };
 
   const tabs = [
     { id: "profile", name: "Profile", icon: User, description: "Personal & business info" },
@@ -128,37 +189,6 @@ export default function SettingsPage() {
               {/* Profile Tab */}
               {activeTab === "profile" && (
                 <div className="space-y-6">
-                  {/* Profile Picture */}
-                  <div className="bg-white border border-gray-200 rounded-xl p-6">
-                    <h3 className="text-base font-semibold text-gray-900 mb-4">Profile Photo</h3>
-                    <div className="flex items-center gap-6">
-                      <div className="relative">
-                        <img
-                          src="https://i.pravatar.cc/150?img=12"
-                          alt="Profile"
-                          className="w-24 h-24 rounded-full border-4 border-gray-100"
-                        />
-                        <button className="absolute bottom-0 right-0 w-8 h-8 bg-gray-800 text-white rounded-full flex items-center justify-center hover:bg-gray-700 transition-colors shadow-lg">
-                          <Camera className="w-4 h-4" />
-                        </button>
-                      </div>
-                      <div className="flex-1">
-                        <p className="text-sm text-gray-600 mb-3">
-                          Upload a professional photo. JPG, PNG or GIF. Max size 5MB.
-                        </p>
-                        <div className="flex gap-2">
-                          <button className="inline-flex items-center gap-2 px-4 py-2 bg-gray-800 text-white text-sm font-medium rounded-xl hover:bg-gray-700 transition-colors">
-                            <Upload className="w-4 h-4" />
-                            Upload New
-                          </button>
-                          <button className="px-4 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-xl hover:bg-gray-50 transition-colors">
-                            Remove
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
                   {/* Personal Information */}
                   <div className="bg-white border border-gray-200 rounded-xl p-6">
                     <h3 className="text-base font-semibold text-gray-900 mb-1">Personal Information</h3>
@@ -243,7 +273,7 @@ export default function SettingsPage() {
                         </label>
                         <input
                           type="text"
-                          defaultValue="Premium Salon & Spa"
+                          defaultValue={settings.businessName}
                           className="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-800 focus:border-transparent"
                         />
                       </div>
@@ -395,6 +425,120 @@ export default function SettingsPage() {
                         Save Preferences
                       </button>
                     </div>
+                  </div>
+
+                  {/* Daily Reminder Settings */}
+                  <div className="bg-white border border-gray-200 rounded-xl p-6">
+                    <div className="flex items-start gap-3 mb-6">
+                      <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center flex-shrink-0">
+                        <MessageSquare className="w-5 h-5 text-blue-600" />
+                      </div>
+                      <div>
+                        <h3 className="text-base font-semibold text-gray-900">WhatsApp Daily Reminders</h3>
+                        <p className="text-sm text-gray-500 mt-0.5">
+                          Automatically send appointment reminders to clients via WhatsApp
+                        </p>
+                      </div>
+                    </div>
+
+                    {loadingReminder ? (
+                      <div className="flex items-center justify-center py-8">
+                        <div className="w-6 h-6 border-2 border-gray-200 border-t-gray-600 rounded-full animate-spin" />
+                      </div>
+                    ) : (
+                      <div className="space-y-5">
+                        {/* Enable/Disable Toggle */}
+                        <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+                          <div>
+                            <p className="text-sm font-medium text-gray-900">Enable Daily Reminders</p>
+                            <p className="text-sm text-gray-500 mt-0.5">
+                              Send automatic reminders to clients about their upcoming appointments
+                            </p>
+                          </div>
+                          <ToggleSwitch
+                            enabled={dailyReminder.enabled}
+                            onChange={() => setDailyReminder({ ...dailyReminder, enabled: !dailyReminder.enabled })}
+                          />
+                        </div>
+
+                        {/* Settings (only show when enabled) */}
+                        {dailyReminder.enabled && (
+                          <div className="space-y-4 pt-2">
+                            {/* Send Time */}
+                            <div>
+                              <label className="block text-sm font-medium text-gray-900 mb-2">
+                                <Clock className="w-4 h-4 inline mr-2 text-gray-400" />
+                                Send reminders at
+                              </label>
+                              <select
+                                value={dailyReminder.hour}
+                                onChange={(e) => setDailyReminder({ ...dailyReminder, hour: parseInt(e.target.value) })}
+                                className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-800 focus:border-transparent appearance-none bg-white"
+                              >
+                                {Array.from({ length: 24 }, (_, i) => (
+                                  <option key={i} value={i}>
+                                    {formatHour(i)}
+                                  </option>
+                                ))}
+                              </select>
+                              <p className="text-xs text-gray-500 mt-1.5">
+                                Reminders will be sent daily at this time (Israel timezone)
+                              </p>
+                            </div>
+
+                            {/* Days Before */}
+                            <div>
+                              <label className="block text-sm font-medium text-gray-900 mb-2">
+                                <Calendar className="w-4 h-4 inline mr-2 text-gray-400" />
+                                Send reminder
+                              </label>
+                              <select
+                                value={dailyReminder.daysBefore}
+                                onChange={(e) => setDailyReminder({ ...dailyReminder, daysBefore: parseInt(e.target.value) })}
+                                className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-800 focus:border-transparent appearance-none bg-white"
+                              >
+                                <option value={0}>Same day (day of appointment)</option>
+                                <option value={1}>1 day before</option>
+                                <option value={2}>2 days before</option>
+                                <option value={3}>3 days before</option>
+                                <option value={7}>1 week before</option>
+                              </select>
+                              <p className="text-xs text-gray-500 mt-1.5">
+                                How many days before the appointment to send the reminder
+                              </p>
+                            </div>
+
+                          </div>
+                        )}
+
+                        {/* Save Button */}
+                        <div className="pt-4 border-t border-gray-200 flex items-center justify-end gap-3">
+                          {reminderSaved && (
+                            <span className="text-sm text-green-600 flex items-center gap-1">
+                              <CheckCircle2 className="w-4 h-4" />
+                              Saved!
+                            </span>
+                          )}
+                          <button 
+                            onClick={saveDailyReminderSettings}
+                            disabled={savingReminder}
+                            className="inline-flex items-center gap-2 px-5 py-2.5 bg-gray-800 text-white text-sm font-medium rounded-xl hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {savingReminder ? (
+                              <>
+                                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                Saving...
+                              </>
+                            ) : (
+                              <>
+                                <Save className="w-4 h-4" />
+                                Save Reminder Settings
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}

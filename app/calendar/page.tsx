@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { ChevronLeft, ChevronRight, Plus, Clock, Calendar as CalendarIcon, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Clock, Calendar as CalendarIcon, X, CalendarDays, ChevronDown, Phone } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   subscribeToSessions, 
@@ -227,11 +227,12 @@ export default function CalendarPage() {
   const [loadingEditSlots, setLoadingEditSlots] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [appointmentToDelete, setAppointmentToDelete] = useState<Appointment | null>(null);
+  const [isCalendarExpanded, setIsCalendarExpanded] = useState(false);
   const { showToast } = useToast();
 
   // Phone validation constants
   const PHONE_MIN_LENGTH = 9;
-  const PHONE_MAX_LENGTH = 15;
+  const PHONE_MAX_LENGTH = 10;
 
   // Phone validation helper
   const validatePhone = (phone: string): { isValid: boolean; error?: string } => {
@@ -254,10 +255,12 @@ export default function CalendarPage() {
     return { isValid: true };
   };
 
-  // Format phone input (allow only digits, +, -, spaces)
+  // Format phone input (allow only digits, limit to max length)
   const formatPhoneInput = (value: string): string => {
-    // Remove any character that's not a digit, +, -, or space
-    return value.replace(/[^\d+\-\s]/g, '').slice(0, PHONE_MAX_LENGTH + 5); // +5 for formatting chars
+    // Keep only digits
+    const digitsOnly = value.replace(/\D/g, '');
+    // Limit to max digits
+    return digitsOnly.slice(0, PHONE_MAX_LENGTH);
   };
 
   // Get phone validation state
@@ -310,6 +313,18 @@ export default function CalendarPage() {
     };
   }, []);
 
+  // Lock body scroll when modals are open
+  useEffect(() => {
+    if (isModalOpen || addSessionModalOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isModalOpen, addSessionModalOpen]);
+
   // Generate week view (7 days based on currentDate)
   const weekDays = useMemo(() => {
     const today = new Date();
@@ -344,6 +359,81 @@ export default function CalendarPage() {
     const todayStr = formatDateString(today);
     return weekDays.some(day => day.dateStr === todayStr);
   }, [weekDays]);
+
+  // Generate month calendar days for expanded view
+  const monthDays = useMemo(() => {
+    const today = new Date();
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
+    
+    // First day of month
+    const firstDay = new Date(year, month, 1);
+    const firstDayOfWeek = firstDay.getDay();
+    
+    // Last day of month
+    const lastDay = new Date(year, month + 1, 0);
+    const daysInMonth = lastDay.getDate();
+    
+    const monthDaysList: Array<{
+      date: number;
+      dateStr: string;
+      isCurrentMonth: boolean;
+      isToday: boolean;
+      hasAppointments: boolean;
+      appointmentCount: number;
+    }> = [];
+    
+    // Add padding days from previous month
+    for (let i = 0; i < firstDayOfWeek; i++) {
+      const date = new Date(year, month, -firstDayOfWeek + i + 1);
+      const dateStr = formatDateString(date);
+      const daySessions = getSessionsForDate(sessions, dateStr);
+      const dayPending = pendingBookings.filter(b => b.date === dateStr);
+      monthDaysList.push({
+        date: date.getDate(),
+        dateStr,
+        isCurrentMonth: false,
+        isToday: false,
+        hasAppointments: daySessions.length + dayPending.length > 0,
+        appointmentCount: daySessions.length + dayPending.length,
+      });
+    }
+    
+    // Add days of current month
+    for (let day = 1; day <= daysInMonth; day++) {
+      const date = new Date(year, month, day);
+      const dateStr = formatDateString(date);
+      const daySessions = getSessionsForDate(sessions, dateStr);
+      const dayPending = pendingBookings.filter(b => b.date === dateStr);
+      monthDaysList.push({
+        date: day,
+        dateStr,
+        isCurrentMonth: true,
+        isToday: date.toDateString() === today.toDateString(),
+        hasAppointments: daySessions.length + dayPending.length > 0,
+        appointmentCount: daySessions.length + dayPending.length,
+      });
+    }
+    
+    // Add padding days from next month to complete the grid (6 rows max)
+    const remainingDays = 42 - monthDaysList.length; // 6 rows x 7 days
+    for (let i = 1; i <= remainingDays; i++) {
+      const date = new Date(year, month + 1, i);
+      const dateStr = formatDateString(date);
+      const daySessions = getSessionsForDate(sessions, dateStr);
+      const dayPending = pendingBookings.filter(b => b.date === dateStr);
+      monthDaysList.push({
+        date: i,
+        dateStr,
+        isCurrentMonth: false,
+        isToday: false,
+        hasAppointments: daySessions.length + dayPending.length > 0,
+        appointmentCount: daySessions.length + dayPending.length,
+      });
+    }
+    
+    return monthDaysList;
+  }, [sessions, pendingBookings, currentDate]);
 
   // Get appointments for selected date (combine sessions and pending bookings)
   const appointments = useMemo(() => {
@@ -424,8 +514,7 @@ export default function CalendarPage() {
   };
 
   const updateEditedField = (field: keyof Appointment, value: string) => {
-    if (!editedAppointment) return;
-    setEditedAppointment({ ...editedAppointment, [field]: value });
+    setEditedAppointment(prev => prev ? { ...prev, [field]: value } : null);
   };
 
   const handleSaveAppointment = async () => {
@@ -514,8 +603,13 @@ export default function CalendarPage() {
     }
   };
 
-  const handleDateSelect = (dateStr: string) => {
+  const handleDateSelect = (dateStr: string, updateWeekView: boolean = false) => {
     setSelectedDate(dateStr);
+    // Update currentDate to show the week containing the selected date
+    if (updateWeekView) {
+      const selectedDateObj = new Date(dateStr + 'T00:00:00');
+      setCurrentDate(selectedDateObj);
+    }
     // Update form date if modal is open
     if (addSessionModalOpen) {
       setSessionFormData(prev => ({ ...prev, date: dateStr }));
@@ -632,6 +726,12 @@ export default function CalendarPage() {
     setSelectedDate(formatDateString(firstDayOfWeek));
   };
 
+  const handleMonthNavigation = (direction: 'prev' | 'next') => {
+    const newDate = new Date(currentDate);
+    newDate.setMonth(newDate.getMonth() + (direction === 'next' ? 1 : -1));
+    setCurrentDate(newDate);
+  };
+
   // Get selected date display name
   const selectedDateDisplay = useMemo(() => {
     const date = new Date(selectedDate + 'T00:00:00');
@@ -660,66 +760,146 @@ export default function CalendarPage() {
         </button>
       </div>
 
-      {/* Compact Week Strip */}
+      {/* Calendar View - Week or Month */}
       <div className="bg-white border border-gray-200 rounded-xl p-4">
         <div className="flex items-center justify-between mb-4">
-          <button 
-            onClick={() => handleWeekNavigation('prev')}
-            className="p-2 hover:bg-gray-100 rounded-xl transition-colors"
-          >
-            <ChevronLeft className="w-4 h-4 text-gray-600" />
-          </button>
-          <span className="text-sm font-medium text-gray-900">
-            {weekDays.length > 0 && (
-              <>
-                {isCurrentWeek ? (
-                  "This Week"
-                ) : (
-                  `${months[weekDays[0].month]} ${weekDays[0].date} - ${months[weekDays[6].month]} ${weekDays[6].date}`
-                )}
-              </>
+          <div className="flex items-center gap-1">
+            <button 
+              onClick={() => isCalendarExpanded ? handleMonthNavigation('prev') : handleWeekNavigation('prev')}
+              className="p-2 hover:bg-gray-100 rounded-xl transition-colors"
+            >
+              <ChevronLeft className="w-4 h-4 text-gray-600" />
+            </button>
+            
+            {/* Today button - only show when not viewing current week */}
+            {!isCurrentWeek && (
+              <button
+                onClick={() => {
+                  const today = new Date();
+                  setCurrentDate(today);
+                  setSelectedDate(formatDateString(today));
+                  setIsCalendarExpanded(false);
+                }}
+                className="px-2.5 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                Today
+              </button>
             )}
-          </span>
+          </div>
+          
+          <button
+            onClick={() => setIsCalendarExpanded(!isCalendarExpanded)}
+            className="flex items-center gap-2 px-3 py-1.5 hover:bg-gray-100 rounded-lg transition-colors"
+          >
+            <span className="text-sm font-medium text-gray-900">
+              {isCalendarExpanded ? (
+                `${months[currentDate.getMonth()]} ${currentDate.getFullYear()}`
+              ) : weekDays.length > 0 && (
+                isCurrentWeek ? "This Week" : `${months[weekDays[0].month]} ${weekDays[0].date} - ${months[weekDays[6].month]} ${weekDays[6].date}`
+              )}
+            </span>
+            <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform duration-250 ease-[cubic-bezier(0.4,0,0.2,1)] ${isCalendarExpanded ? 'rotate-180' : ''}`} />
+          </button>
+          
           <button 
-            onClick={() => handleWeekNavigation('next')}
+            onClick={() => isCalendarExpanded ? handleMonthNavigation('next') : handleWeekNavigation('next')}
             className="p-2 hover:bg-gray-100 rounded-xl transition-colors"
           >
             <ChevronRight className="w-4 h-4 text-gray-600" />
           </button>
         </div>
 
-        {/* Week days strip */}
-        <div className="grid grid-cols-7 gap-1 sm:gap-2">
-          {weekDays.map((day, index) => (
-            <button
-              key={index}
-              onClick={() => handleDateSelect(day.dateStr)}
-              className={`flex flex-col items-center gap-1 py-2 sm:py-3 rounded-3xl transition-all min-w-0 ${
-                day.isToday
-                  ? "bg-gray-900 text-white"
-                  : selectedDate === day.dateStr
-                  ? "bg-gray-100 text-gray-900"
-                  : "hover:bg-gray-50 text-gray-600"
-              }`}
-            >
-              <span className="text-[10px] sm:text-xs font-medium uppercase opacity-75">
-                {day.day.slice(0, 3)}
-              </span>
-              <span className="text-base sm:text-lg font-semibold">{day.date}</span>
-              {day.hasAppointments && (
-                <div className="flex gap-0.5">
-                  {Array.from({ length: Math.min(day.appointmentCount, 2) }).map((_, i) => (
-                    <span 
-                      key={i}
-                      className={`w-1 h-1 rounded-full ${
-                        day.isToday ? "bg-white" : "bg-gray-900"
-                      }`}
-                    />
-                  ))}
+        {/* Calendar content - both views rendered, CSS controls visibility */}
+        <div className="relative overflow-hidden">
+          {/* Week View */}
+          <div 
+            className={`grid grid-cols-7 gap-1 sm:gap-2 transform transition-all duration-250 ease-[cubic-bezier(0.4,0,0.2,1)] ${
+              isCalendarExpanded 
+                ? 'opacity-0 scale-95 -translate-y-2 pointer-events-none absolute inset-x-0 top-0' 
+                : 'opacity-100 scale-100 translate-y-0'
+            }`}
+          >
+            {weekDays.map((day, index) => (
+              <button
+                key={index}
+                onClick={() => handleDateSelect(day.dateStr)}
+                className={`flex flex-col items-center gap-1 py-2 sm:py-3 rounded-3xl transition-colors min-w-0 ${
+                  day.isToday
+                    ? "bg-gray-900 text-white"
+                    : selectedDate === day.dateStr
+                    ? "bg-gray-100 text-gray-900"
+                    : "hover:bg-gray-50 text-gray-600"
+                }`}
+              >
+                <span className="text-[10px] sm:text-xs font-medium uppercase opacity-75">
+                  {day.day.slice(0, 3)}
+                </span>
+                <span className="text-base sm:text-lg font-semibold">{day.date}</span>
+                {day.hasAppointments && (
+                  <div className="flex gap-0.5">
+                    {Array.from({ length: Math.min(day.appointmentCount, 2) }).map((_, i) => (
+                      <span 
+                        key={i}
+                        className={`w-1 h-1 rounded-full ${
+                          day.isToday ? "bg-white" : "bg-gray-900"
+                        }`}
+                      />
+                    ))}
+                  </div>
+                )}
+              </button>
+            ))}
+          </div>
+
+          {/* Month View */}
+          <div 
+            className={`transform transition-all duration-250 ease-[cubic-bezier(0.4,0,0.2,1)] origin-top ${
+              isCalendarExpanded 
+                ? 'opacity-100 scale-100 translate-y-0' 
+                : 'opacity-0 scale-95 translate-y-2 pointer-events-none h-0 overflow-hidden'
+            }`}
+          >
+            {/* Day headers */}
+            <div className="grid grid-cols-7 gap-1 mb-2">
+              {days.map((day) => (
+                <div 
+                  key={day} 
+                  className="text-center text-[10px] sm:text-xs font-medium text-gray-400 uppercase py-1"
+                >
+                  {day.slice(0, 3)}
                 </div>
-              )}
-            </button>
-          ))}
+              ))}
+            </div>
+            
+            {/* Month grid */}
+            <div className="grid grid-cols-7 gap-1">
+              {monthDays.map((day, index) => (
+                <button
+                  key={index}
+                  onClick={() => {
+                    handleDateSelect(day.dateStr, true);
+                    setIsCalendarExpanded(false);
+                  }}
+                  className={`aspect-square flex flex-col items-center justify-center rounded-xl transition-colors text-sm ${
+                    day.isToday
+                      ? "bg-gray-900 text-white"
+                      : selectedDate === day.dateStr
+                      ? "bg-gray-100 text-gray-900"
+                      : day.isCurrentMonth
+                      ? "hover:bg-gray-50 text-gray-700 active:bg-gray-100"
+                      : "text-gray-300 hover:bg-gray-50"
+                  }`}
+                >
+                  <span className="font-medium">{day.date}</span>
+                  {day.hasAppointments && day.isCurrentMonth && (
+                    <span className={`w-1 h-1 rounded-full mt-0.5 ${
+                      day.isToday ? "bg-white" : "bg-gray-900"
+                    }`} />
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
 
@@ -821,6 +1001,22 @@ export default function CalendarPage() {
                               {appointment.isPending ? "Pending" : appointment.status}
                             </span>
                           </div>
+                          
+                          {/* Quick call button */}
+                          {appointment.phone && (
+                            <a
+                              href={`tel:${appointment.phone}`}
+                              onClick={(e) => e.stopPropagation()}
+                              className={`flex-shrink-0 p-2.5 rounded-xl transition-colors ${
+                                appointment.isPast 
+                                  ? "text-gray-300 pointer-events-none" 
+                                  : "text-gray-400 hover:bg-gray-100 hover:text-gray-600 active:bg-gray-200"
+                              }`}
+                              title={`Call ${appointment.phone}`}
+                            >
+                              <Phone className="w-5 h-5" />
+                            </a>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -849,22 +1045,6 @@ export default function CalendarPage() {
         <Plus className="w-6 h-6" />
       </button>
 
-      {/* Quick stats */}
-      <div className="grid grid-cols-3 gap-3 sm:gap-4">
-        <div className="bg-white border border-gray-200 rounded-xl p-3 sm:p-4">
-          <p className="text-xs text-gray-500 mb-1 truncate">Today</p>
-          <p className="text-lg sm:text-xl font-semibold text-gray-900">{stats.today}</p>
-        </div>
-        <div className="bg-white border border-gray-200 rounded-xl p-3 sm:p-4">
-          <p className="text-xs text-gray-500 mb-1 truncate">This Week</p>
-          <p className="text-lg sm:text-xl font-semibold text-gray-900">{stats.thisWeek}</p>
-        </div>
-        <div className="bg-white border border-gray-200 rounded-xl p-3 sm:p-4">
-          <p className="text-xs text-gray-500 mb-1 truncate">Pending</p>
-          <p className="text-lg sm:text-xl font-semibold text-gray-900">{stats.pending}</p>
-        </div>
-      </div>
-
       {/* Edit Session Modal */}
       <AnimatePresence>
         {isModalOpen && editedAppointment && (
@@ -875,7 +1055,7 @@ export default function CalendarPage() {
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2, ease: "easeOut" }}
               onClick={closeModal}
-              className="fixed top-0 left-0 right-0 bottom-0 m-0 bg-gray-900/50 z-[100] will-change-[opacity]"
+              className="fixed -top-20 -left-4 -right-4 -bottom-20 bg-gray-900/50 z-[9999] will-change-[opacity]"
             />
 
             <motion.div
@@ -889,7 +1069,7 @@ export default function CalendarPage() {
               }}
               style={{ willChange: 'transform, opacity' }}
               onClick={(e) => e.stopPropagation()}
-              className="fixed bottom-0 left-0 right-0 md:bottom-auto md:left-1/2 md:right-auto md:top-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-[90%] md:max-w-lg lg:max-w-2xl z-[101] bg-white rounded-t-3xl md:rounded-2xl shadow-2xl flex flex-col max-h-[90vh] md:max-h-[85vh]"
+              className="fixed bottom-0 left-0 right-0 md:bottom-auto md:left-1/2 md:right-auto md:top-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-[90%] md:max-w-lg lg:max-w-2xl z-[10000] bg-white rounded-t-3xl md:rounded-2xl shadow-2xl flex flex-col max-h-[90vh] md:max-h-[85vh]"
             >
               {/* Handle bar for mobile */}
               <div className="md:hidden flex justify-center p-3">
@@ -976,7 +1156,6 @@ export default function CalendarPage() {
                       }}
                       className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-base sm:text-sm focus:outline-none focus:ring-1 focus:ring-gray-800 focus:border-gray-800 appearance-none bg-white"
                     >
-                      <option value="">Select a service</option>
                       {services.map((service) => (
                         <option key={service.id} value={getServiceName(service)}>
                           {getServiceName(service)}
@@ -1034,7 +1213,12 @@ export default function CalendarPage() {
                 </button>
                 <button
                   onClick={handleSaveAppointment}
-                  disabled={processing.has(editedAppointment.id)}
+                  disabled={
+                    processing.has(editedAppointment.id) || 
+                    !editedAppointment.date || 
+                    !editedAppointment.service || 
+                    !editedAppointment.time
+                  }
                   className="flex-1 px-4 py-2.5 bg-gray-800 text-white text-sm font-medium rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {processing.has(editedAppointment.id) ? "Saving..." : "Save"}
@@ -1058,7 +1242,7 @@ export default function CalendarPage() {
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2, ease: "easeOut" }}
               onClick={closeAddSessionModal}
-              className="fixed top-0 left-0 right-0 bottom-0 m-0 bg-gray-900/50 z-[100] will-change-[opacity]"
+              className="fixed -top-20 -left-4 -right-4 -bottom-20 bg-gray-900/50 z-[9999] will-change-[opacity]"
             />
 
             <motion.div
@@ -1072,7 +1256,7 @@ export default function CalendarPage() {
               }}
               style={{ willChange: 'transform, opacity' }}
               onClick={(e) => e.stopPropagation()}
-              className="fixed bottom-0 left-0 right-0 md:bottom-auto md:left-1/2 md:right-auto md:top-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-[90%] md:max-w-lg lg:max-w-2xl z-[101] bg-white rounded-t-3xl md:rounded-2xl shadow-2xl flex flex-col max-h-[90vh] md:max-h-[85vh]"
+              className="fixed bottom-0 left-0 right-0 md:bottom-auto md:left-1/2 md:right-auto md:top-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-[90%] md:max-w-lg lg:max-w-2xl z-[10000] bg-white rounded-t-3xl md:rounded-2xl shadow-2xl flex flex-col max-h-[90vh] md:max-h-[85vh]"
             >
               {/* Handle bar for mobile */}
               <div className="md:hidden flex justify-center p-3">
@@ -1120,17 +1304,14 @@ export default function CalendarPage() {
                       type="tel"
                       value={sessionFormData.phone}
                       onChange={(e) => setSessionFormData({ ...sessionFormData, phone: formatPhoneInput(e.target.value) })}
-                      placeholder="05X-XXXXXXX"
-                      maxLength={20}
+                      placeholder="05XXXXXXXX"
+                      maxLength={10}
                       className={`w-full px-4 py-2.5 border rounded-lg text-base sm:text-sm focus:outline-none focus:ring-1 transition-colors ${
                         showPhoneError
                           ? "border-red-300 focus:ring-red-500 focus:border-red-500"
                           : "border-gray-200 focus:ring-gray-800 focus:border-gray-800"
                       }`}
                     />
-                    {showPhoneError && (
-                      <p className="mt-1.5 text-xs text-red-500">{phoneValidation.error}</p>
-                    )}
                   </div>
 
                   <div>
@@ -1167,7 +1348,7 @@ export default function CalendarPage() {
                       }}
                       className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-base sm:text-sm focus:outline-none focus:ring-1 focus:ring-gray-800 focus:border-gray-800 appearance-none bg-white"
                     >
-                      <option value="">Select a service</option>
+                      <option value="" disabled>Select a service</option>
                       {services.map((service) => (
                         <option key={service.id} value={getServiceName(service)}>
                           {getServiceName(service)}
