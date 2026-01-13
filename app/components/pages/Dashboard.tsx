@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
+import { motion } from "framer-motion";
 import { 
   Calendar, 
   ArrowRight, 
@@ -189,6 +190,12 @@ export default function DashboardPage() {
     return weeks;
   }, [sessions]);
 
+  const quickActions = [
+    { href: '/calendar', icon: Plus, label: 'New Session', sub: 'Book appointment', color: 'bg-gray-900' },
+    { href: '/requests', icon: Inbox, label: 'Requests', sub: 'Review pending', color: 'bg-amber-500', badge: pendingBookings.length },
+    { href: '/availability', icon: CalendarOff, label: 'Block Time', sub: 'Set availability', color: 'bg-gray-600' },
+  ];
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -198,9 +205,14 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 pt-3">
       {/* Hero Section - Unified Card */}
-      <div className="bg-gray-900 rounded-2xl p-4 sm:p-5 relative overflow-hidden">
+      <motion.div 
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0 }}
+        className="bg-gray-900 rounded-2xl p-4 sm:p-5 relative overflow-hidden"
+      >
         {/* Animated bubbles */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="absolute -top-6 -right-6 w-32 h-32 bg-gray-800 rounded-full opacity-50 animate-bubble-1" />
@@ -249,14 +261,19 @@ export default function DashboardPage() {
             </>
           )}
         </div>
-      </div>
+      </motion.div>
 
       {/* Main Content */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Schedule + Chart Column */}
         <div className="lg:col-span-2 space-y-4">
           {/* Today's Schedule */}
-          <div className="bg-white rounded-2xl border border-gray-200">
+          <motion.div 
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.05 }}
+            className="bg-white rounded-2xl border border-gray-200"
+          >
             <div className="flex items-center justify-between p-4 border-b border-gray-100">
               <h3 className="font-semibold text-gray-900">Today's Schedule</h3>
               <Link href="/calendar" className="text-xs text-gray-500 lg:hover:text-gray-900 flex items-center gap-1">
@@ -272,14 +289,17 @@ export default function DashboardPage() {
             ) : (
               <div className="divide-y divide-gray-100">
                 {todaysSessions.map((booking, index) => (
-                  <div 
-                    key={booking.id} 
+                  <motion.div 
+                    key={booking.id}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.1 + index * 0.05 }}
                     className={`flex items-center gap-4 p-4 lg:hover:bg-gray-50 transition-colors ${
                       index === 0 ? 'bg-gray-50' : ''
                     }`}
                   >
                     <div className="w-14 text-center">
-                      <p className={`font-semibold text-sm ${index === 0 ? 'text-gray-900' : 'text-gray-900'}`}>{booking.time.split(' ')[0]}</p>
+                      <p className="font-semibold text-sm text-gray-900">{booking.time.split(' ')[0]}</p>
                       <p className="text-[10px] text-gray-400">{booking.time.split(' ')[1]}</p>
                     </div>
                     <div className={`w-px h-8 ${index === 0 ? 'bg-gray-900' : 'bg-gray-200'}`} />
@@ -292,23 +312,31 @@ export default function DashboardPage() {
                         in {getTimeUntil(booking.rawTime)}
                       </span>
                     )}
-                  </div>
+                  </motion.div>
                 ))}
               </div>
             )}
-          </div>
+          </motion.div>
 
           {/* Charts Row */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {/* This Week */}
-            <div className="bg-white rounded-2xl border border-gray-200 p-4">
+            <motion.div 
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              className="bg-white rounded-2xl border border-gray-200 p-4"
+            >
               <div className="flex items-center justify-between mb-3">
                 <h3 className="font-semibold text-gray-900">This Week</h3>
               </div>
               <div className="flex gap-1.5">
                 {currentWeekData.map((item, index) => (
-                  <div 
+                  <motion.div 
                     key={index}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.15 + index * 0.03 }}
                     className={`flex-1 text-center py-2 px-1 rounded-lg ${
                       item.isToday 
                         ? 'bg-gray-900 text-white' 
@@ -322,7 +350,7 @@ export default function DashboardPage() {
                     <p className={`text-[9px] font-medium ${item.isToday ? 'text-gray-400' : ''}`}>
                       {item.day}
                     </p>
-                    <p className={`text-base font-bold`}>
+                    <p className="text-base font-bold">
                       {item.date}
                     </p>
                     {item.isPast ? (
@@ -334,13 +362,18 @@ export default function DashboardPage() {
                     ) : (
                       <p className="text-[9px]">-</p>
                     )}
-                  </div>
+                  </motion.div>
                 ))}
               </div>
-            </div>
+            </motion.div>
 
             {/* Monthly Chart */}
-            <div className="bg-white rounded-2xl border border-gray-200 p-4">
+            <motion.div 
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.15 }}
+              className="bg-white rounded-2xl border border-gray-200 p-4"
+            >
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-semibold text-gray-900">Monthly Trend</h3>
                 <span className="text-xs text-gray-500">Last 4 weeks</span>
@@ -359,54 +392,67 @@ export default function DashboardPage() {
                   </LineChart>
                 </ResponsiveContainer>
               </div>
-            </div>
+            </motion.div>
           </div>
         </div>
 
         {/* Quick Actions Column */}
-        <div className="space-y-4">
+        <motion.div 
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="space-y-4"
+        >
           <div className="bg-white rounded-2xl border border-gray-200 p-4">
             <h3 className="font-semibold text-gray-900 mb-3">Quick Actions</h3>
             <div className="space-y-1">
-              {[
-                { href: '/calendar', icon: Plus, label: 'New Session', sub: 'Book appointment', color: 'bg-gray-900' },
-                { href: '/requests', icon: Inbox, label: 'Requests', sub: 'Review pending', color: 'bg-amber-500', badge: pendingBookings.length },
-                { href: '/availability', icon: CalendarOff, label: 'Block Time', sub: 'Set availability', color: 'bg-gray-600' },
-              ].map((item) => (
-                <Link
+              {quickActions.map((item, index) => (
+                <motion.div
                   key={item.href}
-                  href={item.href}
-                  className="flex items-center gap-3 p-3 rounded-xl lg:hover:bg-gray-50 transition-colors group relative"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.15 + index * 0.05 }}
                 >
-                  {item.badge !== undefined && item.badge > 0 && (
-                    <span className="absolute top-2 right-2 min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
-                      {item.badge > 9 ? '9+' : item.badge}
-                    </span>
-                  )}
-                  <div className={`w-9 h-9 ${item.color} rounded-lg flex items-center justify-center lg:group-hover:scale-105 transition-transform`}>
-                    <item.icon className="w-4 h-4 text-white" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-gray-900 text-sm">{item.label}</p>
-                    <p className="text-xs text-gray-500">{item.sub}</p>
-                  </div>
-                  <ChevronRight className="w-4 h-4 text-gray-300" />
-                </Link>
+                  <Link
+                    href={item.href}
+                    className="flex items-center gap-3 p-3 rounded-xl lg:hover:bg-gray-50 transition-colors group relative"
+                  >
+                    {item.badge !== undefined && item.badge > 0 && (
+                      <span className="absolute top-2 right-2 min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                        {item.badge > 9 ? '9+' : item.badge}
+                      </span>
+                    )}
+                    <div className={`w-9 h-9 ${item.color} rounded-lg flex items-center justify-center lg:group-hover:scale-105 transition-transform`}>
+                      <item.icon className="w-4 h-4 text-white" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-gray-900 text-sm">{item.label}</p>
+                      <p className="text-xs text-gray-500">{item.sub}</p>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-gray-300" />
+                  </Link>
+                </motion.div>
               ))}
               
-              <button disabled className="flex items-center gap-3 p-3 rounded-xl opacity-40 cursor-not-allowed w-full">
-                <div className="w-9 h-9 bg-gray-300 rounded-lg flex items-center justify-center">
-                  <UserPlus className="w-4 h-4 text-white" />
-                </div>
-                <div className="flex-1 text-left min-w-0">
-                  <p className="font-medium text-gray-500 text-sm">Add Client</p>
-                  <p className="text-xs text-gray-400">Coming soon</p>
-                </div>
-              </button>
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.3 }}
+              >
+                <button disabled className="flex items-center gap-3 p-3 rounded-xl opacity-40 cursor-not-allowed w-full">
+                  <div className="w-9 h-9 bg-gray-300 rounded-lg flex items-center justify-center">
+                    <UserPlus className="w-4 h-4 text-white" />
+                  </div>
+                  <div className="flex-1 text-left min-w-0">
+                    <p className="font-medium text-gray-500 text-sm">Add Client</p>
+                    <p className="text-xs text-gray-400">Coming soon</p>
+                  </div>
+                </button>
+              </motion.div>
             </div>
           </div>
 
-        </div>
+        </motion.div>
       </div>
     </div>
   );

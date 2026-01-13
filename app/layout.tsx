@@ -7,6 +7,7 @@ import SplashScreen from "./components/SplashScreen";
 import { ToastProvider, useToast } from "./lib/hooks/useToast";
 import { ToastContainer } from "./components/Toast";
 import { onAuthChange } from "./lib/firebase/auth";
+import { SettingsProvider } from "./context/SettingsContext";
 import { Loader2 } from "lucide-react";
 import "./globals.css";
 
@@ -99,9 +100,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     return (
       <html lang="en">
         <body>
-          <ToastProvider>
-            <AppContent showSplash={showSplash}>{children}</AppContent>
-          </ToastProvider>
+          <SettingsProvider>
+            <ToastProvider>
+              <AppContent showSplash={showSplash}>{children}</AppContent>
+            </ToastProvider>
+          </SettingsProvider>
         </body>
       </html>
     );
