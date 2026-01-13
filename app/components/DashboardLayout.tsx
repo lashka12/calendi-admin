@@ -321,7 +321,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         </header>
 
         {/* Page content */}
-        <main className="px-4 pt-2 pb-20 sm:p-6 lg:p-8 lg:pb-8">
+        <main className="px-4 pt-4 pb-20 sm:p-6 lg:p-8 lg:pb-8">
           <motion.div
             key={pathname}
             initial={{ opacity: 0 }}
