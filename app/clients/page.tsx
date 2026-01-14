@@ -4,6 +4,36 @@ import { useState } from "react";
 import { Search, Plus, Mail, Phone, Star } from "lucide-react";
 import { motion } from "framer-motion";
 
+// Color palette for avatars (muted gray theme to match app design)
+const avatarColors = [
+  'bg-gray-600',
+  'bg-gray-700',
+  'bg-gray-800',
+  'bg-slate-600',
+  'bg-slate-700',
+  'bg-zinc-600',
+  'bg-zinc-700',
+  'bg-neutral-600',
+  'bg-neutral-700',
+  'bg-stone-600',
+];
+
+// Get initials from name
+const getInitials = (name: string): string => {
+  return name
+    .split(' ')
+    .map(n => n[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase();
+};
+
+// Get consistent color based on name
+const getAvatarColor = (name: string): string => {
+  const hash = name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  return avatarColors[hash % avatarColors.length];
+};
+
 export default function ClientsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterTab, setFilterTab] = useState("all");
@@ -17,7 +47,6 @@ export default function ClientsPage() {
       totalBookings: 24,
       totalSpent: "$1,080",
       lastVisit: "2 days ago",
-      avatar: "https://i.pravatar.cc/150?img=44",
       rating: 5,
       status: "active",
     },
@@ -29,7 +58,6 @@ export default function ClientsPage() {
       totalBookings: 18,
       totalSpent: "$810",
       lastVisit: "5 days ago",
-      avatar: "https://i.pravatar.cc/150?img=13",
       rating: 5,
       status: "active",
     },
@@ -41,7 +69,6 @@ export default function ClientsPage() {
       totalBookings: 32,
       totalSpent: "$1,440",
       lastVisit: "1 week ago",
-      avatar: "https://i.pravatar.cc/150?img=45",
       rating: 4,
       status: "vip",
     },
@@ -53,7 +80,6 @@ export default function ClientsPage() {
       totalBookings: 15,
       totalSpent: "$675",
       lastVisit: "Today",
-      avatar: "https://i.pravatar.cc/150?img=14",
       rating: 5,
       status: "active",
     },
@@ -65,7 +91,6 @@ export default function ClientsPage() {
       totalBookings: 28,
       totalSpent: "$1,260",
       lastVisit: "3 days ago",
-      avatar: "https://i.pravatar.cc/150?img=48",
       rating: 5,
       status: "vip",
     },
@@ -77,7 +102,6 @@ export default function ClientsPage() {
       totalBookings: 12,
       totalSpent: "$540",
       lastVisit: "1 week ago",
-      avatar: "https://i.pravatar.cc/150?img=15",
       rating: 4,
       status: "active",
     },
@@ -153,11 +177,11 @@ export default function ClientsPage() {
           >
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center gap-3">
-                <img
-                  src={client.avatar}
-                  alt={client.name}
-                  className="w-12 h-12 rounded-full"
-                />
+                <div 
+                  className={`w-12 h-12 rounded-full flex items-center justify-center text-white font-semibold text-sm ${getAvatarColor(client.name)}`}
+                >
+                  {getInitials(client.name)}
+                </div>
                 <div>
                   <h3 className="text-sm font-semibold text-gray-900">{client.name}</h3>
                   <div className="flex items-center gap-0.5 mt-1">

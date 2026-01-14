@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, ReactNode } from "react";
+import { useState, useEffect, ReactNode, useMemo } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -63,7 +63,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [moreMenuOpen, setMoreMenuOpen] = useState(false);
-  const [pendingCount, setPendingCount] = useState(0);
+  const [pendingCount, setPendingCount] = useState<number | null>(null); // null = loading
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [userProfile, setUserProfile] = useState<PersonalSettings | null>(null);
   const pathname = usePathname();
@@ -114,24 +114,27 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     : '?';
   const avatarColor = getAvatarColor(userName);
 
-  const navigation = [
+  // Only show badge when we have actual data (not null/loading)
+  const badgeCount = pendingCount !== null && pendingCount > 0 ? pendingCount : undefined;
+
+  const navigation = useMemo(() => [
     { name: "Home", href: "/", icon: Home },
     { name: "Calendar", href: "/calendar", icon: Calendar },
     { name: "Clients", href: "/clients", icon: Users },
-    { name: "Requests", href: "/requests", icon: Clock, badge: pendingCount > 0 ? pendingCount : undefined },
+    { name: "Requests", href: "/requests", icon: Clock, badge: badgeCount },
     { name: "Services", href: "/services", icon: Briefcase },
     { name: "Availability", href: "/availability", icon: CalendarClock },
     { name: "Blacklist", href: "/blacklist", icon: ShieldAlert },
     { name: "Settings", href: "/settings", icon: Settings },
-  ];
+  ], [badgeCount]);
 
   // Reorder for mobile bottom nav - put Requests in the middle, More at the end
-  const mobileNavigation = [
+  const mobileNavigation = useMemo(() => [
     { name: "Home", href: "/", icon: Home },
     { name: "Calendar", href: "/calendar", icon: Calendar },
-    { name: "Requests", href: "/requests", icon: Clock, badge: pendingCount > 0 ? pendingCount : undefined, isCenter: true },
+    { name: "Requests", href: "/requests", icon: Clock, badge: badgeCount, isCenter: true },
     { name: "Availability", href: "/availability", icon: CalendarClock },
-  ];
+  ], [badgeCount]);
 
   // Items shown in the More menu
   const moreMenuItems = [

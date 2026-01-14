@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { 
   Calendar, 
   ArrowRight, 
@@ -14,7 +14,9 @@ import {
   Sun,
   Moon,
   Sunrise,
-  Sunset
+  Sunset,
+  Phone,
+  X
 } from "lucide-react";
 import { subscribeToSessions, Session } from "@/app/lib/firebase/sessions";
 import { subscribeToPendingBookings, PendingBooking } from "@/app/lib/firebase/requests";
@@ -25,16 +27,64 @@ import {
   ResponsiveContainer
 } from 'recharts';
 
+interface SessionDetails {
+  id: string;
+  client: string;
+  service: string;
+  time: string;
+  rawTime: string;
+  phone?: string;
+  duration?: number;
+  date: string;
+}
+
 export default function DashboardPage() {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [pendingBookings, setPendingBookings] = useState<PendingBooking[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [selectedSession, setSelectedSession] = useState<SessionDetails | null>(null);
+  const [selectedWeekDay, setSelectedWeekDay] = useState<{
+    dateStr: string;
+    dayName: string;
+    dateNum: string;
+    fullDate: string;
+    isToday: boolean;
+  } | null>(null);
 
   useEffect(() => {
     const interval = setInterval(() => setCurrentTime(new Date()), 60000);
     return () => clearInterval(interval);
   }, []);
+
+  // Lock body scroll when modal is open
+  useEffect(() => {
+    if (selectedSession || selectedWeekDay) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [selectedSession, selectedWeekDay]);
+
+  // Get sessions for a specific date
+  const getSessionsForDate = (dateStr: string): SessionDetails[] => {
+    return sessions
+      .filter(s => s.date === dateStr && s.status === 'approved')
+      .sort((a, b) => a.time.localeCompare(b.time))
+      .map(s => ({
+        id: s.id,
+        client: s.clientName,
+        service: s.service,
+        time: formatTime(s.time),
+        rawTime: s.time,
+        phone: s.phone,
+        duration: s.duration,
+        date: s.date,
+      }));
+  };
 
   useEffect(() => {
     const unsubscribeSessions = subscribeToSessions((sessionsData) => {
@@ -114,13 +164,13 @@ export default function DashboardPage() {
     };
   }, [sessions, pendingBookings]);
 
-  const todaysSessions = useMemo(() => {
+  const todaysSessions = useMemo((): SessionDetails[] => {
     const today = new Date().toISOString().split('T')[0];
     const now = new Date();
-    const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    const currentTimeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
     
     return sessions
-      .filter(s => s.date === today && s.status === 'approved' && s.time >= currentTime)
+      .filter(s => s.date === today && s.status === 'approved' && s.time >= currentTimeStr)
       .sort((a, b) => a.time.localeCompare(b.time))
       .slice(0, 5)
       .map(s => ({
@@ -129,6 +179,9 @@ export default function DashboardPage() {
         service: s.service,
         time: formatTime(s.time),
         rawTime: s.time,
+        phone: s.phone,
+        duration: s.duration,
+        date: s.date,
       }));
   }, [sessions]);
 
@@ -137,6 +190,7 @@ export default function DashboardPage() {
     const today = new Date();
     const todayIndex = today.getDay();
     const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const fullDayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
     
     // Get start of week (Sunday)
     const weekStart = new Date(today);
@@ -154,9 +208,15 @@ export default function DashboardPage() {
       
       const isPast = i < todayIndex;
       
+      // Format full date like "January 15"
+      const fullDate = date.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
+      
       days.push({
         day: dayNames[i],
+        fullDay: fullDayNames[i],
         date: date.getDate().toString(),
+        dateStr,
+        fullDate,
         count,
         isToday: i === todayIndex,
         isPast,
@@ -192,17 +252,10 @@ export default function DashboardPage() {
 
   const quickActions = [
     { href: '/calendar', icon: Plus, label: 'New Session', sub: 'Book appointment', color: 'bg-gray-900' },
-    { href: '/requests', icon: Inbox, label: 'Requests', sub: 'Review pending', color: 'bg-amber-500', badge: pendingBookings.length },
+    { href: '/requests', icon: Inbox, label: 'Requests', sub: 'Review pending', color: 'bg-amber-400', badge: pendingBookings.length },
     { href: '/availability', icon: CalendarOff, label: 'Block Time', sub: 'Set availability', color: 'bg-gray-600' },
   ];
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="w-8 h-8 border-2 border-gray-200 border-t-gray-600 rounded-full animate-spin" />
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-4 pt-3">
@@ -242,20 +295,34 @@ export default function DashboardPage() {
 
         {/* Stats Row */}
         <div className="flex items-center gap-4 sm:gap-5 relative">
-          <div>
-            <p className="text-2xl sm:text-3xl font-bold text-white">{stats.today}</p>
+          <div className="min-w-[40px]">
+            {loading ? (
+              <div className="h-8 w-8 rounded-lg bg-gray-700 animate-pulse" />
+            ) : (
+              <p className="text-2xl sm:text-3xl font-bold text-white">{stats.today}</p>
+            )}
             <p className="text-gray-400 text-[10px] mt-0.5">Today</p>
           </div>
           <div className="w-px h-8 bg-gray-700" />
-          <div>
-            <p className="text-2xl sm:text-3xl font-bold text-white">{stats.week}</p>
+          <div className="min-w-[40px]">
+            {loading ? (
+              <div className="h-8 w-8 rounded-lg bg-gray-700 animate-pulse" />
+            ) : (
+              <p className="text-2xl sm:text-3xl font-bold text-white">{stats.week}</p>
+            )}
             <p className="text-gray-400 text-[10px] mt-0.5">This week</p>
           </div>
-          {stats.pending > 0 && (
+          {(loading || stats.pending > 0) && (
             <>
               <div className="w-px h-8 bg-gray-700" />
-              <Link href="/requests" className="group">
-                <p className="text-2xl sm:text-3xl font-bold text-amber-400 lg:group-hover:text-amber-300 transition-colors">{stats.pending}</p>
+              <Link href="/requests" className="group min-w-[40px]">
+                {loading ? (
+                  <div className="h-8 w-8 rounded-lg bg-amber-400/30 animate-pulse" />
+                ) : (
+                  <p className="text-2xl sm:text-3xl font-bold text-amber-400 lg:group-hover:text-amber-300 transition-colors">
+                    {stats.pending}
+                  </p>
+                )}
                 <p className="text-gray-400 text-[10px] mt-0.5">Pending</p>
               </Link>
             </>
@@ -281,7 +348,23 @@ export default function DashboardPage() {
               </Link>
             </div>
 
-            {todaysSessions.length === 0 ? (
+            {loading ? (
+              <div className="divide-y divide-gray-100">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="flex items-center gap-4 p-4">
+                    <div className="w-14 flex flex-col items-center gap-1">
+                      <div className="h-4 w-10 bg-gray-200 rounded animate-pulse" />
+                      <div className="h-2 w-6 bg-gray-100 rounded animate-pulse" />
+                    </div>
+                    <div className="w-px h-8 bg-gray-200" />
+                    <div className="flex-1 space-y-2">
+                      <div className="h-4 w-32 bg-gray-200 rounded animate-pulse" />
+                      <div className="h-3 w-24 bg-gray-100 rounded animate-pulse" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : todaysSessions.length === 0 ? (
               <div className="p-8 text-center">
                 <Calendar className="w-8 h-8 text-gray-300 mx-auto mb-2" />
                 <p className="text-gray-500 text-sm">No more appointments today</p>
@@ -289,12 +372,13 @@ export default function DashboardPage() {
             ) : (
               <div className="divide-y divide-gray-100">
                 {todaysSessions.map((booking, index) => (
-                  <motion.div 
+                  <motion.button
                     key={booking.id}
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.1 + index * 0.05 }}
-                    className={`flex items-center gap-4 p-4 lg:hover:bg-gray-50 transition-colors ${
+                    onClick={() => setSelectedSession(booking)}
+                    className={`w-full flex items-center gap-4 p-4 lg:hover:bg-gray-100 active:bg-gray-100 transition-colors text-left ${
                       index === 0 ? 'bg-gray-50' : ''
                     }`}
                   >
@@ -312,7 +396,7 @@ export default function DashboardPage() {
                         in {getTimeUntil(booking.rawTime)}
                       </span>
                     )}
-                  </motion.div>
+                  </motion.button>
                 ))}
               </div>
             )}
@@ -330,39 +414,49 @@ export default function DashboardPage() {
               <div className="flex items-center justify-between mb-3">
                 <h3 className="font-semibold text-gray-900">This Week</h3>
               </div>
-              <div className="flex gap-1.5">
+              <div className="flex gap-1">
                 {currentWeekData.map((item, index) => (
-                  <motion.div 
+                  <motion.button 
                     key={index}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.15 + index * 0.03 }}
-                    className={`flex-1 text-center py-2 px-1 rounded-lg ${
+                    onClick={() => !item.isPast && setSelectedWeekDay({
+                      dateStr: item.dateStr,
+                      dayName: item.fullDay,
+                      dateNum: item.date,
+                      fullDate: item.fullDate,
+                      isToday: item.isToday,
+                    })}
+                    disabled={item.isPast}
+                    className={`flex-1 flex flex-col items-center gap-0.5 py-2.5 rounded-3xl transition-colors ${
                       item.isToday 
                         ? 'bg-gray-900 text-white' 
                         : item.isPast
-                          ? 'bg-gray-50 text-gray-300'
+                          ? 'text-gray-300 cursor-not-allowed'
                           : item.count === 0 
-                            ? 'bg-gray-50 text-gray-400' 
-                            : 'bg-gray-100 text-gray-900'
+                            ? 'text-gray-500 hover:bg-gray-100 active:bg-gray-200' 
+                            : 'text-gray-900 hover:bg-gray-100 active:bg-gray-200'
                     }`}
                   >
-                    <p className={`text-[9px] font-medium ${item.isToday ? 'text-gray-400' : ''}`}>
+                    <p className={`text-[10px] font-medium uppercase ${item.isToday ? 'text-gray-400' : ''}`}>
                       {item.day}
                     </p>
-                    <p className="text-base font-bold">
+                    <p className="text-lg font-semibold">
                       {item.date}
                     </p>
-                    {item.isPast ? (
-                      <p className="text-[9px]">-</p>
+                    {loading ? (
+                      <p className={`text-[10px] ${item.isToday ? 'text-gray-500' : 'text-gray-300'}`}>...</p>
+                    ) : item.isPast ? (
+                      <p className="text-[10px] text-gray-300">-</p>
                     ) : item.count > 0 ? (
-                      <p className={`text-[9px] ${item.isToday ? 'text-gray-300' : 'text-gray-500'}`}>
+                      <p className={`text-[10px] font-medium ${item.isToday ? 'text-gray-400' : 'text-gray-500'}`}>
                         {item.count}
                       </p>
                     ) : (
-                      <p className="text-[9px]">-</p>
+                      <p className={`text-[10px] ${item.isToday ? 'text-gray-500' : 'text-gray-400'}`}>-</p>
                     )}
-                  </motion.div>
+                  </motion.button>
                 ))}
               </div>
             </motion.div>
@@ -379,18 +473,32 @@ export default function DashboardPage() {
                 <span className="text-xs text-gray-500">Last 4 weeks</span>
               </div>
               <div className="h-28">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={monthlyData}>
-                    <XAxis dataKey="week" axisLine={false} tickLine={false} tick={{ fill: '#9CA3AF', fontSize: 11 }} />
-                    <Line 
-                      type="monotone" 
-                      dataKey="appointments" 
-                      stroke="#1F2937" 
-                      strokeWidth={2}
-                      dot={{ fill: '#1F2937', strokeWidth: 0, r: 4 }}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
+                {loading ? (
+                  <div className="h-full flex items-end justify-between gap-4 px-2">
+                    {[40, 65, 45, 80].map((height, i) => (
+                      <div key={i} className="flex-1 flex flex-col items-center gap-2">
+                        <div 
+                          className="w-full bg-gray-100 rounded animate-pulse" 
+                          style={{ height: `${height}%` }}
+                        />
+                        <div className="w-6 h-3 bg-gray-100 rounded animate-pulse" />
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={monthlyData}>
+                      <XAxis dataKey="week" axisLine={false} tickLine={false} tick={{ fill: '#9CA3AF', fontSize: 11 }} />
+                      <Line 
+                        type="monotone" 
+                        dataKey="appointments" 
+                        stroke="#1F2937" 
+                        strokeWidth={2}
+                        dot={{ fill: '#1F2937', strokeWidth: 0, r: 4 }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                )}
               </div>
             </motion.div>
           </div>
@@ -415,15 +523,17 @@ export default function DashboardPage() {
                 >
                   <Link
                     href={item.href}
-                    className="flex items-center gap-3 p-3 rounded-xl lg:hover:bg-gray-50 transition-colors group relative"
+                    className="flex items-center gap-3 p-3 rounded-xl lg:hover:bg-gray-50 transition-colors group"
                   >
-                    {item.badge !== undefined && item.badge > 0 && (
-                      <span className="absolute top-2 right-2 min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
-                        {item.badge > 9 ? '9+' : item.badge}
-                      </span>
-                    )}
-                    <div className={`w-9 h-9 ${item.color} rounded-lg flex items-center justify-center lg:group-hover:scale-105 transition-transform`}>
-                      <item.icon className="w-4 h-4 text-white" />
+                    <div className="relative">
+                      <div className={`w-9 h-9 ${item.color} rounded-lg flex items-center justify-center lg:group-hover:scale-105 transition-transform`}>
+                        <item.icon className="w-4 h-4 text-white" />
+                      </div>
+                      {item.badge !== undefined && item.badge > 0 && (
+                        <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-white">
+                          {item.badge > 9 ? '9+' : item.badge}
+                        </span>
+                      )}
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-gray-900 text-sm">{item.label}</p>
@@ -454,6 +564,229 @@ export default function DashboardPage() {
 
         </motion.div>
       </div>
+
+      {/* Week Day Sessions Modal */}
+      <AnimatePresence>
+        {selectedWeekDay && (
+          <>
+            {/* Backdrop - extended to cover safe areas */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
+              onClick={() => setSelectedWeekDay(null)}
+              className="fixed -top-20 -left-4 -right-4 -bottom-20 bg-black/50 z-[9999]"
+            />
+
+            {/* Modal */}
+            <motion.div
+              initial={{ y: "100%", opacity: 0.5 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: "100%", opacity: 0 }}
+              transition={{ type: "spring", damping: 32, stiffness: 400 }}
+              className="fixed bottom-0 left-0 right-0 md:bottom-auto md:left-1/2 md:top-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-full md:max-w-[380px] z-[10000]"
+            >
+              <div className="bg-white rounded-t-2xl md:rounded-2xl shadow-2xl max-h-[75vh] flex flex-col">
+                {/* Drag handle - mobile only */}
+                <div className="md:hidden flex justify-center pt-3">
+                  <div className="w-9 h-1 bg-gray-300 rounded-full" />
+                </div>
+
+                {/* Header */}
+                <div className="px-5 pt-4 pb-3 flex-shrink-0">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-[17px] font-semibold text-gray-900">
+                        {selectedWeekDay.isToday ? 'Today' : selectedWeekDay.dayName}
+                      </h3>
+                      <p className="text-[13px] text-gray-500">{selectedWeekDay.fullDate}</p>
+                    </div>
+                    <button
+                      onClick={() => setSelectedWeekDay(null)}
+                      className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 active:bg-gray-200 transition-colors"
+                    >
+                      <X className="w-5 h-5 text-gray-400" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Sessions List */}
+                <div className="flex-1 overflow-y-auto border-t border-gray-100">
+                  {(() => {
+                    const daySessions = getSessionsForDate(selectedWeekDay.dateStr);
+                    
+                    if (daySessions.length === 0) {
+                      return (
+                        <div className="py-10 px-5 text-center">
+                          <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-3">
+                            <Calendar className="w-5 h-5 text-gray-400" />
+                          </div>
+                          <p className="text-[15px] font-medium text-gray-900">No sessions</p>
+                          <p className="text-[13px] text-gray-500 mt-0.5">Schedule is clear</p>
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <div className="divide-y divide-gray-100">
+                        {daySessions.map((session, index) => (
+                          <motion.div
+                            key={session.id}
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ delay: index * 0.02 }}
+                            className="flex items-center gap-4 px-5 py-3.5"
+                          >
+                            {/* Time */}
+                            <div className="w-14 flex-shrink-0 text-center">
+                              <p className="text-[15px] font-semibold text-gray-900">
+                                {session.time.split(' ')[0]}
+                              </p>
+                              <p className="text-[10px] text-gray-400 uppercase tracking-wide">
+                                {session.time.split(' ')[1]}
+                              </p>
+                            </div>
+
+                            {/* Vertical line */}
+                            <div className="w-0.5 h-9 bg-gray-200 rounded-full flex-shrink-0" />
+
+                            {/* Details */}
+                            <div className="flex-1 min-w-0">
+                              <p className="text-[15px] font-medium text-gray-900 truncate">
+                                {session.client}
+                              </p>
+                              <p className="text-[13px] text-gray-500 truncate">
+                                {session.service}
+                                {session.duration && (
+                                  <span className="text-gray-400"> · {session.duration}m</span>
+                                )}
+                              </p>
+                            </div>
+                          </motion.div>
+                        ))}
+                      </div>
+                    );
+                  })()}
+                </div>
+
+                {/* Footer */}
+                <div className="px-5 py-4 border-t border-gray-100 flex-shrink-0">
+                  <Link
+                    href={`/calendar?date=${selectedWeekDay.dateStr}`}
+                    onClick={() => setSelectedWeekDay(null)}
+                    className="w-full flex items-center justify-center h-11 bg-gray-900 hover:bg-gray-800 active:bg-gray-700 text-white font-medium text-[15px] rounded-xl transition-colors"
+                  >
+                    Open in Calendar
+                  </Link>
+                </div>
+
+                {/* Safe area for iPhone */}
+                <div className="h-6 md:hidden" />
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Session Details Modal - Premium Design */}
+      <AnimatePresence>
+        {selectedSession && (
+          <>
+            {/* Backdrop - extended to cover safe areas */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
+              onClick={() => setSelectedSession(null)}
+              className="fixed -top-20 -left-4 -right-4 -bottom-20 bg-black/50 z-[9999]"
+            />
+
+            {/* Modal - Bottom sheet on mobile, centered on desktop */}
+            <motion.div
+              initial={{ y: "100%", opacity: 0.5 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: "100%", opacity: 0 }}
+              transition={{ type: "spring", damping: 32, stiffness: 400 }}
+              className="fixed bottom-0 left-0 right-0 md:bottom-auto md:left-1/2 md:top-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-full md:max-w-[360px] z-[10000]"
+            >
+              <div className="bg-white rounded-t-2xl md:rounded-2xl shadow-2xl">
+                {/* Drag handle - mobile only */}
+                <div className="md:hidden flex justify-center pt-3">
+                  <div className="w-9 h-1 bg-gray-300 rounded-full" />
+                </div>
+
+                {/* Content */}
+                <div className="px-5 pt-5 pb-6">
+                  {/* Header row */}
+                  <div className="flex items-start justify-between mb-5">
+                    <div className="flex items-center gap-3">
+                      {/* Avatar with initial */}
+                      <div className="w-12 h-12 rounded-full bg-gray-900 flex items-center justify-center text-white font-semibold text-[15px]">
+                        {selectedSession.client.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+                      </div>
+                      <div>
+                        <h3 className="text-[17px] font-semibold text-gray-900 leading-tight">
+                          {selectedSession.client}
+                        </h3>
+                        <p className="text-[13px] text-gray-500 mt-0.5">{selectedSession.service}</p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setSelectedSession(null)}
+                      className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 active:bg-gray-200 transition-colors -mr-1"
+                    >
+                      <X className="w-5 h-5 text-gray-400" />
+                    </button>
+                  </div>
+
+                  {/* Time display - clean and prominent */}
+                  <div className="flex items-center justify-between py-4 border-y border-gray-100">
+                    <div>
+                      <p className="text-[28px] font-semibold text-gray-900 tracking-tight leading-none">
+                        {selectedSession.time}
+                      </p>
+                      {selectedSession.duration && (
+                        <p className="text-[13px] text-gray-400 mt-1">
+                          {selectedSession.duration} min session
+                        </p>
+                      )}
+                    </div>
+                    <div className="text-right">
+                      <p className="text-[13px] text-gray-400">Starts in</p>
+                      <p className="text-[17px] font-semibold text-gray-900">{getTimeUntil(selectedSession.rawTime)}</p>
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex gap-2.5 mt-5">
+                    {selectedSession.phone && (
+                      <a
+                        href={`tel:${selectedSession.phone.replace(/\D/g, '')}`}
+                        className="h-12 w-12 flex items-center justify-center bg-gray-100 hover:bg-gray-200 active:bg-gray-300 rounded-xl transition-colors"
+                        aria-label="Call client"
+                      >
+                        <Phone className="w-5 h-5 text-gray-700" />
+                      </a>
+                    )}
+                    <Link
+                      href={`/calendar?date=${selectedSession.date}`}
+                      onClick={() => setSelectedSession(null)}
+                      className="flex-1 flex items-center justify-center gap-2 h-12 bg-gray-900 hover:bg-gray-800 active:bg-gray-700 text-white font-medium text-[15px] rounded-xl transition-colors"
+                    >
+                      View Full Details
+                    </Link>
+                  </div>
+                </div>
+
+                {/* Safe area for iPhone */}
+                <div className="h-6 md:hidden" />
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

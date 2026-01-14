@@ -60,7 +60,7 @@ export default function ConfirmationModal({
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2, ease: "easeOut" }}
             onClick={onClose}
-            className="fixed inset-0 bg-gray-900/50 z-[100]"
+            className="fixed inset-0 bg-gray-900/60 z-[10001]"
           />
 
           {/* Modal - Bottom sheet on mobile, centered on desktop */}
@@ -70,7 +70,7 @@ export default function ConfirmationModal({
             exit={{ y: "100%", opacity: 0 }}
             transition={{ duration: 0.3, ease: [0.32, 0.72, 0, 1] }}
             onClick={(e) => e.stopPropagation()}
-            className="fixed bottom-0 left-0 right-0 lg:inset-auto lg:left-1/2 lg:top-1/2 lg:-translate-x-1/2 lg:-translate-y-1/2 lg:w-full lg:max-w-md z-[101] bg-white rounded-t-3xl lg:rounded-2xl shadow-2xl flex flex-col"
+            className="fixed bottom-0 left-0 right-0 lg:inset-auto lg:left-1/2 lg:top-1/2 lg:-translate-x-1/2 lg:-translate-y-1/2 lg:w-full lg:max-w-md z-[10002] bg-white rounded-t-3xl lg:rounded-2xl shadow-2xl flex flex-col"
           >
             {/* Handle bar for mobile */}
             <div className="lg:hidden flex justify-center pt-4 pb-2">

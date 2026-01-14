@@ -590,17 +590,6 @@ export default function AvailabilityPage() {
   })() : null;
   const selectedDateData = selectedDate ? customDates[selectedDate] : null;
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center">
-          <Loader2 className="w-8 h-8 animate-spin text-gray-400 mx-auto mb-4" />
-          <p className="text-sm text-gray-500">Loading availability...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-4">
       {/* Header */}
@@ -668,6 +657,7 @@ export default function AvailabilityPage() {
           copyToAllDays={copyToAllDays}
           onSave={handleSaveWeekly}
           saving={saving}
+          loading={loading}
         />
       )}
 
@@ -694,6 +684,7 @@ export default function AvailabilityPage() {
           removeCustomDate={removeCustomDate}
           onSave={handleSavePlannedDate}
           saving={saving}
+          loading={loading}
         />
       )}
 
@@ -705,6 +696,7 @@ export default function AvailabilityPage() {
           deleteSpecialDay={handleDeleteSpecialDay}
           openAddSpecialModal={openAddSpecialModal}
           openEditSpecialModal={openEditSpecialModal}
+          loading={loading}
         />
       )}
 
@@ -903,11 +895,47 @@ function WeeklyScheduleTab({
   copyToAllDays,
   onSave,
   saving,
+  loading,
 }: any) {
   // Check if template has any slots
   const hasAnySlots = Object.values(timeSlots).some(
     (slots: any) => Array.isArray(slots) && slots.length > 0
   );
+
+  // Skeleton for loading state
+  if (loading) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.2, ease: "easeOut" }}
+        className="bg-white border border-gray-200 rounded-2xl overflow-hidden"
+      >
+        <div className="px-4 lg:px-6 py-4 border-b border-gray-200">
+          <div className="h-5 w-40 bg-gray-200 rounded animate-pulse" />
+          <div className="h-4 w-64 bg-gray-100 rounded animate-pulse mt-2" />
+        </div>
+        <div className="divide-y divide-gray-200">
+          {[1, 2, 3, 4, 5, 6, 7].map((i) => (
+            <div key={i} className="p-4 lg:p-6">
+              <div className="flex items-center gap-3">
+                <div className="h-6 w-11 bg-gray-200 rounded-full animate-pulse" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-4 w-24 bg-gray-200 rounded animate-pulse" />
+                  <div className="h-3 w-16 bg-gray-100 rounded animate-pulse" />
+                </div>
+                <div className="hidden lg:flex items-center gap-2">
+                  <div className="h-6 w-20 bg-gray-100 rounded-lg animate-pulse" />
+                  <div className="h-6 w-20 bg-gray-100 rounded-lg animate-pulse" />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </motion.div>
+    );
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -1232,7 +1260,48 @@ function PlanningTab({
   removeCustomDate,
   onSave,
   saving,
+  loading,
 }: any) {
+  // Skeleton for loading state
+  if (loading) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.2, ease: "easeOut" }}
+        className="grid grid-cols-1 lg:grid-cols-3 gap-4"
+      >
+        {/* Calendar Skeleton */}
+        <div className="lg:col-span-1 bg-white border border-gray-200 rounded-2xl p-4">
+          <div className="flex items-center justify-between mb-4">
+            <div className="h-5 w-32 bg-gray-200 rounded animate-pulse" />
+            <div className="flex items-center gap-1">
+              <div className="h-8 w-8 bg-gray-100 rounded-lg animate-pulse" />
+              <div className="h-8 w-8 bg-gray-100 rounded-lg animate-pulse" />
+            </div>
+          </div>
+          <div className="grid grid-cols-7 gap-1">
+            {["S", "M", "T", "W", "T", "F", "S"].map((day, i) => (
+              <div key={i} className="text-center text-xs font-medium text-gray-500 py-2">
+                {day}
+              </div>
+            ))}
+            {Array.from({ length: 35 }).map((_, i) => (
+              <div key={i} className="aspect-square flex items-center justify-center">
+                <div className="h-8 w-8 bg-gray-100 rounded-lg animate-pulse" />
+              </div>
+            ))}
+          </div>
+        </div>
+        {/* Selected Date Skeleton */}
+        <div className="lg:col-span-2 bg-white border border-gray-200 rounded-2xl p-6">
+          <div className="h-5 w-48 bg-gray-200 rounded animate-pulse mb-4" />
+          <div className="h-4 w-64 bg-gray-100 rounded animate-pulse" />
+        </div>
+      </motion.div>
+    );
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -1412,9 +1481,36 @@ function PlanningTab({
 }
 
 // Specials Tab Component
-function SpecialsTab({ specialDays, deleteSpecialDay, openAddSpecialModal, openEditSpecialModal }: any) {
+function SpecialsTab({ specialDays, deleteSpecialDay, openAddSpecialModal, openEditSpecialModal, loading }: any) {
   const recurringDays = specialDays.filter((day: SpecialDay) => day.recurring);
   const oneTimeDays = specialDays.filter((day: SpecialDay) => !day.recurring);
+
+  // Skeleton for loading state
+  if (loading) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.2, ease: "easeOut" }}
+        className="space-y-6 pb-20"
+      >
+        <div className="space-y-3 lg:space-y-0 lg:grid lg:grid-cols-2 lg:gap-4">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="bg-white border border-gray-200 rounded-2xl p-4">
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 bg-gray-100 rounded-xl animate-pulse" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-4 w-32 bg-gray-200 rounded animate-pulse" />
+                  <div className="h-3 w-24 bg-gray-100 rounded animate-pulse" />
+                  <div className="h-5 w-16 bg-gray-100 rounded-full animate-pulse mt-2" />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </motion.div>
+    );
+  }
 
   return (
     <motion.div

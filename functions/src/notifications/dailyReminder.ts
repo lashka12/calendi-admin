@@ -2,6 +2,7 @@ import { onSchedule } from "firebase-functions/v2/scheduler";
 import * as admin from "firebase-admin";
 import { sendWhatsAppMessage } from "../messaging/whatsAppService";
 import { getMessage, formatTimeForMessage, SupportedLanguage } from "../messaging/messageTemplates";
+import { getCurrentBusinessTime, isPastTimeInTimezone } from "../utils/helpers";
 
 /**
  * ============================================================================
@@ -176,6 +177,11 @@ export const sendDailyReminders = onSchedule(
 
       let successCount = 0;
       let failCount = 0;
+      let skippedPast = 0;
+
+      // Get current time for same-day filtering (using existing helper)
+      const { time: currentTime } = getCurrentBusinessTime(timezone);
+      const isSameDay = dailyReminder.daysBefore === 0;
 
       for (const doc of sessionsSnapshot.docs) {
         const session = doc.data();
@@ -184,6 +190,13 @@ export const sendDailyReminders = onSchedule(
         if (!session.phone) {
           console.warn(`⚠️ [dailyReminder] Session ${doc.id} has no phone number`);
           failCount++;
+          continue;
+        }
+
+        // For same-day reminders, skip sessions that have already passed
+        if (isSameDay && session.time && isPastTimeInTimezone(session.time, timezone)) {
+          console.log(`⏭️ [dailyReminder] Skipping past session ${doc.id} at ${session.time} (current time: ${currentTime})`);
+          skippedPast++;
           continue;
         }
 
@@ -219,7 +232,7 @@ export const sendDailyReminders = onSchedule(
       // 5. LOG SUMMARY
       // ========================================
 
-      console.log(`📊 [dailyReminder] Complete! Sent: ${successCount}, Failed: ${failCount}`);
+      console.log(`📊 [dailyReminder] Complete! Sent: ${successCount}, Failed: ${failCount}, Skipped (past): ${skippedPast}`);
 
       // Optionally: Store reminder log
       await db.collection("logs").add({
@@ -230,6 +243,7 @@ export const sendDailyReminders = onSchedule(
           total: sessionsSnapshot.size,
           sent: successCount,
           failed: failCount,
+          skippedPast,
         },
       });
 
