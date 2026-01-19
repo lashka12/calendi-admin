@@ -2,6 +2,7 @@ import { initializeApp, getApps } from 'firebase/app';
 import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
 import { getAuth, connectAuthEmulator } from 'firebase/auth';
 import { getFunctions, connectFunctionsEmulator } from 'firebase/functions';
+import { getMessaging, getToken, onMessage, isSupported, Messaging } from 'firebase/messaging';
 
 // Your Firebase configuration (same as business-management project)
 const firebaseConfig = {

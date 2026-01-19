@@ -21,6 +21,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     pathnameRef.current = pathname;
   }, [pathname]);
 
+  // Register service worker for PWA
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch((err) => {
+        console.log('Service worker registration failed:', err);
+      });
+    }
+  }, []);
+
   // Check authentication state and handle redirects
   useEffect(() => {
     const unsubscribe = onAuthChange((user) => {
@@ -40,10 +49,24 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     return () => unsubscribe();
   }, [router]);
 
+  // PWA meta tags component
+  const PwaHead = () => (
+    <head>
+      <link rel="manifest" href="/manifest.json" />
+      <meta name="theme-color" content="#3b82f6" />
+      <meta name="apple-mobile-web-app-capable" content="yes" />
+      <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+      <meta name="apple-mobile-web-app-title" content="Calendi" />
+      <link rel="apple-touch-icon" href="/icons/icon-192.svg" />
+      <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+    </head>
+  );
+
   // Login page - render directly without layout wrapper
   if (isLoginPage) {
     return (
       <html lang="en">
+        <PwaHead />
         <body>{children}</body>
       </html>
     );
@@ -52,6 +75,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   // Protected pages - render immediately, pages handle their own loading states
   return (
     <html lang="en">
+      <PwaHead />
       <body>
         <LanguageProvider>
           <SettingsProvider>
