@@ -7,6 +7,7 @@ import { ToastProvider, useToast } from "./lib/hooks/useToast";
 import { ToastContainer } from "./components/Toast";
 import { onAuthChange } from "./lib/firebase/auth";
 import { SettingsProvider } from "./context/SettingsContext";
+import { LanguageProvider } from "./i18n";
 import "./globals.css";
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -52,11 +53,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body>
-        <SettingsProvider>
-          <ToastProvider>
-            <AppContent>{children}</AppContent>
-          </ToastProvider>
-        </SettingsProvider>
+        <LanguageProvider>
+          <SettingsProvider>
+            <ToastProvider>
+              <AppContent>{children}</AppContent>
+            </ToastProvider>
+          </SettingsProvider>
+        </LanguageProvider>
       </body>
     </html>
   );

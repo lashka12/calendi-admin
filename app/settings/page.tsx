@@ -1,16 +1,18 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { 
-  Save, User, Bell, Lock, CreditCard, Globe, 
-  Building2, Users, Zap, AlertTriangle, Camera, 
-  X, Eye, EyeOff, Download, Upload,
+  Save, User, Bell, CreditCard, Globe, 
+  Building2, AlertTriangle, Camera, 
+  X, Download, Upload,
   Shield, Smartphone, Monitor, Mail,
   Calendar, MapPin, Phone, Trash2,
-  ExternalLink, Copy, CheckCircle2, Clock, MessageSquare
+  ExternalLink, Copy, CheckCircle2, Clock, MessageSquare,
+  ChevronRight, ArrowLeft
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSettings } from "../context/SettingsContext";
+import { useTranslation } from "@/app/i18n";
 import { db } from "../lib/firebase/config";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 
@@ -22,8 +24,11 @@ interface DailyReminderSettings {
 
 export default function SettingsPage() {
   const { settings } = useSettings();
-  const [activeTab, setActiveTab] = useState("profile");
-  const [showPassword, setShowPassword] = useState(false);
+  const { t, language, setLanguage, languages, isRTL } = useTranslation();
+  // On mobile: null = list view, tab id = detail view
+  // On desktop: always show a tab (default to "profile")
+  const [activeTab, setActiveTab] = useState<string>("profile");
+  const [mobileListMode, setMobileListMode] = useState(true);
   const [notifications, setNotifications] = useState({
     email: true,
     sms: true,
@@ -86,15 +91,12 @@ export default function SettingsPage() {
     return `${hour.toString().padStart(2, '0')}:00`;
   };
 
-  const tabs = [
-    { id: "profile", name: "Profile", icon: User, description: "Personal & business info" },
-    { id: "notifications", name: "Notifications", icon: Bell, description: "Manage alerts" },
-    { id: "security", name: "Security", icon: Lock, description: "Password & sessions" },
-    { id: "billing", name: "Billing", icon: CreditCard, description: "Plans & invoices" },
-    { id: "team", name: "Team", icon: Users, description: "Members & roles" },
-    { id: "integrations", name: "Integrations", icon: Zap, description: "Connected apps" },
-    { id: "preferences", name: "Preferences", icon: Globe, description: "App settings" },
-  ];
+  const tabs = useMemo(() => [
+    { id: "profile", name: t('settings.tabs.profile'), icon: User, description: t('settings.tabs.profileDesc') },
+    { id: "notifications", name: t('settings.tabs.notifications'), icon: Bell, description: t('settings.tabs.notificationsDesc') },
+    { id: "billing", name: t('settings.tabs.billing'), icon: CreditCard, description: t('settings.tabs.billingDesc') },
+    { id: "preferences", name: t('settings.tabs.preferences'), icon: Globe, description: t('settings.tabs.preferencesDesc') },
+  ], [t]);
 
   const ToggleSwitch = ({ enabled, onChange }: { enabled: boolean; onChange: () => void }) => (
     <button
@@ -105,7 +107,9 @@ export default function SettingsPage() {
     >
       <span
         className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-sm transition-transform ${
-          enabled ? 'translate-x-6' : 'translate-x-0.5'
+          isRTL
+            ? (enabled ? 'translate-x-[2px]' : 'translate-x-[22px]')
+            : (enabled ? 'translate-x-[22px]' : 'translate-x-[2px]')
         }`}
       />
     </button>
@@ -113,13 +117,13 @@ export default function SettingsPage() {
 
   return (
     <div className="space-y-6 max-w-7xl">
-      {/* Header - hidden on mobile */}
+      {/* Desktop Header */}
       <div className="hidden lg:block">
-        <h1 className="text-2xl font-semibold text-gray-900">Settings</h1>
+        <h1 className="text-2xl font-semibold text-gray-900">{t('settings.title')}</h1>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-        {/* Tabs sidebar - desktop */}
+        {/* Desktop: Tabs sidebar */}
         <div className="hidden lg:block lg:col-span-1">
           <div className="bg-white border border-gray-200 rounded-xl p-2 sticky top-24">
             {tabs.map((tab) => {
@@ -151,54 +155,135 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        {/* Mobile tabs - horizontal scroll */}
+        {/* Mobile: List-based navigation */}
         <div className="lg:hidden">
-          <div className="bg-white border border-gray-200 rounded-xl p-1">
-            <div className="flex gap-1 overflow-x-auto hide-scrollbar">
-              {tabs.map((tab) => {
-                const Icon = tab.icon;
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
-                    className={`flex items-center gap-2 px-4 py-2.5 rounded-lg transition-all whitespace-nowrap flex-shrink-0 ${
-                      activeTab === tab.id
-                        ? "bg-gray-800 text-white"
-                        : "text-gray-700 hover:bg-gray-50"
-                    }`}
-                  >
-                    <Icon className="w-4 h-4" />
-                    <span className="text-sm font-medium">{tab.name}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-
-        {/* Content area */}
-        <div className="lg:col-span-4">
           <AnimatePresence mode="wait">
-            <motion.div
-              key={activeTab}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.2 }}
-            >
+            {mobileListMode ? (
+              // Main settings list view
+              <motion.div
+                key="settings-list"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ 
+                  type: "spring",
+                  stiffness: 400,
+                  damping: 30,
+                  mass: 1
+                }}
+                className="space-y-4"
+              >
+                {/* Header */}
+                <div className="mb-7">
+                  <h1 className="text-2xl font-semibold text-gray-900 mb-1.5">{t('settings.title')}</h1>
+                  <p className="text-sm text-gray-500 leading-relaxed">Manage your account and preferences</p>
+                </div>
+                
+                <div className="space-y-2.5">
+                  {tabs.map((tab, index) => {
+                    const Icon = tab.icon;
+                    
+                    return (
+                      <motion.button
+                        key={tab.id}
+                        onClick={() => {
+                          setActiveTab(tab.id);
+                          setMobileListMode(false);
+                        }}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ 
+                          delay: index * 0.05, 
+                          duration: 0.2, 
+                          ease: "easeOut" 
+                        }}
+                        whileTap={{ scale: 0.98 }}
+                        className="w-full relative overflow-hidden bg-white rounded-2xl shadow-sm border border-gray-200 active:border-gray-300 active:shadow transition-all duration-150 touch-manipulation"
+                      >
+                        {/* Active state overlay for better touch feedback */}
+                        <motion.div
+                          className="absolute inset-0 bg-gray-50/80"
+                          initial={{ opacity: 0 }}
+                          whileTap={{ opacity: 1 }}
+                          transition={{ duration: 0.1 }}
+                        />
+                        
+                        <div className="relative p-5 flex items-center justify-between">
+                          <div className="flex items-center gap-4 flex-1 min-w-0">
+                            {/* Icon with subtle background */}
+                            <div className="w-12 h-12 rounded-xl bg-gray-50 border border-gray-100 flex items-center justify-center flex-shrink-0">
+                              <Icon className="w-6 h-6 text-gray-700" />
+                            </div>
+                            
+                            <div className="flex-1 min-w-0">
+                              <p className="text-base font-semibold text-gray-900">
+                                {tab.name}
+                              </p>
+                              <p className="text-xs text-gray-500 mt-1 truncate">
+                                {tab.description}
+                              </p>
+                            </div>
+                          </div>
+                          
+                          {/* Chevron */}
+                          <div className="flex-shrink-0 ml-3">
+                            <ChevronRight className={`w-5 h-5 text-gray-400 ${isRTL ? 'rotate-180' : ''}`} />
+                          </div>
+                        </div>
+                      </motion.button>
+                    );
+                  })}
+                </div>
+              </motion.div>
+            ) : (
+              // Individual setting section view
+              <motion.div
+                key={activeTab}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ 
+                  type: "spring",
+                  stiffness: 400,
+                  damping: 30,
+                  mass: 1
+                }}
+                className="space-y-4"
+              >
+                {/* Enhanced header with better back button */}
+                <div className="flex items-center gap-3 mb-5 pb-4 border-b border-gray-200">
+                  <motion.button
+                    onClick={() => setMobileListMode(true)}
+                    whileTap={{ scale: 0.92 }}
+                    className="w-11 h-11 flex items-center justify-center rounded-xl bg-gray-50 active:bg-gray-100 border border-gray-200 transition-colors duration-150 touch-manipulation -ml-1"
+                  >
+                    <ArrowLeft className={`w-5 h-5 text-gray-700 ${isRTL ? 'rotate-180' : ''}`} />
+                  </motion.button>
+                  <div className="flex-1 min-w-0">
+                    <h1 className="text-xl font-semibold text-gray-900 leading-tight">
+                      {tabs.find(t => t.id === activeTab)?.name || t('settings.title')}
+                    </h1>
+                    <p className="text-xs text-gray-500 mt-1 truncate">
+                      {tabs.find(t => t.id === activeTab)?.description}
+                    </p>
+                  </div>
+                </div>
+                
+                {/* Mobile content - shown when in detail view */}
+                <div className="space-y-5">
               {/* Profile Tab */}
               {activeTab === "profile" && (
-                <div className="space-y-6">
+                <div className="space-y-5">
                   {/* Personal Information */}
-                  <div className="bg-white border border-gray-200 rounded-xl p-6">
-                    <h3 className="text-base font-semibold text-gray-900 mb-1">Personal Information</h3>
-                    <p className="text-sm text-gray-500 mb-6">Update your personal details</p>
+                  <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+                    <h3 className="text-base font-semibold text-gray-900 mb-1">{t('settings.profile.personalInfo')}</h3>
+                    <p className="text-sm text-gray-500 mb-6">{t('settings.profile.personalInfoDesc')}</p>
 
                     <div className="space-y-5">
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                         <div>
                           <label className="block text-sm font-medium text-gray-900 mb-2">
-                            First Name *
+                            {t('settings.profile.firstName')} *
                           </label>
                           <input
                             type="text"
@@ -208,7 +293,7 @@ export default function SettingsPage() {
                         </div>
                         <div>
                           <label className="block text-sm font-medium text-gray-900 mb-2">
-                            Last Name *
+                            {t('settings.profile.lastName')} *
                           </label>
                           <input
                             type="text"
@@ -220,7 +305,7 @@ export default function SettingsPage() {
 
                       <div>
                         <label className="block text-sm font-medium text-gray-900 mb-2">
-                          Email Address *
+                          {t('settings.profile.email')} *
                         </label>
                         <div className="relative">
                           <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -231,13 +316,13 @@ export default function SettingsPage() {
                           />
                         </div>
                         <p className="text-xs text-gray-500 mt-1.5">
-                          This email is used for login and important notifications
+                          {t('settings.profile.emailHint')}
                         </p>
                       </div>
 
                       <div>
                         <label className="block text-sm font-medium text-gray-900 mb-2">
-                          Phone Number
+                          {t('settings.profile.phone')}
                         </label>
                         <div className="relative">
                           <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -253,7 +338,7 @@ export default function SettingsPage() {
                     <div className="mt-6 pt-6 border-t border-gray-200 flex justify-end">
                       <button className="inline-flex items-center gap-2 px-5 py-2.5 bg-gray-800 text-white text-sm font-medium rounded-xl hover:bg-gray-700 transition-colors">
                         <Save className="w-4 h-4" />
-                        Save Changes
+                        {t('settings.common.saveChanges')}
                       </button>
                     </div>
                   </div>
@@ -262,14 +347,14 @@ export default function SettingsPage() {
                   <div className="bg-white border border-gray-200 rounded-xl p-6">
                     <div className="flex items-center gap-2 mb-1">
                       <Building2 className="w-5 h-5 text-gray-700" />
-                      <h3 className="text-base font-semibold text-gray-900">Business Information</h3>
+                      <h3 className="text-base font-semibold text-gray-900">{t('settings.profile.businessInfo')}</h3>
                     </div>
-                    <p className="text-sm text-gray-500 mb-6">Details about your business</p>
+                    <p className="text-sm text-gray-500 mb-6">{t('settings.profile.businessInfoDesc')}</p>
 
                     <div className="space-y-5">
                       <div>
                         <label className="block text-sm font-medium text-gray-900 mb-2">
-                          Business Name *
+                          {t('settings.profile.businessName')} *
                         </label>
                         <input
                           type="text"
@@ -280,7 +365,7 @@ export default function SettingsPage() {
 
                       <div>
                         <label className="block text-sm font-medium text-gray-900 mb-2">
-                          Business Address
+                          {t('settings.profile.businessAddress')}
                         </label>
                         <div className="relative">
                           <MapPin className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
@@ -295,25 +380,26 @@ export default function SettingsPage() {
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                         <div>
                           <label className="block text-sm font-medium text-gray-900 mb-2">
-                            Business Type
+                            {t('settings.profile.businessType')}
                           </label>
                           <select className="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-800 focus:border-transparent">
-                            <option>Salon & Spa</option>
-                            <option>Medical Practice</option>
-                            <option>Fitness Studio</option>
-                            <option>Consulting</option>
-                            <option>Other</option>
+                            <option>{t('settings.profile.businessTypes.salon')}</option>
+                            <option>{t('settings.profile.businessTypes.medical')}</option>
+                            <option>{t('settings.profile.businessTypes.fitness')}</option>
+                            <option>{t('settings.profile.businessTypes.consulting')}</option>
+                            <option>{t('settings.profile.businessTypes.other')}</option>
                           </select>
                         </div>
                         <div>
                           <label className="block text-sm font-medium text-gray-900 mb-2">
-                            Time Zone
+                            {t('settings.profile.timezone')}
                           </label>
                           <select className="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-800 focus:border-transparent">
                             <option>Pacific Time (PT)</option>
                             <option>Eastern Time (ET)</option>
                             <option>Central Time (CT)</option>
                             <option>Mountain Time (MT)</option>
+                            <option>Israel (IST)</option>
                           </select>
                         </div>
                       </div>
@@ -322,7 +408,7 @@ export default function SettingsPage() {
                     <div className="mt-6 pt-6 border-t border-gray-200 flex justify-end">
                       <button className="inline-flex items-center gap-2 px-5 py-2.5 bg-gray-800 text-white text-sm font-medium rounded-xl hover:bg-gray-700 transition-colors">
                         <Save className="w-4 h-4" />
-                        Save Changes
+                        {t('settings.common.saveChanges')}
                       </button>
                     </div>
                   </div>
@@ -333,14 +419,14 @@ export default function SettingsPage() {
               {activeTab === "notifications" && (
                 <div className="space-y-6">
                   <div className="bg-white border border-gray-200 rounded-xl p-6">
-                    <h3 className="text-base font-semibold text-gray-900 mb-1">Notification Channels</h3>
-                    <p className="text-sm text-gray-500 mb-6">Choose how you want to be notified</p>
+                    <h3 className="text-base font-semibold text-gray-900 mb-1">{t('settings.notifications.channels')}</h3>
+                    <p className="text-sm text-gray-500 mb-6">{t('settings.notifications.channelsDesc')}</p>
 
                     <div className="space-y-4">
                       {[
-                        { key: "email", label: "Email Notifications", description: "Receive updates via email", icon: Mail },
-                        { key: "sms", label: "SMS Notifications", description: "Get text messages for important updates", icon: Smartphone },
-                        { key: "push", label: "Push Notifications", description: "Browser and mobile app notifications", icon: Bell },
+                        { key: "email", label: t('settings.notifications.emailLabel'), description: t('settings.notifications.emailDesc'), icon: Mail },
+                        { key: "sms", label: t('settings.notifications.smsLabel'), description: t('settings.notifications.smsDesc'), icon: Smartphone },
+                        { key: "push", label: t('settings.notifications.pushLabel'), description: t('settings.notifications.pushDesc'), icon: Bell },
                       ].map((channel) => {
                         const Icon = channel.icon;
                         return (
@@ -370,35 +456,35 @@ export default function SettingsPage() {
                   </div>
 
                   <div className="bg-white border border-gray-200 rounded-xl p-6">
-                    <h3 className="text-base font-semibold text-gray-900 mb-1">Notification Types</h3>
-                    <p className="text-sm text-gray-500 mb-6">Manage what notifications you receive</p>
+                    <h3 className="text-base font-semibold text-gray-900 mb-1">{t('settings.notifications.types')}</h3>
+                    <p className="text-sm text-gray-500 mb-6">{t('settings.notifications.typesDesc')}</p>
 
                     <div className="space-y-1">
                       {[
                         {
                           key: "bookingConfirm",
-                          label: "Booking Confirmations",
-                          description: "When a booking is confirmed or rescheduled",
+                          label: t('settings.notifications.bookingConfirmLabel'),
+                          description: t('settings.notifications.bookingConfirmDesc'),
                         },
                         {
                           key: "bookingReminder",
-                          label: "Appointment Reminders",
-                          description: "Reminders before upcoming appointments",
+                          label: t('settings.notifications.bookingReminderLabel'),
+                          description: t('settings.notifications.bookingReminderDesc'),
                         },
                         {
                           key: "newRequest",
-                          label: "New Booking Requests",
-                          description: "When customers request a new appointment",
+                          label: t('settings.notifications.newRequestLabel'),
+                          description: t('settings.notifications.newRequestDesc'),
                         },
                         {
                           key: "cancellation",
-                          label: "Cancellations",
-                          description: "When appointments are cancelled",
+                          label: t('settings.notifications.cancellationLabel'),
+                          description: t('settings.notifications.cancellationDesc'),
                         },
                         {
                           key: "marketing",
-                          label: "Marketing & Updates",
-                          description: "News, tips, and promotional offers from Calendi",
+                          label: t('settings.notifications.marketingLabel'),
+                          description: t('settings.notifications.marketingDesc'),
                         },
                       ].map((type) => (
                         <div key={type.key} className="flex items-start justify-between py-4 px-4 hover:bg-gray-50 rounded-xl transition-colors">
@@ -422,7 +508,7 @@ export default function SettingsPage() {
                     <div className="mt-6 pt-6 border-t border-gray-200 flex justify-end">
                       <button className="inline-flex items-center gap-2 px-5 py-2.5 bg-gray-800 text-white text-sm font-medium rounded-xl hover:bg-gray-700 transition-colors">
                         <Save className="w-4 h-4" />
-                        Save Preferences
+                        {t('settings.notifications.savePreferences')}
                       </button>
                     </div>
                   </div>
@@ -434,9 +520,9 @@ export default function SettingsPage() {
                         <MessageSquare className="w-5 h-5 text-blue-600" />
                       </div>
                       <div>
-                        <h3 className="text-base font-semibold text-gray-900">WhatsApp Daily Reminders</h3>
+                        <h3 className="text-base font-semibold text-gray-900">{t('settings.notifications.whatsappReminders')}</h3>
                         <p className="text-sm text-gray-500 mt-0.5">
-                          Automatically send appointment reminders to clients via WhatsApp
+                          {t('settings.notifications.whatsappRemindersDesc')}
                         </p>
                       </div>
                     </div>
@@ -450,9 +536,9 @@ export default function SettingsPage() {
                         {/* Enable/Disable Toggle */}
                         <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
                           <div>
-                            <p className="text-sm font-medium text-gray-900">Enable Daily Reminders</p>
+                            <p className="text-sm font-medium text-gray-900">{t('settings.notifications.enableReminders')}</p>
                             <p className="text-sm text-gray-500 mt-0.5">
-                              Send automatic reminders to clients about their upcoming appointments
+                              {t('settings.notifications.enableRemindersDesc')}
                             </p>
                           </div>
                           <ToggleSwitch
@@ -468,7 +554,7 @@ export default function SettingsPage() {
                             <div>
                               <label className="block text-sm font-medium text-gray-900 mb-2">
                                 <Clock className="w-4 h-4 inline mr-2 text-gray-400" />
-                                Send reminders at
+                                {t('settings.notifications.sendAt')}
                               </label>
                               <select
                                 value={dailyReminder.hour}
@@ -482,7 +568,7 @@ export default function SettingsPage() {
                                 ))}
                               </select>
                               <p className="text-xs text-gray-500 mt-1.5">
-                                Reminders will be sent daily at this time (Israel timezone)
+                                {t('settings.notifications.sendAtHint')}
                               </p>
                             </div>
 
@@ -490,21 +576,21 @@ export default function SettingsPage() {
                             <div>
                               <label className="block text-sm font-medium text-gray-900 mb-2">
                                 <Calendar className="w-4 h-4 inline mr-2 text-gray-400" />
-                                Send reminder
+                                {t('settings.notifications.sendReminder')}
                               </label>
                               <select
                                 value={dailyReminder.daysBefore}
                                 onChange={(e) => setDailyReminder({ ...dailyReminder, daysBefore: parseInt(e.target.value) })}
                                 className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-800 focus:border-transparent appearance-none bg-white"
                               >
-                                <option value={0}>Same day (day of appointment)</option>
-                                <option value={1}>1 day before</option>
-                                <option value={2}>2 days before</option>
-                                <option value={3}>3 days before</option>
-                                <option value={7}>1 week before</option>
+                                <option value={0}>{t('settings.notifications.sameDay')}</option>
+                                <option value={1}>{t('settings.notifications.daysBefore').replace('{days}', '1')}</option>
+                                <option value={2}>{t('settings.notifications.daysBefore').replace('{days}', '2')}</option>
+                                <option value={3}>{t('settings.notifications.daysBefore').replace('{days}', '3')}</option>
+                                <option value={7}>{t('settings.notifications.weekBefore')}</option>
                               </select>
                               <p className="text-xs text-gray-500 mt-1.5">
-                                How many days before the appointment to send the reminder
+                                {t('settings.notifications.daysBeforeHint')}
                               </p>
                             </div>
 
@@ -516,7 +602,7 @@ export default function SettingsPage() {
                           {reminderSaved && (
                             <span className="text-sm text-green-600 flex items-center gap-1">
                               <CheckCircle2 className="w-4 h-4" />
-                              Saved!
+                              {t('settings.common.saved')}
                             </span>
                           )}
                           <button 
@@ -527,169 +613,18 @@ export default function SettingsPage() {
                             {savingReminder ? (
                               <>
                                 <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                Saving...
+                                {t('settings.common.saving')}
                               </>
                             ) : (
                               <>
                                 <Save className="w-4 h-4" />
-                                Save Reminder Settings
+                                {t('settings.notifications.saveReminderSettings')}
                               </>
                             )}
                           </button>
                         </div>
                       </div>
                     )}
-                  </div>
-                </div>
-              )}
-
-              {/* Security Tab */}
-              {activeTab === "security" && (
-                <div className="space-y-6">
-                  {/* Password */}
-                  <div className="bg-white border border-gray-200 rounded-xl p-6">
-                    <h3 className="text-base font-semibold text-gray-900 mb-1">Password</h3>
-                    <p className="text-sm text-gray-500 mb-6">Update your password to keep your account secure</p>
-
-                    <div className="space-y-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-900 mb-2">
-                          Current Password
-                        </label>
-                        <div className="relative">
-                          <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                          <input
-                            type={showPassword ? "text" : "password"}
-                            className="w-full pl-10 pr-12 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-800 focus:border-transparent"
-                            placeholder="Enter current password"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setShowPassword(!showPassword)}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                          >
-                            {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                          </button>
-                        </div>
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-gray-900 mb-2">
-                          New Password
-                        </label>
-                        <div className="relative">
-                          <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                          <input
-                            type="password"
-                            className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-800 focus:border-transparent"
-                            placeholder="Enter new password"
-                          />
-                        </div>
-                        <p className="text-xs text-gray-500 mt-1.5">
-                          Must be at least 8 characters with letters and numbers
-                        </p>
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-gray-900 mb-2">
-                          Confirm New Password
-                        </label>
-                        <div className="relative">
-                          <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                          <input
-                            type="password"
-                            className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-800 focus:border-transparent"
-                            placeholder="Confirm new password"
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="mt-6 pt-6 border-t border-gray-200 flex justify-between items-center">
-                      <button className="text-sm text-indigo-600 hover:text-indigo-700 font-medium">
-                        Forgot password?
-                      </button>
-                      <button className="inline-flex items-center gap-2 px-5 py-2.5 bg-gray-800 text-white text-sm font-medium rounded-xl hover:bg-gray-700 transition-colors">
-                        Update Password
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Two-Factor Authentication */}
-                  <div className="bg-white border border-gray-200 rounded-xl p-6">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-start gap-3 flex-1">
-                        <div className="w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center flex-shrink-0">
-                          <Shield className="w-5 h-5 text-emerald-600" />
-                        </div>
-                        <div>
-                          <h3 className="text-base font-semibold text-gray-900 mb-1">Two-Factor Authentication</h3>
-                          <p className="text-sm text-gray-500 mb-4">
-                            Add an extra layer of security to your account. We'll ask for a code when you sign in.
-                          </p>
-                          <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-50 text-emerald-700 rounded-lg text-xs font-medium border border-emerald-200">
-                            <CheckCircle2 className="w-3.5 h-3.5" />
-                            Enabled
-                          </div>
-                        </div>
-                      </div>
-                      <button className="px-4 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-xl hover:bg-gray-50 transition-colors flex-shrink-0 ml-4">
-                        Manage
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Active Sessions */}
-                  <div className="bg-white border border-gray-200 rounded-xl p-6">
-                    <h3 className="text-base font-semibold text-gray-900 mb-1">Active Sessions</h3>
-                    <p className="text-sm text-gray-500 mb-6">Manage devices where you're currently signed in</p>
-
-                    <div className="space-y-3">
-                      {[
-                        { device: "MacBook Pro", browser: "Chrome", location: "San Francisco, CA", time: "Active now", current: true, icon: Monitor },
-                        { device: "iPhone 14 Pro", browser: "Safari", location: "San Francisco, CA", time: "2 hours ago", current: false, icon: Smartphone },
-                        { device: "iPad Air", browser: "Safari", location: "San Francisco, CA", time: "1 day ago", current: false, icon: Smartphone },
-                      ].map((session, i) => {
-                        const Icon = session.icon;
-                        return (
-                          <div
-                            key={i}
-                            className="flex items-center justify-between p-4 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
-                          >
-                            <div className="flex items-center gap-3 flex-1">
-                              <div className="w-10 h-10 bg-gray-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                                <Icon className="w-5 h-5 text-gray-600" />
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2">
-                                  <p className="text-sm font-medium text-gray-900">{session.device}</p>
-                                  {session.current && (
-                                    <span className="px-2 py-0.5 bg-emerald-50 text-emerald-700 rounded text-xs font-medium border border-emerald-200">
-                                      Current
-                                    </span>
-                                  )}
-                                </div>
-                                <p className="text-sm text-gray-500 mt-0.5">
-                                  {session.browser} • {session.location}
-                                </p>
-                                <p className="text-xs text-gray-400 mt-0.5">{session.time}</p>
-                              </div>
-                            </div>
-                            {!session.current && (
-                              <button className="text-sm text-red-600 hover:text-red-700 font-medium flex-shrink-0 ml-4">
-                                Revoke
-                              </button>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-
-                    <div className="mt-4">
-                      <button className="text-sm text-red-600 hover:text-red-700 font-medium">
-                        Sign out of all other sessions
-                      </button>
-                    </div>
                   </div>
                 </div>
               )}
@@ -702,47 +637,47 @@ export default function SettingsPage() {
                     <div className="flex items-start justify-between mb-6">
                       <div>
                         <div className="flex items-center gap-2 mb-2">
-                          <h3 className="text-xl font-semibold">Pro Plan</h3>
+                          <h3 className="text-xl font-semibold">{t('settings.billing.proPlan')}</h3>
                           <span className="px-2.5 py-0.5 bg-emerald-500 text-white rounded-lg text-xs font-medium">
-                            Active
+                            {t('settings.billing.active')}
                           </span>
                         </div>
-                        <p className="text-sm text-gray-300">Next billing date: January 1, 2025</p>
+                        <p className="text-sm text-gray-300">{t('settings.billing.nextBilling')}: January 1, 2025</p>
                       </div>
                       <div className="text-right">
                         <p className="text-3xl font-bold">$49</p>
-                        <p className="text-sm text-gray-300">/month</p>
+                        <p className="text-sm text-gray-300">/{t('settings.billing.month')}</p>
                       </div>
                     </div>
 
                     <div className="grid grid-cols-3 gap-4 pt-6 border-t border-gray-700">
                       <div>
-                        <p className="text-xs text-gray-400 mb-1">Bookings</p>
+                        <p className="text-xs text-gray-400 mb-1">{t('settings.billing.bookings')}</p>
                         <p className="text-lg font-semibold">324 / ∞</p>
                       </div>
                       <div>
-                        <p className="text-xs text-gray-400 mb-1">Team Members</p>
+                        <p className="text-xs text-gray-400 mb-1">{t('settings.billing.teamMembers')}</p>
                         <p className="text-lg font-semibold">3 / 10</p>
                       </div>
                       <div>
-                        <p className="text-xs text-gray-400 mb-1">Storage</p>
+                        <p className="text-xs text-gray-400 mb-1">{t('settings.billing.storage')}</p>
                         <p className="text-lg font-semibold">2.4 / 50 GB</p>
                       </div>
                     </div>
 
                     <div className="mt-6 flex gap-3">
                       <button className="flex-1 px-4 py-2.5 bg-white text-gray-900 text-sm font-medium rounded-xl hover:bg-gray-100 transition-colors">
-                        Upgrade Plan
+                        {t('settings.billing.upgradePlan')}
                       </button>
                       <button className="px-4 py-2.5 border border-gray-600 text-white text-sm font-medium rounded-xl hover:bg-gray-800 transition-colors">
-                        Manage
+                        {t('settings.billing.manage')}
                       </button>
                     </div>
                   </div>
 
                   {/* Payment Method */}
                   <div className="bg-white border border-gray-200 rounded-xl p-6">
-                    <h3 className="text-base font-semibold text-gray-900 mb-6">Payment Method</h3>
+                    <h3 className="text-base font-semibold text-gray-900 mb-6">{t('settings.billing.paymentMethod')}</h3>
 
                     <div className="flex items-center justify-between p-4 border border-gray-200 rounded-xl mb-4">
                       <div className="flex items-center gap-4">
@@ -751,16 +686,16 @@ export default function SettingsPage() {
                         </div>
                         <div>
                           <p className="text-sm font-medium text-gray-900">•••• •••• •••• 4242</p>
-                          <p className="text-sm text-gray-500 mt-0.5">Expires 12/2025</p>
+                          <p className="text-sm text-gray-500 mt-0.5">{t('settings.billing.expires')} 12/2025</p>
                         </div>
                       </div>
                       <button className="text-sm text-indigo-600 hover:text-indigo-700 font-medium">
-                        Update
+                        {t('settings.billing.update')}
                       </button>
                     </div>
 
                     <button className="text-sm text-gray-700 hover:text-gray-900 font-medium">
-                      + Add payment method
+                      + {t('settings.billing.addPaymentMethod')}
                     </button>
                   </div>
 
@@ -768,19 +703,19 @@ export default function SettingsPage() {
                   <div className="bg-white border border-gray-200 rounded-xl p-6">
                     <div className="flex items-center justify-between mb-6">
                       <div>
-                        <h3 className="text-base font-semibold text-gray-900">Billing History</h3>
-                        <p className="text-sm text-gray-500 mt-0.5">Download your previous invoices</p>
+                        <h3 className="text-base font-semibold text-gray-900">{t('settings.billing.billingHistory')}</h3>
+                        <p className="text-sm text-gray-500 mt-0.5">{t('settings.billing.billingHistoryDesc')}</p>
                       </div>
                       <button className="text-sm text-indigo-600 hover:text-indigo-700 font-medium">
-                        View all
+                        {t('settings.billing.viewAll')}
                       </button>
                     </div>
 
                     <div className="space-y-2">
                       {[
-                        { date: "Dec 1, 2024", amount: "$49.00", status: "Paid", invoice: "#INV-1234" },
-                        { date: "Nov 1, 2024", amount: "$49.00", status: "Paid", invoice: "#INV-1233" },
-                        { date: "Oct 1, 2024", amount: "$49.00", status: "Paid", invoice: "#INV-1232" },
+                        { date: "Dec 1, 2024", amount: "$49.00", status: t('settings.billing.paid'), invoice: "#INV-1234" },
+                        { date: "Nov 1, 2024", amount: "$49.00", status: t('settings.billing.paid'), invoice: "#INV-1233" },
+                        { date: "Oct 1, 2024", amount: "$49.00", status: t('settings.billing.paid'), invoice: "#INV-1232" },
                       ].map((invoice, i) => (
                         <div
                           key={i}
@@ -813,185 +748,34 @@ export default function SettingsPage() {
                 </div>
               )}
 
-              {/* Team Tab */}
-              {activeTab === "team" && (
-                <div className="space-y-6">
-                  <div className="bg-white border border-gray-200 rounded-xl p-6">
-                    <div className="flex items-center justify-between mb-6">
-                      <div>
-                        <h3 className="text-base font-semibold text-gray-900">Team Members</h3>
-                        <p className="text-sm text-gray-500 mt-0.5">Manage who has access to your account</p>
-                      </div>
-                      <button className="inline-flex items-center gap-2 px-4 py-2 bg-gray-800 text-white text-sm font-medium rounded-xl hover:bg-gray-700 transition-colors">
-                        <Users className="w-4 h-4" />
-                        Invite Member
-                      </button>
-                    </div>
-
-                    <div className="space-y-2">
-                      {[
-                        { name: "John Doe", email: "john.doe@example.com", role: "Owner", avatar: "https://i.pravatar.cc/150?img=12", status: "Active" },
-                        { name: "Sarah Johnson", email: "sarah@example.com", role: "Admin", avatar: "https://i.pravatar.cc/150?img=44", status: "Active" },
-                        { name: "Mike Chen", email: "mike@example.com", role: "Member", avatar: "https://i.pravatar.cc/150?img=13", status: "Invited" },
-                      ].map((member, i) => (
-                        <div
-                          key={i}
-                          className="flex items-center justify-between p-4 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
-                        >
-                          <div className="flex items-center gap-3 flex-1">
-                            <img
-                              src={member.avatar}
-                              alt={member.name}
-                              className="w-10 h-10 rounded-full border-2 border-gray-100"
-                            />
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2">
-                                <p className="text-sm font-medium text-gray-900">{member.name}</p>
-                                {member.role === "Owner" && (
-                                  <span className="px-2 py-0.5 bg-indigo-50 text-indigo-700 rounded text-xs font-medium border border-indigo-200">
-                                    {member.role}
-                                  </span>
-                                )}
-                              </div>
-                              <p className="text-sm text-gray-500 mt-0.5">{member.email}</p>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-3 flex-shrink-0">
-                            <select className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-800">
-                              <option>{member.role}</option>
-                              <option>Admin</option>
-                              <option>Member</option>
-                            </select>
-                            {member.role !== "Owner" && (
-                              <button className="text-sm text-red-600 hover:text-red-700 font-medium">
-                                Remove
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-                    <div className="flex gap-3">
-                      <div className="flex-shrink-0">
-                        <Users className="w-5 h-5 text-blue-600" />
-                      </div>
-                      <div>
-                        <h4 className="text-sm font-semibold text-blue-900 mb-1">Team Plan</h4>
-                        <p className="text-sm text-blue-700">
-                          You're using 3 of 10 available team seats. Upgrade to add more members.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Integrations Tab */}
-              {activeTab === "integrations" && (
-                <div className="space-y-6">
-                  <div className="bg-white border border-gray-200 rounded-xl p-6">
-                    <h3 className="text-base font-semibold text-gray-900 mb-1">Connected Apps</h3>
-                    <p className="text-sm text-gray-500 mb-6">Manage third-party integrations</p>
-
-                    <div className="space-y-3">
-                      {[
-                        { name: "Google Calendar", description: "Sync appointments with Google Calendar", icon: Calendar, connected: true, color: "bg-blue-600" },
-                        { name: "Stripe", description: "Accept payments and manage billing", icon: CreditCard, connected: true, color: "bg-indigo-600" },
-                        { name: "Mailchimp", description: "Email marketing and automation", icon: Mail, connected: false, color: "bg-yellow-500" },
-                        { name: "Zoom", description: "Virtual meeting integration", icon: Monitor, connected: false, color: "bg-blue-500" },
-                      ].map((integration, i) => {
-                        const Icon = integration.icon;
-                        return (
-                          <div
-                            key={i}
-                            className="flex items-center justify-between p-4 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
-                          >
-                            <div className="flex items-center gap-3 flex-1">
-                              <div className={`w-10 h-10 ${integration.color} rounded-xl flex items-center justify-center flex-shrink-0`}>
-                                <Icon className="w-5 h-5 text-white" />
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2">
-                                  <p className="text-sm font-medium text-gray-900">{integration.name}</p>
-                                  {integration.connected && (
-                                    <span className="px-2 py-0.5 bg-emerald-50 text-emerald-700 rounded text-xs font-medium border border-emerald-200">
-                                      Connected
-                                    </span>
-                                  )}
-                                </div>
-                                <p className="text-sm text-gray-500 mt-0.5">{integration.description}</p>
-                              </div>
-                            </div>
-                            {integration.connected ? (
-                              <div className="flex gap-2 flex-shrink-0">
-                                <button className="px-3 py-1.5 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors">
-                                  Settings
-                                </button>
-                                <button className="px-3 py-1.5 text-red-600 text-sm font-medium rounded-lg hover:bg-red-50 transition-colors">
-                                  Disconnect
-                                </button>
-                              </div>
-                            ) : (
-                              <button className="px-4 py-1.5 bg-gray-800 text-white text-sm font-medium rounded-lg hover:bg-gray-700 transition-colors flex-shrink-0">
-                                Connect
-                              </button>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  <div className="bg-white border border-gray-200 rounded-xl p-6">
-                    <h3 className="text-base font-semibold text-gray-900 mb-1">API Access</h3>
-                    <p className="text-sm text-gray-500 mb-6">Manage your API keys and webhooks</p>
-
-                    <div className="space-y-4">
-                      <div className="p-4 bg-gray-50 border border-gray-200 rounded-xl">
-                        <div className="flex items-center justify-between mb-3">
-                          <p className="text-sm font-medium text-gray-900">API Access</p>
-                          <span className="text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded-lg">Coming Soon</span>
-                        </div>
-                        <p className="text-sm text-gray-500">
-                          API integration will be available in a future update.
-                        </p>
-                      </div>
-
-                      <button className="text-sm text-indigo-600 hover:text-indigo-700 font-medium flex items-center gap-2">
-                        <ExternalLink className="w-4 h-4" />
-                        View API Documentation
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
-
               {/* Preferences Tab */}
               {activeTab === "preferences" && (
                 <div className="space-y-6">
                   <div className="bg-white border border-gray-200 rounded-xl p-6">
-                    <h3 className="text-base font-semibold text-gray-900 mb-1">Regional Settings</h3>
-                    <p className="text-sm text-gray-500 mb-6">Customize your regional preferences</p>
+                    <h3 className="text-base font-semibold text-gray-900 mb-1">{t('settings.preferences.regional')}</h3>
+                    <p className="text-sm text-gray-500 mb-6">{t('settings.preferences.regionalDesc')}</p>
 
                     <div className="space-y-5">
                       <div>
                         <label className="block text-sm font-medium text-gray-900 mb-2">
-                          Language
+                          {t('settings.preferences.language')}
                         </label>
-                        <select className="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-800 focus:border-transparent">
-                          <option>English (US)</option>
-                          <option>Spanish</option>
-                          <option>French</option>
-                          <option>German</option>
+                        <select 
+                          value={language}
+                          onChange={(e) => setLanguage(e.target.value as 'en' | 'he' | 'ar')}
+                          className="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-800 focus:border-transparent"
+                        >
+                          {Object.entries(languages).map(([code, lang]) => (
+                            <option key={code} value={code}>
+                              {lang.nativeName} ({lang.name})
+                            </option>
+                          ))}
                         </select>
                       </div>
 
                       <div>
                         <label className="block text-sm font-medium text-gray-900 mb-2">
-                          Date Format
+                          {t('settings.preferences.dateFormat')}
                         </label>
                         <select className="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-800 focus:border-transparent">
                           <option>MM/DD/YYYY</option>
@@ -1002,22 +786,23 @@ export default function SettingsPage() {
 
                       <div>
                         <label className="block text-sm font-medium text-gray-900 mb-2">
-                          Time Format
+                          {t('settings.preferences.timeFormat')}
                         </label>
                         <select className="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-800 focus:border-transparent">
-                          <option>12-hour (AM/PM)</option>
-                          <option>24-hour</option>
+                          <option>{t('settings.preferences.time12h')}</option>
+                          <option>{t('settings.preferences.time24h')}</option>
                         </select>
                       </div>
 
                       <div>
                         <label className="block text-sm font-medium text-gray-900 mb-2">
-                          Currency
+                          {t('settings.preferences.currency')}
                         </label>
                         <select className="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-800 focus:border-transparent">
                           <option>USD ($)</option>
                           <option>EUR (€)</option>
                           <option>GBP (£)</option>
+                          <option>ILS (₪)</option>
                         </select>
                       </div>
                     </div>
@@ -1025,22 +810,22 @@ export default function SettingsPage() {
                     <div className="mt-6 pt-6 border-t border-gray-200 flex justify-end">
                       <button className="inline-flex items-center gap-2 px-5 py-2.5 bg-gray-800 text-white text-sm font-medium rounded-xl hover:bg-gray-700 transition-colors">
                         <Save className="w-4 h-4" />
-                        Save Preferences
+                        {t('settings.preferences.savePreferences')}
                       </button>
                     </div>
                   </div>
 
                   <div className="bg-white border border-gray-200 rounded-xl p-6">
-                    <h3 className="text-base font-semibold text-gray-900 mb-1">Data & Privacy</h3>
-                    <p className="text-sm text-gray-500 mb-6">Manage your data and privacy settings</p>
+                    <h3 className="text-base font-semibold text-gray-900 mb-1">{t('settings.preferences.dataPrivacy')}</h3>
+                    <p className="text-sm text-gray-500 mb-6">{t('settings.preferences.dataPrivacyDesc')}</p>
 
                     <div className="space-y-4">
                       <button className="w-full flex items-center justify-between p-4 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors text-left">
                         <div className="flex items-center gap-3">
                           <Download className="w-5 h-5 text-gray-600" />
                           <div>
-                            <p className="text-sm font-medium text-gray-900">Export Your Data</p>
-                            <p className="text-sm text-gray-500 mt-0.5">Download a copy of your account data</p>
+                            <p className="text-sm font-medium text-gray-900">{t('settings.preferences.exportData')}</p>
+                            <p className="text-sm text-gray-500 mt-0.5">{t('settings.preferences.exportDataDesc')}</p>
                           </div>
                         </div>
                         <ExternalLink className="w-4 h-4 text-gray-400" />
@@ -1050,8 +835,8 @@ export default function SettingsPage() {
                         <div className="flex items-center gap-3">
                           <Shield className="w-5 h-5 text-gray-600" />
                           <div>
-                            <p className="text-sm font-medium text-gray-900">Privacy Policy</p>
-                            <p className="text-sm text-gray-500 mt-0.5">Review our privacy policy</p>
+                            <p className="text-sm font-medium text-gray-900">{t('settings.preferences.privacyPolicy')}</p>
+                            <p className="text-sm text-gray-500 mt-0.5">{t('settings.preferences.privacyPolicyDesc')}</p>
                           </div>
                         </div>
                         <ExternalLink className="w-4 h-4 text-gray-400" />
@@ -1064,9 +849,9 @@ export default function SettingsPage() {
                     <div className="flex items-start gap-3 mb-4">
                       <AlertTriangle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
                       <div>
-                        <h3 className="text-base font-semibold text-red-900 mb-1">Danger Zone</h3>
+                        <h3 className="text-base font-semibold text-red-900 mb-1">{t('settings.preferences.dangerZone')}</h3>
                         <p className="text-sm text-red-700">
-                          Irreversible actions that will permanently affect your account
+                          {t('settings.preferences.dangerZoneDesc')}
                         </p>
                       </div>
                     </div>
@@ -1074,16 +859,16 @@ export default function SettingsPage() {
                     <div className="space-y-3 mt-4">
                       <button className="w-full flex items-center justify-between p-4 border border-red-200 rounded-xl hover:bg-red-50 transition-colors text-left">
                         <div>
-                          <p className="text-sm font-medium text-red-900">Delete All Data</p>
-                          <p className="text-sm text-red-600 mt-0.5">Permanently delete all your appointments and clients</p>
+                          <p className="text-sm font-medium text-red-900">{t('settings.preferences.deleteAllData')}</p>
+                          <p className="text-sm text-red-600 mt-0.5">{t('settings.preferences.deleteAllDataDesc')}</p>
                         </div>
                         <Trash2 className="w-4 h-4 text-red-600 flex-shrink-0" />
                       </button>
 
                       <button className="w-full flex items-center justify-between p-4 border border-red-200 rounded-xl hover:bg-red-50 transition-colors text-left">
                         <div>
-                          <p className="text-sm font-medium text-red-900">Close Account</p>
-                          <p className="text-sm text-red-600 mt-0.5">Permanently delete your account and all associated data</p>
+                          <p className="text-sm font-medium text-red-900">{t('settings.preferences.closeAccount')}</p>
+                          <p className="text-sm text-red-600 mt-0.5">{t('settings.preferences.closeAccountDesc')}</p>
                         </div>
                         <X className="w-4 h-4 text-red-600 flex-shrink-0" />
                       </button>
@@ -1091,7 +876,9 @@ export default function SettingsPage() {
                   </div>
                 </div>
               )}
+                </div>
             </motion.div>
+            )}
           </AnimatePresence>
         </div>
       </div>

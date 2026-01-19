@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { ChevronLeft, ChevronRight, Plus, Clock, Calendar as CalendarIcon, X, CalendarDays, ChevronDown, Phone } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useTranslation } from "@/app/i18n";
 import { 
   subscribeToSessions, 
   getSessionsForDate, 
@@ -229,6 +230,7 @@ export default function CalendarPage() {
   const [appointmentToDelete, setAppointmentToDelete] = useState<Appointment | null>(null);
   const [isCalendarExpanded, setIsCalendarExpanded] = useState(false);
   const { showToast } = useToast();
+  const { t, language, isRTL } = useTranslation();
 
   // Phone validation constants
   const PHONE_MIN_LENGTH = 9;
@@ -240,17 +242,17 @@ export default function CalendarPage() {
     const digitsOnly = phone.replace(/\D/g, '');
     
     if (!phone.trim()) {
-      return { isValid: false, error: "Phone number is required" };
+      return { isValid: false, error: t('calendar.validation.phoneRequired') };
     }
     if (digitsOnly.length < PHONE_MIN_LENGTH) {
-      return { isValid: false, error: `Phone must be at least ${PHONE_MIN_LENGTH} digits` };
+      return { isValid: false, error: t('calendar.validation.phoneMinLength').replace('{min}', String(PHONE_MIN_LENGTH)) };
     }
     if (digitsOnly.length > PHONE_MAX_LENGTH) {
-      return { isValid: false, error: `Phone cannot exceed ${PHONE_MAX_LENGTH} digits` };
+      return { isValid: false, error: t('calendar.validation.phoneMaxLength').replace('{max}', String(PHONE_MAX_LENGTH)) };
     }
     // Check if it starts with valid prefix (0 for local, + for international)
     if (!phone.startsWith('0') && !phone.startsWith('+')) {
-      return { isValid: false, error: "Phone must start with 0 or +" };
+      return { isValid: false, error: t('calendar.validation.phonePrefix') };
     }
     return { isValid: true };
   };
@@ -267,11 +269,16 @@ export default function CalendarPage() {
   const phoneValidation = validatePhone(sessionFormData.phone);
   const showPhoneError = sessionFormData.phone.length > 0 && !phoneValidation.isValid;
 
-  const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-  const months = [
-    "January", "February", "March", "April", "May", "June",
-    "July", "August", "September", "October", "November", "December"
-  ];
+  const days = useMemo(() => [
+    t('days.sun'), t('days.mon'), t('days.tue'), t('days.wed'), 
+    t('days.thu'), t('days.fri'), t('days.sat')
+  ], [t]);
+  
+  const months = useMemo(() => [
+    t('months.january'), t('months.february'), t('months.march'), t('months.april'),
+    t('months.may'), t('months.june'), t('months.july'), t('months.august'),
+    t('months.september'), t('months.october'), t('months.november'), t('months.december')
+  ], [t]);
 
   // Subscribe to real-time sessions (fetch all, filter client-side)
   useEffect(() => {
@@ -552,7 +559,7 @@ export default function CalendarPage() {
         service: editedAppointment.service,
       });
 
-      showToast("Session updated successfully", "success");
+      showToast(t('calendar.toast.sessionUpdated'), "success");
       closeModal();
     } catch (err: any) {
       console.error("Error updating session:", err);
@@ -584,7 +591,7 @@ export default function CalendarPage() {
 
     try {
       await cancelSession(appointmentToDelete.id);
-      showToast(`Session for ${appointmentToDelete.client} has been cancelled`, "success");
+      showToast(t('calendar.toast.sessionCancelled').replace('{name}', appointmentToDelete.client), "success");
       // Close both modals
       setShowDeleteConfirm(false);
       setAppointmentToDelete(null);
@@ -631,7 +638,7 @@ export default function CalendarPage() {
     } catch (err: any) {
       console.error("Error fetching available slots:", err);
       setAvailableSlots([]);
-      showToast("Failed to load available slots", "error");
+      showToast(t('calendar.toast.failedLoadSlots'), "error");
     } finally {
       setLoadingSlots(false);
     }
@@ -665,14 +672,14 @@ export default function CalendarPage() {
 
   const handleCreateSession = async () => {
     if (!sessionFormData.clientName || !sessionFormData.phone || !sessionFormData.service || !sessionFormData.date || !sessionFormData.time) {
-      setError("Please fill in all required fields");
+      setError(t('calendar.validation.fillAllFields'));
       return;
     }
 
     // Validate phone number
     const phoneCheck = validatePhone(sessionFormData.phone);
     if (!phoneCheck.isValid) {
-      setError(phoneCheck.error || "Invalid phone number");
+      setError(phoneCheck.error || t('calendar.validation.invalidPhone'));
       return;
     }
 
@@ -697,7 +704,7 @@ export default function CalendarPage() {
         endTime: endTime,
       });
 
-      showToast(`Session created for ${sessionFormData.clientName}`, "success");
+      showToast(t('calendar.toast.sessionCreated').replace('{name}', sessionFormData.clientName), "success");
       closeAddSessionModal();
       
       // Update selected date to the new session date
@@ -736,17 +743,17 @@ export default function CalendarPage() {
   const selectedDateDisplay = useMemo(() => {
     const date = new Date(selectedDate + 'T00:00:00');
     if (date.toDateString() === new Date().toDateString()) {
-      return "Today's Schedule";
+      return t('calendar.todaysSchedule');
     }
     return `${days[date.getDay()]}, ${months[date.getMonth()]} ${date.getDate()}`;
-  }, [selectedDate]);
+  }, [selectedDate, days, months, t]);
 
   return (
     <div className="space-y-4 max-w-full overflow-hidden">
       {/* Header - hidden on mobile */}
       <div className="hidden lg:flex items-center justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <h1 className="text-xl sm:text-2xl font-semibold text-gray-900 truncate">Calendar</h1>
+          <h1 className="text-xl sm:text-2xl font-semibold text-gray-900 truncate">{t('calendar.title')}</h1>
           <p className="text-sm text-gray-500 mt-1">
             {months[currentDate.getMonth()]} {currentDate.getFullYear()}
           </p>
@@ -756,7 +763,7 @@ export default function CalendarPage() {
           className="flex-shrink-0 inline-flex items-center gap-2 px-3 sm:px-4 py-2 bg-gray-800 text-white text-sm font-medium rounded-xl hover:bg-gray-700 transition-colors shadow-sm"
         >
           <Plus className="w-4 h-4" />
-          <span className="hidden sm:inline">New Session</span>
+          <span className="hidden sm:inline">{t('calendar.newSession')}</span>
         </button>
       </div>
 
@@ -764,12 +771,12 @@ export default function CalendarPage() {
       <div className="bg-white border border-gray-200 rounded-xl p-4">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-1">
-            <button 
+          <button 
               onClick={() => isCalendarExpanded ? handleMonthNavigation('prev') : handleWeekNavigation('prev')}
-              className="p-2 hover:bg-gray-100 rounded-xl transition-colors"
-            >
-              <ChevronLeft className="w-4 h-4 text-gray-600" />
-            </button>
+            className="p-2 hover:bg-gray-100 rounded-xl transition-colors"
+          >
+            <ChevronLeft className="w-4 h-4 text-gray-600" />
+          </button>
             
             {/* Today button - only show when not viewing current week */}
             {!isCurrentWeek && (
@@ -782,7 +789,7 @@ export default function CalendarPage() {
                 }}
                 className="px-2.5 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
               >
-                Today
+                {t('common.today')}
               </button>
             )}
           </div>
@@ -791,13 +798,13 @@ export default function CalendarPage() {
             onClick={() => setIsCalendarExpanded(!isCalendarExpanded)}
             className="flex items-center gap-2 px-3 py-1.5 hover:bg-gray-100 rounded-lg transition-colors"
           >
-            <span className="text-sm font-medium text-gray-900">
+          <span className="text-sm font-medium text-gray-900">
               {isCalendarExpanded ? (
                 `${months[currentDate.getMonth()]} ${currentDate.getFullYear()}`
               ) : weekDays.length > 0 && (
-                isCurrentWeek ? "This Week" : `${months[weekDays[0].month]} ${weekDays[0].date} - ${months[weekDays[6].month]} ${weekDays[6].date}`
-              )}
-            </span>
+                isCurrentWeek ? t('calendar.thisWeek') : `${months[weekDays[0].month]} ${weekDays[0].date} - ${months[weekDays[6].month]} ${weekDays[6].date}`
+            )}
+          </span>
             <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform duration-250 ease-[cubic-bezier(0.4,0,0.2,1)] ${isCalendarExpanded ? 'rotate-180' : ''}`} />
           </button>
           
@@ -819,36 +826,36 @@ export default function CalendarPage() {
                 : 'opacity-100 scale-100 translate-y-0'
             }`}
           >
-            {weekDays.map((day, index) => (
-              <button
-                key={index}
-                onClick={() => handleDateSelect(day.dateStr)}
+          {weekDays.map((day, index) => (
+            <button
+              key={index}
+              onClick={() => handleDateSelect(day.dateStr)}
                 className={`flex flex-col items-center gap-1 py-2 sm:py-3 rounded-3xl transition-colors min-w-0 ${
-                  day.isToday
-                    ? "bg-gray-900 text-white"
-                    : selectedDate === day.dateStr
-                    ? "bg-gray-100 text-gray-900"
-                    : "hover:bg-gray-50 text-gray-600"
-                }`}
-              >
-                <span className="text-[10px] sm:text-xs font-medium uppercase opacity-75">
-                  {day.day.slice(0, 3)}
-                </span>
-                <span className="text-base sm:text-lg font-semibold">{day.date}</span>
-                {day.hasAppointments && (
-                  <div className="flex gap-0.5">
-                    {Array.from({ length: Math.min(day.appointmentCount, 2) }).map((_, i) => (
-                      <span 
-                        key={i}
-                        className={`w-1 h-1 rounded-full ${
-                          day.isToday ? "bg-white" : "bg-gray-900"
-                        }`}
-                      />
-                    ))}
-                  </div>
-                )}
-              </button>
-            ))}
+                day.isToday
+                  ? "bg-gray-900 text-white"
+                  : selectedDate === day.dateStr
+                  ? "bg-gray-100 text-gray-900"
+                  : "hover:bg-gray-50 text-gray-600"
+              }`}
+            >
+              <span className="text-[10px] sm:text-xs font-medium uppercase opacity-75">
+                {day.day.slice(0, 3)}
+              </span>
+              <span className="text-base sm:text-lg font-semibold">{day.date}</span>
+              {day.hasAppointments && (
+                <div className="flex gap-0.5">
+                  {Array.from({ length: Math.min(day.appointmentCount, 2) }).map((_, i) => (
+                    <span 
+                      key={i}
+                      className={`w-1 h-1 rounded-full ${
+                        day.isToday ? "bg-white" : "bg-gray-900"
+                      }`}
+                    />
+                  ))}
+                </div>
+              )}
+            </button>
+          ))}
           </div>
 
           {/* Month View */}
@@ -923,7 +930,7 @@ export default function CalendarPage() {
           {loading ? (
             <div className="text-center py-12">
               <Clock className="w-12 h-12 text-gray-300 mx-auto mb-3 animate-spin" />
-              <p className="text-sm font-medium text-gray-900">Loading appointments...</p>
+              <p className="text-sm font-medium text-gray-900">{t('calendar.loadingAppointments')}</p>
             </div>
           ) : error ? (
             <div className="text-center py-12">
@@ -998,7 +1005,7 @@ export default function CalendarPage() {
                                 ? "bg-amber-50 text-amber-700 border border-amber-200"
                                 : "bg-yellow-50 text-yellow-700 border border-yellow-200"
                             } ${appointment.isPast ? "opacity-70" : ""}`}>
-                              {appointment.isPending ? "Pending" : appointment.status}
+                              {appointment.isPending ? t('calendar.status.pending') : t('calendar.status.confirmed')}
                             </span>
                           </div>
                           
@@ -1028,8 +1035,8 @@ export default function CalendarPage() {
               {appointments.length === 0 && (
                 <div className="text-center py-12">
                   <CalendarIcon className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                  <p className="text-sm font-medium text-gray-900">No appointments</p>
-                  <p className="text-sm text-gray-500 mt-1">Your schedule is clear for this date</p>
+                  <p className="text-sm font-medium text-gray-900">{t('calendar.noAppointments')}</p>
+                  <p className="text-sm text-gray-500 mt-1">{t('calendar.scheduleClear')}</p>
                 </div>
               )}
             </>
@@ -1078,7 +1085,7 @@ export default function CalendarPage() {
 
               {/* Header */}
               <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
-                <h2 className="text-xl font-semibold text-gray-900">Edit Session</h2>
+                <h2 className="text-xl font-semibold text-gray-900">{t('calendar.editSession')}</h2>
                 <button
                   onClick={closeModal}
                   className="p-1.5 hover:bg-gray-50 rounded-lg transition-colors"
@@ -1098,7 +1105,7 @@ export default function CalendarPage() {
                 <div className="space-y-5">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Client Name
+                      {t('calendar.form.clientName')}
                     </label>
                     <input
                       type="text"
@@ -1110,7 +1117,7 @@ export default function CalendarPage() {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Phone Number
+                      {t('calendar.form.phoneNumber')}
                     </label>
                     <input
                       type="tel"
@@ -1122,7 +1129,7 @@ export default function CalendarPage() {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Date *
+                      {t('calendar.form.date')} *
                     </label>
                     <input
                       type="date"
@@ -1142,7 +1149,7 @@ export default function CalendarPage() {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Service *
+                      {t('calendar.form.service')} *
                     </label>
                     <select
                       value={editedAppointment.service}
@@ -1168,16 +1175,16 @@ export default function CalendarPage() {
                   {editedAppointment.date && editedAppointment.service && (
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-3">
-                        Available Time Slots *
+                        {t('calendar.form.availableSlots')} *
                       </label>
                       {loadingEditSlots ? (
                         <div className="flex items-center justify-center py-8">
                           <Clock className="w-5 h-5 text-gray-400 animate-spin mr-2" />
-                          <span className="text-sm text-gray-500">Loading slots...</span>
+                          <span className="text-sm text-gray-500">{t('calendar.loadingSlots')}</span>
                         </div>
                       ) : editAvailableSlots.length === 0 ? (
                         <div className="text-center py-8 text-sm text-gray-500">
-                          No available slots for this date
+                          {t('calendar.noAvailableSlots')}
                         </div>
                       ) : (
                         <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-5 gap-2 max-h-56 overflow-y-auto">
@@ -1209,7 +1216,7 @@ export default function CalendarPage() {
                   disabled={processing.has(editedAppointment.id)}
                   className="px-4 py-2.5 text-red-600 text-sm font-medium rounded-lg border border-red-300 hover:bg-red-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Delete
+                  {t('common.delete')}
                 </button>
                 <button
                   onClick={handleSaveAppointment}
@@ -1221,7 +1228,7 @@ export default function CalendarPage() {
                   }
                   className="flex-1 px-4 py-2.5 bg-gray-800 text-white text-sm font-medium rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {processing.has(editedAppointment.id) ? "Saving..." : "Save"}
+                  {processing.has(editedAppointment.id) ? t('common.saving') : t('common.save')}
                 </button>
               </div>
 
@@ -1265,7 +1272,7 @@ export default function CalendarPage() {
 
               {/* Header */}
               <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
-                <h2 className="text-xl font-semibold text-gray-900">New Session</h2>
+                <h2 className="text-xl font-semibold text-gray-900">{t('calendar.newSession')}</h2>
                 <button
                   onClick={closeAddSessionModal}
                   className="p-1.5 hover:bg-gray-50 rounded-lg transition-colors"
@@ -1285,26 +1292,26 @@ export default function CalendarPage() {
                 <div className="space-y-5">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Client Name *
+                      {t('calendar.form.clientName')} *
                     </label>
                     <input
                       type="text"
                       value={sessionFormData.clientName}
                       onChange={(e) => setSessionFormData({ ...sessionFormData, clientName: e.target.value })}
-                      placeholder="Enter client name"
+                      placeholder={t('calendar.form.enterClientName')}
                       className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-base sm:text-sm focus:outline-none focus:ring-1 focus:ring-gray-800 focus:border-gray-800"
                     />
                   </div>
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Phone Number *
+                      {t('calendar.form.phoneNumber')} *
                     </label>
                     <input
                       type="tel"
                       value={sessionFormData.phone}
                       onChange={(e) => setSessionFormData({ ...sessionFormData, phone: formatPhoneInput(e.target.value) })}
-                      placeholder="05XXXXXXXX"
+                      placeholder={t('calendar.form.phonePlaceholder')}
                       maxLength={10}
                       className={`w-full px-4 py-2.5 border rounded-lg text-base sm:text-sm focus:outline-none focus:ring-1 transition-colors ${
                         showPhoneError
@@ -1316,7 +1323,7 @@ export default function CalendarPage() {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Date *
+                      {t('calendar.form.date')} *
                     </label>
                     <input
                       type="date"
@@ -1335,7 +1342,7 @@ export default function CalendarPage() {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Service *
+                      {t('calendar.form.service')} *
                     </label>
                     <select
                       value={sessionFormData.service}
@@ -1348,7 +1355,7 @@ export default function CalendarPage() {
                       }}
                       className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-base sm:text-sm focus:outline-none focus:ring-1 focus:ring-gray-800 focus:border-gray-800 appearance-none bg-white"
                     >
-                      <option value="" disabled>Select a service</option>
+                      <option value="" disabled>{t('calendar.form.selectService')}</option>
                       {services.map((service) => (
                         <option key={service.id} value={getServiceName(service)}>
                           {getServiceName(service)}
@@ -1361,16 +1368,16 @@ export default function CalendarPage() {
                   {sessionFormData.date && sessionFormData.service && (
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-3">
-                        Available Time Slots *
+                        {t('calendar.form.availableSlots')} *
                       </label>
                       {loadingSlots ? (
                         <div className="flex items-center justify-center py-8">
                           <Clock className="w-5 h-5 text-gray-400 animate-spin mr-2" />
-                          <span className="text-sm text-gray-500">Loading slots...</span>
+                          <span className="text-sm text-gray-500">{t('calendar.loadingSlots')}</span>
                         </div>
                       ) : availableSlots.length === 0 ? (
                         <div className="text-center py-8 text-sm text-gray-500">
-                          No available slots for this date
+                          {t('calendar.noAvailableSlots')}
                         </div>
                       ) : (
                         <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-5 gap-2 max-h-56 overflow-y-auto">
@@ -1401,7 +1408,7 @@ export default function CalendarPage() {
                   onClick={closeAddSessionModal}
                   className="px-4 py-2.5 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors"
                 >
-                  Cancel
+                  {t('common.cancel')}
                 </button>
                 <button
                   onClick={handleCreateSession}
@@ -1416,7 +1423,7 @@ export default function CalendarPage() {
                   }
                   className="flex-1 px-4 py-2.5 bg-gray-800 text-white text-sm font-medium rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {processing.has('new-session') ? "Creating..." : "Create Session"}
+                  {processing.has('new-session') ? t('calendar.creating') : t('calendar.createSession')}
                 </button>
               </div>
 
@@ -1435,10 +1442,13 @@ export default function CalendarPage() {
           setAppointmentToDelete(null);
         }}
         onConfirm={confirmDeleteAppointment}
-        title="Delete Session"
-        message={`Are you sure you want to delete ${appointmentToDelete?.client}'s appointment on ${appointmentToDelete?.date} at ${appointmentToDelete?.time}? This action cannot be undone.`}
-        confirmText="Delete Session"
-        cancelText="Cancel"
+        title={t('calendar.deleteSession')}
+        message={t('calendar.deleteConfirmMessage')
+          .replace('{name}', appointmentToDelete?.client || '')
+          .replace('{date}', appointmentToDelete?.date || '')
+          .replace('{time}', appointmentToDelete?.time || '')}
+        confirmText={t('calendar.deleteSession')}
+        cancelText={t('common.cancel')}
         variant="danger"
         isLoading={appointmentToDelete ? processing.has(appointmentToDelete.id) : false}
       />

@@ -164,19 +164,19 @@ export const getAvailableTimeSlots = onCall(
       } else if (weeklyTemplateDoc.exists) {
         // Fall back to weekly template
         const template = weeklyTemplateDoc.data() as WeeklyTemplate;
-        const dateObj = new Date(date + "T00:00:00");
-        const dayOfWeek = dateObj.getDay();
-        const dayNames = [
-          "sunday",
-          "monday",
-          "tuesday",
-          "wednesday",
-          "thursday",
-          "friday",
-          "saturday",
-        ];
-        const dayName = dayNames[dayOfWeek] as keyof WeeklyTemplate;
-        availableSlots = template[dayName] || [];
+          const dateObj = new Date(date + "T00:00:00");
+          const dayOfWeek = dateObj.getDay();
+          const dayNames = [
+            "sunday",
+            "monday",
+            "tuesday",
+            "wednesday",
+            "thursday",
+            "friday",
+            "saturday",
+          ];
+          const dayName = dayNames[dayOfWeek] as keyof WeeklyTemplate;
+          availableSlots = template[dayName] || [];
       }
 
       if (availableSlots.length === 0) {

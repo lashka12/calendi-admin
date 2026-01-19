@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { Clock, Check, X, Phone, Mail, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useTranslation } from "@/app/i18n";
 import { 
   subscribeToPendingBookings, 
   approvePendingBooking, 
@@ -150,11 +151,73 @@ export default function RequestsPage() {
   const [error, setError] = useState<string | null>(null);
   // Track processing with action type: "approve:id" or "decline:id"
   const [processing, setProcessing] = useState<Set<string>>(new Set());
+  const { t, language } = useTranslation();
+
+  // Format time ago with translations
+  const formatTimeAgoTranslated = useCallback((timestamp: Date | any): string => {
+    if (!timestamp) return t('requests.justNow');
+    
+    const date = timestamp?.toDate ? timestamp.toDate() : new Date(timestamp);
+    const now = new Date();
+    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+    
+    if (diffInSeconds < 60) return t('requests.justNow');
+    if (diffInSeconds < 3600) {
+      const minutes = Math.floor(diffInSeconds / 60);
+      return t('requests.timeAgo.minutes').replace('{count}', String(minutes));
+    }
+    if (diffInSeconds < 86400) {
+      const hours = Math.floor(diffInSeconds / 3600);
+      return t('requests.timeAgo.hours').replace('{count}', String(hours));
+    }
+    const days = Math.floor(diffInSeconds / 86400);
+    return t('requests.timeAgo.days').replace('{count}', String(days));
+  }, [t]);
+
+  // Format date display with translations
+  const formatDateDisplayTranslated = useCallback((dateString: string): string => {
+    const date = new Date(dateString);
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    
+    if (date.toDateString() === today.toDateString()) {
+      return t('common.today');
+    }
+    if (date.toDateString() === tomorrow.toDateString()) {
+      return t('common.tomorrow');
+    }
+    
+    const locale = language === 'he' ? 'he-IL' : language === 'ar' ? 'ar-SA' : 'en-US';
+    return date.toLocaleDateString(locale, { month: "short", day: "numeric" });
+  }, [t, language]);
+
+  // Transform booking with translated dates
+  const transformBookingWithTranslation = useCallback((booking: PendingBooking): RequestDisplay => {
+    const isExpired = isBookingExpired(booking.date, booking.time || '');
+    
+    return {
+      id: booking.id,
+      client: booking.clientName || booking.client || "Unknown",
+      email: booking.email,
+      phone: booking.phone || "",
+      service: booking.service || "Service",
+      date: formatDateDisplayTranslated(booking.date),
+      rawDate: booking.date,
+      time: booking.time || "",
+      duration: booking.duration,
+      notes: booking.notes,
+      avatar: generateAvatar(booking.clientName || booking.client || "Unknown"),
+      amount: booking.amount,
+      requestedDate: formatTimeAgoTranslated(booking.createdAt),
+      isExpired
+    };
+  }, [formatDateDisplayTranslated, formatTimeAgoTranslated]);
 
   // Subscribe to real-time pending bookings
   useEffect(() => {
     const unsubscribe = subscribeToPendingBookings((bookings) => {
-      const transformed = bookings.map(transformBooking);
+      const transformed = bookings.map(transformBookingWithTranslation);
       setRequests(transformed);
       setLoading(false);
       setError(null);
@@ -163,7 +226,7 @@ export default function RequestsPage() {
     return () => {
       unsubscribe();
     };
-  }, []);
+  }, [transformBookingWithTranslation]);
 
   // Helper to check if any action is processing for a request
   const isProcessing = (id: string) => processing.has(`approve:${id}`) || processing.has(`decline:${id}`);
@@ -229,12 +292,12 @@ export default function RequestsPage() {
     return (
       <div className="space-y-6">
         <div className="hidden lg:block">
-          <h1 className="text-2xl font-semibold text-gray-900">Booking Requests</h1>
-          <p className="text-sm text-gray-500 mt-1">Review and manage appointment requests</p>
+          <h1 className="text-2xl font-semibold text-gray-900">{t('requests.title')}</h1>
+          <p className="text-sm text-gray-500 mt-1">{t('requests.subtitle')}</p>
         </div>
         <div className="bg-white border border-gray-200 rounded-xl p-12 lg:p-16 text-center">
           <Loader2 className="w-8 h-8 text-gray-400 animate-spin mx-auto mb-4" />
-          <p className="text-sm text-gray-500">Loading requests...</p>
+          <p className="text-sm text-gray-500">{t('requests.loading')}</p>
         </div>
       </div>
     );
@@ -244,8 +307,8 @@ export default function RequestsPage() {
     <div className="space-y-6">
       {/* Header - hidden on mobile */}
       <div className="hidden lg:block">
-        <h1 className="text-2xl font-semibold text-gray-900">Booking Requests</h1>
-        <p className="text-sm text-gray-500 mt-1">Review and manage appointment requests</p>
+        <h1 className="text-2xl font-semibold text-gray-900">{t('requests.title')}</h1>
+        <p className="text-sm text-gray-500 mt-1">{t('requests.subtitle')}</p>
       </div>
 
       {/* Error message */}
@@ -258,15 +321,15 @@ export default function RequestsPage() {
       {/* Stats - hidden on mobile */}
       <div className="hidden lg:grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bg-white border border-gray-200 rounded-xl p-6">
-          <p className="text-sm font-medium text-gray-600">Pending</p>
+          <p className="text-sm font-medium text-gray-600">{t('requests.stats.pending')}</p>
           <p className="text-2xl font-semibold text-gray-900 mt-2">{requests.length}</p>
         </div>
         <div className="bg-white border border-gray-200 rounded-xl p-6">
-          <p className="text-sm font-medium text-gray-600">Approved Today</p>
+          <p className="text-sm font-medium text-gray-600">{t('requests.stats.approvedToday')}</p>
           <p className="text-2xl font-semibold text-gray-900 mt-2">28</p>
         </div>
         <div className="bg-white border border-gray-200 rounded-xl p-6">
-          <p className="text-sm font-medium text-gray-600">Approval Rate</p>
+          <p className="text-sm font-medium text-gray-600">{t('requests.stats.approvalRate')}</p>
           <p className="text-2xl font-semibold text-gray-900 mt-2">92%</p>
         </div>
       </div>
@@ -295,7 +358,7 @@ export default function RequestsPage() {
               transition={{ delay: 0.2 }}
               className="text-2xl font-bold text-gray-900 mb-2"
             >
-              All Caught Up!
+              {t('requests.empty.title')}
             </motion.h3>
             <motion.p
               initial={{ opacity: 0 }}
@@ -303,7 +366,7 @@ export default function RequestsPage() {
               transition={{ delay: 0.3 }}
               className="text-base text-gray-500 max-w-md mx-auto"
             >
-              You have no pending requests at the moment. New booking requests will appear here.
+              {t('requests.empty.message')}
             </motion.p>
           </motion.div>
         ) : (
@@ -324,7 +387,7 @@ export default function RequestsPage() {
                 {request.isExpired && (
                   <div className="absolute top-0 right-0 z-10">
                     <div className="bg-red-500 text-white text-[10px] lg:text-xs font-bold px-2 lg:px-3 py-0.5 lg:py-1 shadow-sm rounded-bl-lg uppercase tracking-wide">
-                      Expired
+                      {t('requests.expired')}
                     </div>
                   </div>
                 )}
@@ -369,27 +432,27 @@ export default function RequestsPage() {
                   <div className="bg-gray-50 rounded-xl p-3 lg:p-4 mb-4">
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <p className="text-xs text-gray-500 mb-1">Service</p>
+                        <p className="text-xs text-gray-500 mb-1">{t('requests.details.service')}</p>
                         <p className="text-sm font-medium text-gray-900">{request.service}</p>
                       </div>
                       {request.duration && (
                         <div>
-                          <p className="text-xs text-gray-500 mb-1">Duration</p>
+                          <p className="text-xs text-gray-500 mb-1">{t('requests.details.duration')}</p>
                           <p className="text-sm font-medium text-gray-900">{request.duration}</p>
                         </div>
                       )}
                       <div>
-                        <p className="text-xs text-gray-500 mb-1">Date</p>
+                        <p className="text-xs text-gray-500 mb-1">{t('requests.details.date')}</p>
                         <p className="text-sm font-medium text-gray-900">{request.date}</p>
                       </div>
                       <div>
-                        <p className="text-xs text-gray-500 mb-1">Time</p>
+                        <p className="text-xs text-gray-500 mb-1">{t('requests.details.time')}</p>
                         <p className="text-sm font-medium text-gray-900">{request.time}</p>
                       </div>
                     </div>
                     {request.notes && (
                       <div className="mt-3 pt-3 border-t border-gray-200">
-                        <p className="text-xs text-gray-500 mb-1">Notes</p>
+                        <p className="text-xs text-gray-500 mb-1">{t('requests.details.notes')}</p>
                         <p className="text-sm text-gray-700">"{request.notes}"</p>
                       </div>
                     )}
@@ -411,7 +474,7 @@ export default function RequestsPage() {
                       ) : (
                         <Check className="w-4 h-4" />
                       )}
-                      {request.isExpired ? 'Expired' : 'Approve'}
+                      {request.isExpired ? t('requests.expired') : t('requests.approve')}
                     </button>
                     <button
                       onClick={() => handleDecline(request.id)}
@@ -423,7 +486,7 @@ export default function RequestsPage() {
                       ) : (
                         <X className="w-4 h-4" />
                       )}
-                      Decline
+                      {t('requests.decline')}
                     </button>
                   </div>
                 </div>
