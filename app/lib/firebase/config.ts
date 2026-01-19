@@ -2,6 +2,7 @@ import { initializeApp, getApps } from 'firebase/app';
 import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
 import { getAuth, connectAuthEmulator } from 'firebase/auth';
 import { getFunctions, connectFunctionsEmulator } from 'firebase/functions';
+import { getMessaging, getToken, onMessage, isSupported, Messaging } from 'firebase/messaging';
 
 // Your Firebase configuration (same as business-management project)
 const firebaseConfig = {
@@ -74,3 +75,72 @@ if (
 
 export default app;
 
+// ============================================================================
+// PUSH NOTIFICATIONS (Firebase Cloud Messaging)
+// ============================================================================
+
+let messagingInstance: Messaging | null = null;
+
+/**
+ * Get Firebase Messaging instance (browser only)
+ * Returns null if messaging is not supported
+ */
+export const getMessagingInstance = async (): Promise<Messaging | null> => {
+  if (typeof window === 'undefined') return null;
+  
+  // Check if already initialized
+  if (messagingInstance) return messagingInstance;
+  
+  // Check if messaging is supported
+  const supported = await isSupported();
+  if (!supported) {
+    console.warn('Firebase Messaging is not supported in this browser');
+    return null;
+  }
+  
+  messagingInstance = getMessaging(app);
+  return messagingInstance;
+};
+
+/**
+ * Request notification permission and get FCM token
+ * @param vapidKey - VAPID key from Firebase Console (Cloud Messaging settings)
+ * @returns FCM token or null if permission denied
+ */
+export const requestNotificationPermission = async (vapidKey: string): Promise<string | null> => {
+  try {
+    const permission = await Notification.requestPermission();
+    if (permission !== 'granted') {
+      console.log('Notification permission denied');
+      return null;
+    }
+    
+    const messaging = await getMessagingInstance();
+    if (!messaging) return null;
+    
+    // Get the FCM token
+    const token = await getToken(messaging, { vapidKey });
+    console.log('FCM Token obtained:', token?.substring(0, 20) + '...');
+    return token;
+  } catch (error) {
+    console.error('Error getting notification permission:', error);
+    return null;
+  }
+};
+
+/**
+ * Listen for foreground messages (when app is open)
+ * @param callback - Called when a message is received while app is in foreground
+ * @returns Unsubscribe function
+ */
+export const onForegroundMessage = (callback: (payload: any) => void): (() => void) => {
+  let unsubscribe = () => {};
+  
+  getMessagingInstance().then((messaging) => {
+    if (messaging) {
+      unsubscribe = onMessage(messaging, callback);
+    }
+  });
+  
+  return () => unsubscribe();
+};

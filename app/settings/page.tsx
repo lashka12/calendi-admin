@@ -13,8 +13,8 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { useSettings } from "../context/SettingsContext";
 import { useTranslation } from "@/app/i18n";
-import { db } from "../lib/firebase/config";
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import { db, requestNotificationPermission, onForegroundMessage } from "../lib/firebase/config";
+import { doc, getDoc, setDoc, deleteDoc } from "firebase/firestore";
 
 interface DailyReminderSettings {
   enabled: boolean;
@@ -49,6 +49,12 @@ export default function SettingsPage() {
   const [loadingReminder, setLoadingReminder] = useState(true);
   const [savingReminder, setSavingReminder] = useState(false);
 
+  // Admin push notifications state
+  const [pushEnabled, setPushEnabled] = useState(false);
+  const [pushLoading, setPushLoading] = useState(true);
+  const [pushSaving, setPushSaving] = useState(false);
+  const [pushError, setPushError] = useState<string | null>(null);
+
   // Load daily reminder settings from Firestore
   useEffect(() => {
     const loadDailyReminderSettings = async () => {
@@ -68,6 +74,94 @@ export default function SettingsPage() {
   }, []);
 
   const [reminderSaved, setReminderSaved] = useState(false);
+
+  // Load admin push notification status
+  useEffect(() => {
+    const loadPushStatus = async () => {
+      try {
+        const docRef = doc(db, "settings", "adminPushToken");
+        const docSnap = await getDoc(docRef);
+        setPushEnabled(docSnap.exists() && !!docSnap.data()?.token);
+      } catch (error) {
+        console.error("Error loading push status:", error);
+      } finally {
+        setPushLoading(false);
+      }
+    };
+    loadPushStatus();
+  }, []);
+
+  // Listen for foreground push messages
+  useEffect(() => {
+    const unsubscribe = onForegroundMessage((payload: any) => {
+      console.log("Foreground message received:", payload);
+      // You could show a toast notification here
+    });
+    return unsubscribe;
+  }, []);
+
+  // Toggle push notifications
+  const togglePushNotifications = async () => {
+    setPushSaving(true);
+    setPushError(null);
+
+    try {
+      if (pushEnabled) {
+        // Disable: Delete token from Firestore
+        await deleteDoc(doc(db, "settings", "adminPushToken"));
+        setPushEnabled(false);
+        console.log("Push notifications disabled");
+      } else {
+        // Check browser support first
+        if (!("Notification" in window)) {
+          setPushError("This browser doesn't support push notifications.");
+          return;
+        }
+
+        if (!("serviceWorker" in navigator)) {
+          setPushError("Service workers not supported. Try Chrome, Firefox, or Safari.");
+          return;
+        }
+
+        // Enable: Request permission and save token
+        const VAPID_KEY = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY || "";
+        
+        console.log("VAPID_KEY present:", !!VAPID_KEY, VAPID_KEY ? `(${VAPID_KEY.substring(0, 10)}...)` : "");
+        
+        if (!VAPID_KEY) {
+          setPushError("VAPID key missing. Rebuild with: npm run build && firebase deploy --only hosting");
+          return;
+        }
+
+        // Check current permission status
+        const currentPermission = Notification.permission;
+        console.log("Current notification permission:", currentPermission);
+        
+        if (currentPermission === "denied") {
+          setPushError("Notifications blocked. Please enable in browser settings and refresh.");
+          return;
+        }
+
+        const token = await requestNotificationPermission(VAPID_KEY);
+        
+        if (token) {
+          await setDoc(doc(db, "settings", "adminPushToken"), {
+            token,
+            updatedAt: new Date(),
+          });
+          setPushEnabled(true);
+          console.log("Push notifications enabled, token:", token.substring(0, 20) + "...");
+        } else {
+          setPushError("Failed to get token. Check browser console for details.");
+        }
+      }
+    } catch (error: any) {
+      console.error("Error toggling push notifications:", error);
+      setPushError(error.message || "Failed to toggle push notifications");
+    } finally {
+      setPushSaving(false);
+    }
+  };
 
   // Save daily reminder settings to Firestore
   const saveDailyReminderSettings = async () => {
@@ -453,6 +547,94 @@ export default function SettingsPage() {
                         );
                       })}
                     </div>
+                  </div>
+
+                  {/* Admin Push Notifications - New Request Alerts */}
+                  <div className="bg-white border border-gray-200 rounded-xl p-6">
+                    <div className="flex items-start gap-3 mb-6">
+                      <div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center flex-shrink-0">
+                        <Bell className="w-5 h-5 text-indigo-600" />
+                      </div>
+                      <div>
+                        <h3 className="text-base font-semibold text-gray-900">New Request Alerts</h3>
+                        <p className="text-sm text-gray-500 mt-0.5">
+                          Get instant push notifications when customers submit booking requests
+                        </p>
+                      </div>
+                    </div>
+
+                    {pushLoading ? (
+                      <div className="flex items-center justify-center py-8">
+                        <div className="w-6 h-6 border-2 border-gray-200 border-t-gray-600 rounded-full animate-spin" />
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-gray-900">
+                              {pushEnabled ? "✅ Push Notifications Enabled" : "Enable Push Notifications"}
+                            </p>
+                            <p className="text-sm text-gray-500 mt-0.5">
+                              {pushEnabled 
+                                ? "You'll receive alerts even when the app is closed" 
+                                : "Get notified instantly when a new booking request comes in"}
+                            </p>
+                          </div>
+                          <button
+                            onClick={togglePushNotifications}
+                            disabled={pushSaving}
+                            className={`px-4 py-2 text-sm font-medium rounded-xl transition-colors disabled:opacity-50 ${
+                              pushEnabled
+                                ? "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                                : "bg-gray-800 text-white hover:bg-gray-700"
+                            }`}
+                          >
+                            {pushSaving ? (
+                              <span className="flex items-center gap-2">
+                                <div className="w-4 h-4 border-2 border-current/30 border-t-current rounded-full animate-spin" />
+                                {pushEnabled ? "Disabling..." : "Enabling..."}
+                              </span>
+                            ) : (
+                              pushEnabled ? "Disable" : "Enable"
+                            )}
+                          </button>
+                        </div>
+
+                        {pushError && (
+                          <div className="p-3 bg-red-50 border border-red-200 rounded-xl">
+                            <p className="text-sm text-red-700">{pushError}</p>
+                          </div>
+                        )}
+
+                        {!pushEnabled && (
+                          <p className="text-xs text-gray-500">
+                            Your browser will ask for permission to send notifications. Make sure to allow it!
+                          </p>
+                        )}
+
+                        {pushEnabled && (
+                          <div className="pt-3 border-t border-gray-200">
+                            <button
+                              onClick={() => {
+                                if ('Notification' in window && Notification.permission === 'granted') {
+                                  new Notification('Test Notification', {
+                                    body: 'Push notifications are working correctly!',
+                                    icon: '/icons/icon-192.svg',
+                                    tag: 'test-notification',
+                                  });
+                                } else {
+                                  setPushError('Notification permission not granted');
+                                }
+                              }}
+                              className="text-sm text-gray-600 hover:text-gray-900 font-medium flex items-center gap-2"
+                            >
+                              <Bell className="w-4 h-4" />
+                              Send Test Notification
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   <div className="bg-white border border-gray-200 rounded-xl p-6">

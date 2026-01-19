@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import DashboardLayout from "./components/DashboardLayout";
+import SplashScreen from "./components/SplashScreen";
 import { ToastProvider, useToast } from "./lib/hooks/useToast";
 import { ToastContainer } from "./components/Toast";
 import { onAuthChange } from "./lib/firebase/auth";
@@ -14,6 +15,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   const pathname = usePathname();
   const router = useRouter();
   const isLoginPage = pathname === "/login";
+  
+  // Track both auth state and whether we should show content
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const [showContent, setShowContent] = useState(false);
 
   // Use ref to always get current pathname in auth callback
   const pathnameRef = useRef(pathname);
@@ -21,45 +26,106 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     pathnameRef.current = pathname;
   }, [pathname]);
 
+  // Register service worker for PWA + Push Notifications
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/firebase-messaging-sw.js').catch((err) => {
+        console.log('Service worker registration failed:', err);
+      });
+    }
+  }, []);
+
   // Check authentication state and handle redirects
   useEffect(() => {
     const unsubscribe = onAuthChange((user) => {
       const currentPathname = pathnameRef.current;
       const currentIsLoginPage = currentPathname === "/login";
       
-      if (!user && !currentIsLoginPage) {
-        router.push("/login");
-        return;
-      }
+      setIsAuthenticated(!!user);
       
-      if (user && currentIsLoginPage) {
-        router.push("/");
+      if (!user && !currentIsLoginPage) {
+        // Not authenticated, not on login page - redirect to login
+        // Keep splash visible during redirect
+        router.push("/login");
+      } else if (user && currentIsLoginPage) {
+        // Authenticated, on login page - DON'T redirect here!
+        // Let the login page handle its own success animation and navigation
+        setTimeout(() => setShowContent(true), 100);
+      } else {
+        // We're on the correct page - show content
+        // Small delay for smooth transition
+        setTimeout(() => setShowContent(true), 100);
       }
     });
 
     return () => unsubscribe();
   }, [router]);
 
-  // Login page - render directly without layout wrapper
+  // When pathname changes (redirect complete), check if we should show content
+  useEffect(() => {
+    if (isAuthenticated === null) return; // Auth not checked yet
+    
+    const shouldShowContent = 
+      (isAuthenticated && !isLoginPage) || // Authenticated on protected page
+      (!isAuthenticated && isLoginPage);    // Not authenticated on login page
+    
+    if (shouldShowContent) {
+      setTimeout(() => setShowContent(true), 100);
+    }
+  }, [pathname, isAuthenticated, isLoginPage]);
+
+  // PWA meta tags component
+  const PwaHead = () => (
+    <head>
+      {/* Prevent flash of wrong color - this loads BEFORE React */}
+      <style dangerouslySetInnerHTML={{ __html: `
+        html, body { 
+          background-color: #f9fafb !important; 
+          margin: 0; 
+          padding: 0;
+        }
+      `}} />
+      <link rel="manifest" href="/manifest.json" />
+      <meta name="theme-color" content="#f9fafb" />
+      <meta name="apple-mobile-web-app-capable" content="yes" />
+      <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+      <meta name="apple-mobile-web-app-title" content="Calendi" />
+      <link rel="apple-touch-icon" href="/icons/icon-192.svg" />
+      <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+    </head>
+  );
+
+  // Determine if splash should be visible
+  const showSplash = !showContent;
+
+  // Login page
   if (isLoginPage) {
     return (
       <html lang="en">
-        <body>{children}</body>
+        <PwaHead />
+        <body style={{ backgroundColor: '#f9fafb' }}>
+          <SplashScreen isVisible={showSplash} />
+          {showContent && children}
+        </body>
       </html>
     );
   }
 
-  // Protected pages - render immediately, pages handle their own loading states
+  // Protected pages
   return (
     <html lang="en">
-      <body>
-        <LanguageProvider>
-          <SettingsProvider>
-            <ToastProvider>
-              <AppContent>{children}</AppContent>
-            </ToastProvider>
-          </SettingsProvider>
-        </LanguageProvider>
+      <PwaHead />
+      <body style={{ backgroundColor: '#f9fafb' }}>
+        <SplashScreen isVisible={showSplash} />
+        {showContent && (
+          <LanguageProvider>
+            <SettingsProvider>
+              <ToastProvider>
+                <AppContent>{children}</AppContent>
+              </ToastProvider>
+            </SettingsProvider>
+          </LanguageProvider>
+        )}
       </body>
     </html>
   );
