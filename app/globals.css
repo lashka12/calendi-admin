@@ -22,6 +22,12 @@
     }
   }
 
+  /* Touch optimization */
+  .touch-manipulation {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
   /* RTL Support */
   [dir="rtl"] {
     direction: rtl;

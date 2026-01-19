@@ -27,6 +27,7 @@ import { signOutAdmin } from "../lib/firebase/auth";
 import { doc, onSnapshot } from "firebase/firestore";
 import { db } from "../lib/firebase/config";
 import { useSettings } from "../context/SettingsContext";
+import { useTranslation } from "../i18n";
 
 // Personal settings interface
 interface PersonalSettings {
@@ -69,6 +70,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { settings } = useSettings();
+  const { t, isRTL } = useTranslation();
 
   // Subscribe to real-time personal settings
   useEffect(() => {
@@ -108,7 +110,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   // Computed user display values
   const userName = userProfile 
     ? `${userProfile.firstName} ${userProfile.lastName}` 
-    : 'Loading...';
+    : t('common.loading');
   const userInitials = userProfile 
     ? getInitials(userProfile.firstName, userProfile.lastName) 
     : '?';
@@ -118,31 +120,31 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const badgeCount = pendingCount !== null && pendingCount > 0 ? pendingCount : undefined;
 
   const navigation = useMemo(() => [
-    { name: "Home", href: "/", icon: Home },
-    { name: "Calendar", href: "/calendar", icon: Calendar },
-    { name: "Clients", href: "/clients", icon: Users },
-    { name: "Requests", href: "/requests", icon: Clock, badge: badgeCount },
-    { name: "Services", href: "/services", icon: Briefcase },
-    { name: "Availability", href: "/availability", icon: CalendarClock },
-    { name: "Blacklist", href: "/blacklist", icon: ShieldAlert },
-    { name: "Settings", href: "/settings", icon: Settings },
-  ], [badgeCount]);
+    { name: t('nav.dashboard'), href: "/", icon: Home },
+    { name: t('nav.calendar'), href: "/calendar", icon: Calendar },
+    { name: t('nav.clients'), href: "/clients", icon: Users },
+    { name: t('nav.requests'), href: "/requests", icon: Clock, badge: badgeCount },
+    { name: t('nav.services'), href: "/services", icon: Briefcase },
+    { name: t('nav.availability'), href: "/availability", icon: CalendarClock },
+    { name: t('nav.blacklist'), href: "/blacklist", icon: ShieldAlert },
+    { name: t('nav.settings'), href: "/settings", icon: Settings },
+  ], [badgeCount, t]);
 
   // Reorder for mobile bottom nav - put Requests in the middle, More at the end
   const mobileNavigation = useMemo(() => [
-    { name: "Home", href: "/", icon: Home },
-    { name: "Calendar", href: "/calendar", icon: Calendar },
-    { name: "Requests", href: "/requests", icon: Clock, badge: badgeCount, isCenter: true },
-    { name: "Availability", href: "/availability", icon: CalendarClock },
-  ], [badgeCount]);
+    { name: t('nav.dashboard'), href: "/", icon: Home },
+    { name: t('nav.calendar'), href: "/calendar", icon: Calendar },
+    { name: t('nav.requests'), href: "/requests", icon: Clock, badge: badgeCount, isCenter: true },
+    { name: t('nav.availability'), href: "/availability", icon: CalendarClock },
+  ], [badgeCount, t]);
 
   // Items shown in the More menu
-  const moreMenuItems = [
-    { name: "Clients", href: "/clients", icon: Users, description: "Manage your clients" },
-    { name: "Services", href: "/services", icon: Briefcase, description: "Your service offerings" },
-    { name: "Blacklist", href: "/blacklist", icon: ShieldAlert, description: "Blocked clients" },
-    { name: "Settings", href: "/settings", icon: Settings, description: "Account settings" },
-  ];
+  const moreMenuItems = useMemo(() => [
+    { name: t('nav.clients'), href: "/clients", icon: Users, description: t('nav.clientsDesc') },
+    { name: t('nav.services'), href: "/services", icon: Briefcase, description: t('nav.servicesDesc') },
+    { name: t('nav.blacklist'), href: "/blacklist", icon: ShieldAlert, description: t('nav.blacklistDesc') },
+    { name: t('nav.settings'), href: "/settings", icon: Settings, description: t('nav.settingsDesc') },
+  ], [t]);
 
   const handleLogout = async () => {
     if (isLoggingOut) return;
@@ -277,7 +279,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                       className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-sm"
                     >
                       <Settings className="w-4 h-4 text-gray-500" />
-                      <span className="text-gray-900">Settings</span>
+                      <span className="text-gray-900">{t('nav.settings')}</span>
                     </Link>
                     <div className="border-t border-gray-200">
                       <button
@@ -286,7 +288,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                         className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-sm text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         <LogOut className="w-4 h-4" />
-                        <span>{isLoggingOut ? "Logging out..." : "Logout"}</span>
+                        <span>{isLoggingOut ? `${t('nav.signOut')}...` : t('nav.signOut')}</span>
                       </button>
                     </div>
                   </motion.div>
@@ -313,11 +315,11 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
               {/* Search bar */}
               <div className="hidden sm:block relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Search className={`absolute ${isRTL ? 'right-3' : 'left-3'} top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400`} />
                 <input
                   type="text"
-                  placeholder="Search..."
-                  className="w-64 pl-10 pr-4 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  placeholder={`${t('common.search')}...`}
+                  className={`w-64 ${isRTL ? 'pr-10 pl-4' : 'pl-10 pr-4'} py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent`}
                 />
               </div>
             </div>
@@ -423,7 +425,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               <div className="relative">
                 <Grid3x3 className="w-5 h-5" />
               </div>
-              <span className="text-[10px] font-medium">More</span>
+              <span className="text-[10px] font-medium">{t('nav.more')}</span>
             </button>
           </div>
         </nav>
@@ -504,7 +506,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                                   {item.description}
                                 </span>
                               </div>
-                              <ChevronRight className="w-5 h-5 text-gray-300" />
+                              <ChevronRight className={`w-5 h-5 text-gray-300 ${isRTL ? 'rotate-180' : ''}`} />
                             </Link>
                           </motion.div>
                         );
@@ -526,7 +528,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                       disabled={isLoggingOut}
                       className="w-full mt-2.5 py-3.5 bg-white rounded-2xl text-gray-600 font-medium active:bg-gray-50 transition-colors disabled:opacity-50 shadow-lg"
                     >
-                      {isLoggingOut ? "Signing out..." : "Sign Out"}
+                      {isLoggingOut ? `${t('nav.signOut')}...` : t('nav.signOut')}
                     </button>
                   </motion.div>
                   

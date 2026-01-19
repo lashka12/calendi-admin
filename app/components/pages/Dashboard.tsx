@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { subscribeToSessions, Session } from "@/app/lib/firebase/sessions";
 import { subscribeToPendingBookings, PendingBooking } from "@/app/lib/firebase/requests";
+import { useTranslation } from "@/app/i18n";
 import { 
   LineChart,
   Line,
@@ -51,6 +52,7 @@ export default function DashboardPage() {
     fullDate: string;
     isToday: boolean;
   } | null>(null);
+  const { t, language, isRTL } = useTranslation();
 
   useEffect(() => {
     const interval = setInterval(() => setCurrentTime(new Date()), 60000);
@@ -125,15 +127,16 @@ export default function DashboardPage() {
 
   const dateInfo = useMemo(() => {
     const now = new Date();
-    return now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
-  }, []);
+    const locale = language === 'he' ? 'he-IL' : language === 'ar' ? 'ar-SA' : 'en-US';
+    return now.toLocaleDateString(locale, { weekday: 'long', month: 'long', day: 'numeric' });
+  }, [language]);
 
   const greeting = useMemo(() => {
     const hour = new Date().getHours();
-    if (hour < 12) return 'Good morning';
-    if (hour < 17) return 'Good afternoon';
-    return 'Good evening';
-  }, []);
+    if (hour < 12) return t('dashboard.greeting.morning');
+    if (hour < 17) return t('dashboard.greeting.afternoon');
+    return t('dashboard.greeting.evening');
+  }, [t]);
 
   // Get time-based icon
   const TimeIcon = useMemo(() => {
@@ -189,8 +192,9 @@ export default function DashboardPage() {
   const currentWeekData = useMemo(() => {
     const today = new Date();
     const todayIndex = today.getDay();
-    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    const fullDayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const dayKeys = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+    const fullDayKeys = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+    const locale = language === 'he' ? 'he-IL' : language === 'ar' ? 'ar-SA' : 'en-US';
     
     // Get start of week (Sunday)
     const weekStart = new Date(today);
@@ -208,12 +212,12 @@ export default function DashboardPage() {
       
       const isPast = i < todayIndex;
       
-      // Format full date like "January 15"
-      const fullDate = date.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
+      // Format full date using locale
+      const fullDate = date.toLocaleDateString(locale, { month: 'long', day: 'numeric' });
       
       days.push({
-        day: dayNames[i],
-        fullDay: fullDayNames[i],
+        day: t(`days.${dayKeys[i]}`),
+        fullDay: t(`days.${fullDayKeys[i]}`),
         date: date.getDate().toString(),
         dateStr,
         fullDate,
@@ -224,7 +228,7 @@ export default function DashboardPage() {
     }
     
     return days;
-  }, [sessions]);
+  }, [sessions, t, language]);
 
   const monthlyData = useMemo(() => {
     const today = new Date();
@@ -250,11 +254,11 @@ export default function DashboardPage() {
     return weeks;
   }, [sessions]);
 
-  const quickActions = [
-    { href: '/calendar', icon: Plus, label: 'New Session', sub: 'Book appointment', color: 'bg-gray-900' },
-    { href: '/requests', icon: Inbox, label: 'Requests', sub: 'Review pending', color: 'bg-amber-400', badge: pendingBookings.length },
-    { href: '/availability', icon: CalendarOff, label: 'Block Time', sub: 'Set availability', color: 'bg-gray-600' },
-  ];
+  const quickActions = useMemo(() => [
+    { href: '/calendar', icon: Plus, label: t('dashboard.quickActions.newSession'), sub: t('dashboard.quickActions.bookAppointment'), color: 'bg-gray-900' },
+    { href: '/requests', icon: Inbox, label: t('dashboard.quickActions.requests'), sub: t('dashboard.quickActions.reviewPending'), color: 'bg-amber-400', badge: pendingBookings.length },
+    { href: '/availability', icon: CalendarOff, label: t('dashboard.quickActions.blockTime'), sub: t('dashboard.quickActions.setAvailability'), color: 'bg-gray-600' },
+  ], [t, pendingBookings.length]);
 
 
   return (
@@ -301,7 +305,7 @@ export default function DashboardPage() {
             ) : (
               <p className="text-2xl sm:text-3xl font-bold text-white">{stats.today}</p>
             )}
-            <p className="text-gray-400 text-[10px] mt-0.5">Today</p>
+            <p className="text-gray-400 text-[10px] mt-0.5">{t('dashboard.stats.todaySessions')}</p>
           </div>
           <div className="w-px h-8 bg-gray-700" />
           <div className="min-w-[40px]">
@@ -310,7 +314,7 @@ export default function DashboardPage() {
             ) : (
               <p className="text-2xl sm:text-3xl font-bold text-white">{stats.week}</p>
             )}
-            <p className="text-gray-400 text-[10px] mt-0.5">This week</p>
+            <p className="text-gray-400 text-[10px] mt-0.5">{t('dashboard.stats.thisWeek')}</p>
           </div>
           {(loading || stats.pending > 0) && (
             <>
@@ -323,7 +327,7 @@ export default function DashboardPage() {
                     {stats.pending}
                   </p>
                 )}
-                <p className="text-gray-400 text-[10px] mt-0.5">Pending</p>
+                <p className="text-gray-400 text-[10px] mt-0.5">{t('dashboard.stats.pending')}</p>
               </Link>
             </>
           )}
@@ -342,9 +346,9 @@ export default function DashboardPage() {
             className="bg-white rounded-2xl border border-gray-200"
           >
             <div className="flex items-center justify-between p-4 border-b border-gray-100">
-              <h3 className="font-semibold text-gray-900">Today's Schedule</h3>
+              <h3 className="font-semibold text-gray-900">{t('dashboard.schedule.title')}</h3>
               <Link href="/calendar" className="text-xs text-gray-500 lg:hover:text-gray-900 flex items-center gap-1">
-                View all <ArrowRight className="w-3 h-3" />
+                {t('dashboard.schedule.viewAll')} <ArrowRight className={`w-3 h-3 ${isRTL ? 'rotate-180' : ''}`} />
               </Link>
             </div>
 
@@ -367,18 +371,18 @@ export default function DashboardPage() {
             ) : todaysSessions.length === 0 ? (
               <div className="p-8 text-center">
                 <Calendar className="w-8 h-8 text-gray-300 mx-auto mb-2" />
-                <p className="text-gray-500 text-sm">No more appointments today</p>
+                <p className="text-gray-500 text-sm">{t('dashboard.schedule.noSessions')}</p>
               </div>
             ) : (
               <div className="divide-y divide-gray-100">
                 {todaysSessions.map((booking, index) => (
                   <motion.button
                     key={booking.id}
-                    initial={{ opacity: 0, x: -20 }}
+                    initial={{ opacity: 0, x: isRTL ? 20 : -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.1 + index * 0.05 }}
                     onClick={() => setSelectedSession(booking)}
-                    className={`w-full flex items-center gap-4 p-4 lg:hover:bg-gray-100 active:bg-gray-100 transition-colors text-left ${
+                    className={`w-full flex items-center gap-4 p-4 lg:hover:bg-gray-100 active:bg-gray-100 transition-colors ${
                       index === 0 ? 'bg-gray-50' : ''
                     }`}
                   >
@@ -393,7 +397,7 @@ export default function DashboardPage() {
                     </div>
                     {index === 0 && (
                       <span className="text-xs font-semibold text-white bg-gray-900 px-2.5 py-1 rounded-full">
-                        in {getTimeUntil(booking.rawTime)}
+                        {t('time.in')} {getTimeUntil(booking.rawTime)}
                       </span>
                     )}
                   </motion.button>
@@ -412,7 +416,7 @@ export default function DashboardPage() {
               className="bg-white rounded-2xl border border-gray-200 p-4"
             >
               <div className="flex items-center justify-between mb-3">
-                <h3 className="font-semibold text-gray-900">This Week</h3>
+                <h3 className="font-semibold text-gray-900">{t('dashboard.weekChart.title')}</h3>
               </div>
               <div className="flex gap-1">
                 {currentWeekData.map((item, index) => (
@@ -469,8 +473,8 @@ export default function DashboardPage() {
               className="bg-white rounded-2xl border border-gray-200 p-4"
             >
               <div className="flex items-center justify-between mb-4">
-                <h3 className="font-semibold text-gray-900">Monthly Trend</h3>
-                <span className="text-xs text-gray-500">Last 4 weeks</span>
+                <h3 className="font-semibold text-gray-900">{t('dashboard.monthlyTrend.title')}</h3>
+                <span className="text-xs text-gray-500">{t('dashboard.monthlyTrend.lastWeeks')}</span>
               </div>
               <div className="h-28">
                 {loading ? (
@@ -512,7 +516,7 @@ export default function DashboardPage() {
           className="space-y-4"
         >
           <div className="bg-white rounded-2xl border border-gray-200 p-4">
-            <h3 className="font-semibold text-gray-900 mb-3">Quick Actions</h3>
+            <h3 className="font-semibold text-gray-900 mb-3">{t('dashboard.quickActions.title')}</h3>
             <div className="space-y-1">
               {quickActions.map((item, index) => (
                 <motion.div
@@ -539,7 +543,7 @@ export default function DashboardPage() {
                       <p className="font-medium text-gray-900 text-sm">{item.label}</p>
                       <p className="text-xs text-gray-500">{item.sub}</p>
                     </div>
-                    <ChevronRight className="w-4 h-4 text-gray-300" />
+                    <ChevronRight className={`w-4 h-4 text-gray-300 ${isRTL ? 'rotate-180' : ''}`} />
                   </Link>
                 </motion.div>
               ))}
@@ -554,8 +558,8 @@ export default function DashboardPage() {
                     <UserPlus className="w-4 h-4 text-white" />
                   </div>
                   <div className="flex-1 text-left min-w-0">
-                    <p className="font-medium text-gray-500 text-sm">Add Client</p>
-                    <p className="text-xs text-gray-400">Coming soon</p>
+                    <p className="font-medium text-gray-500 text-sm">{t('dashboard.quickActions.addClient')}</p>
+                    <p className="text-xs text-gray-400">{t('dashboard.quickActions.comingSoon')}</p>
                   </div>
                 </button>
               </motion.div>
@@ -598,7 +602,7 @@ export default function DashboardPage() {
                   <div className="flex items-center justify-between">
                     <div>
                       <h3 className="text-[17px] font-semibold text-gray-900">
-                        {selectedWeekDay.isToday ? 'Today' : selectedWeekDay.dayName}
+                        {selectedWeekDay.isToday ? t('common.today') : selectedWeekDay.dayName}
                       </h3>
                       <p className="text-[13px] text-gray-500">{selectedWeekDay.fullDate}</p>
                     </div>
@@ -622,8 +626,8 @@ export default function DashboardPage() {
                           <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-3">
                             <Calendar className="w-5 h-5 text-gray-400" />
                           </div>
-                          <p className="text-[15px] font-medium text-gray-900">No sessions</p>
-                          <p className="text-[13px] text-gray-500 mt-0.5">Schedule is clear</p>
+                          <p className="text-[15px] font-medium text-gray-900">{t('dashboard.weekDayModal.noSessions')}</p>
+                          <p className="text-[13px] text-gray-500 mt-0.5">{t('dashboard.weekDayModal.scheduleClear')}</p>
                         </div>
                       );
                     }
@@ -677,7 +681,7 @@ export default function DashboardPage() {
                     onClick={() => setSelectedWeekDay(null)}
                     className="w-full flex items-center justify-center h-11 bg-gray-900 hover:bg-gray-800 active:bg-gray-700 text-white font-medium text-[15px] rounded-xl transition-colors"
                   >
-                    Open in Calendar
+                    {t('dashboard.weekDayModal.openInCalendar')}
                   </Link>
                 </div>
 
@@ -749,12 +753,12 @@ export default function DashboardPage() {
                       </p>
                       {selectedSession.duration && (
                         <p className="text-[13px] text-gray-400 mt-1">
-                          {selectedSession.duration} min session
+                          {selectedSession.duration} {t('dashboard.sessionModal.minSession')}
                         </p>
                       )}
                     </div>
                     <div className="text-right">
-                      <p className="text-[13px] text-gray-400">Starts in</p>
+                      <p className="text-[13px] text-gray-400">{t('dashboard.sessionModal.startsIn')}</p>
                       <p className="text-[17px] font-semibold text-gray-900">{getTimeUntil(selectedSession.rawTime)}</p>
                     </div>
                   </div>
@@ -775,7 +779,7 @@ export default function DashboardPage() {
                       onClick={() => setSelectedSession(null)}
                       className="flex-1 flex items-center justify-center gap-2 h-12 bg-gray-900 hover:bg-gray-800 active:bg-gray-700 text-white font-medium text-[15px] rounded-xl transition-colors"
                     >
-                      View Full Details
+                      {t('dashboard.sessionModal.viewFullDetails')}
                     </Link>
                   </div>
                 </div>
