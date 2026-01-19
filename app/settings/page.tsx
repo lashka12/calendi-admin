@@ -112,13 +112,33 @@ export default function SettingsPage() {
         setPushEnabled(false);
         console.log("Push notifications disabled");
       } else {
+        // Check browser support first
+        if (!("Notification" in window)) {
+          setPushError("This browser doesn't support push notifications.");
+          return;
+        }
+
+        if (!("serviceWorker" in navigator)) {
+          setPushError("Service workers not supported. Try Chrome, Firefox, or Safari.");
+          return;
+        }
+
         // Enable: Request permission and save token
-        // IMPORTANT: You need to get your VAPID key from Firebase Console
-        // Go to: Project Settings > Cloud Messaging > Web Push certificates
         const VAPID_KEY = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY || "";
         
+        console.log("VAPID_KEY present:", !!VAPID_KEY, VAPID_KEY ? `(${VAPID_KEY.substring(0, 10)}...)` : "");
+        
         if (!VAPID_KEY) {
-          setPushError("VAPID key not configured. Add NEXT_PUBLIC_FIREBASE_VAPID_KEY to your environment.");
+          setPushError("VAPID key missing. Rebuild with: npm run build && firebase deploy --only hosting");
+          return;
+        }
+
+        // Check current permission status
+        const currentPermission = Notification.permission;
+        console.log("Current notification permission:", currentPermission);
+        
+        if (currentPermission === "denied") {
+          setPushError("Notifications blocked. Please enable in browser settings and refresh.");
           return;
         }
 
@@ -130,9 +150,9 @@ export default function SettingsPage() {
             updatedAt: new Date(),
           });
           setPushEnabled(true);
-          console.log("Push notifications enabled");
+          console.log("Push notifications enabled, token:", token.substring(0, 20) + "...");
         } else {
-          setPushError("Permission denied or not supported in this browser.");
+          setPushError("Failed to get token. Check browser console for details.");
         }
       }
     } catch (error: any) {
@@ -588,8 +608,30 @@ export default function SettingsPage() {
 
                         {!pushEnabled && (
                           <p className="text-xs text-gray-500">
-                            💡 Your browser will ask for permission to send notifications. Make sure to allow it!
+                            Your browser will ask for permission to send notifications. Make sure to allow it!
                           </p>
+                        )}
+
+                        {pushEnabled && (
+                          <div className="pt-3 border-t border-gray-200">
+                            <button
+                              onClick={() => {
+                                if ('Notification' in window && Notification.permission === 'granted') {
+                                  new Notification('Test Notification', {
+                                    body: 'Push notifications are working correctly!',
+                                    icon: '/icons/icon-192.svg',
+                                    tag: 'test-notification',
+                                  });
+                                } else {
+                                  setPushError('Notification permission not granted');
+                                }
+                              }}
+                              className="text-sm text-gray-600 hover:text-gray-900 font-medium flex items-center gap-2"
+                            >
+                              <Bell className="w-4 h-4" />
+                              Send Test Notification
+                            </button>
+                          </div>
                         )}
                       </div>
                     )}

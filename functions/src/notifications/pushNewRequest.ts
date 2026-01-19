@@ -52,33 +52,35 @@ export const notifyAdminNewRequest = onDocumentCreated(
         return;
       }
 
-      // Build notification message
-      const clientName = booking.clientName || "Someone";
+      // Build notification message (data-only to avoid duplicate notifications)
+      const clientName = booking.clientName || "New client";
       const service = booking.service || "Service";
-      const date = booking.date || "";
+      const rawDate = booking.date || ""; // YYYY-MM-DD format
       const time = booking.time || "";
+
+      // Convert date from YYYY-MM-DD to DD/MM
+      let formattedDate = "";
+      if (rawDate) {
+        const parts = rawDate.split("-");
+        formattedDate = `${parts[2]}/${parts[1]}`;
+      }
+
+      // Format: "John Doe has requested Haircut for 20/01 at 10:00"
+      let body = `${clientName} has requested ${service}`;
+      if (formattedDate && time) {
+        body += ` for ${formattedDate} at ${time}`;
+      } else if (formattedDate) {
+        body += ` for ${formattedDate}`;
+      }
 
       const message: admin.messaging.Message = {
         token,
-        notification: {
-          title: "📅 New Booking Request",
-          body: `${clientName} - ${service}${date ? ` on ${date}` : ""}${time ? ` at ${time}` : ""}`,
-        },
-        webpush: {
-          notification: {
-            icon: "/icons/icon-192.svg",
-            badge: "/icons/icon-192.svg",
-            vibrate: [200, 100, 200],
-            tag: "new-request",
-            renotify: true,
-          },
-          fcmOptions: {
-            link: "/requests", // Opens requests page when notification clicked
-          },
-        },
+        // No 'notification' field - service worker handles display
         data: {
           type: "new_request",
           bookingId: event.params.bookingId,
+          title: "New Request",
+          body,
           url: "/requests",
         },
       };

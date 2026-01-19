@@ -16,10 +16,11 @@ import {
   Search,
   ChevronDown,
   LogOut,
-  CalendarClock,
-  Grid3x3,
+  SlidersHorizontal,
+  MoreHorizontal,
   ChevronRight,
   ShieldAlert,
+  CalendarClock,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { subscribeToPendingBookings } from "../lib/firebase/requests";
@@ -131,11 +132,12 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   ], [badgeCount, t]);
 
   // Reorder for mobile bottom nav - put Requests in the middle, More at the end
+  // Icons: Home, Calendar (dates), Clock (requests), SlidersHorizontal (availability/time slots)
   const mobileNavigation = useMemo(() => [
     { name: t('nav.dashboard'), href: "/", icon: Home },
     { name: t('nav.calendar'), href: "/calendar", icon: Calendar },
     { name: t('nav.requests'), href: "/requests", icon: Clock, badge: badgeCount, isCenter: true },
-    { name: t('nav.availability'), href: "/availability", icon: CalendarClock },
+    { name: t('nav.availability'), href: "/availability", icon: SlidersHorizontal },
   ], [badgeCount, t]);
 
   // Items shown in the More menu
@@ -351,10 +353,10 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           </motion.div>
         </main>
 
-        {/* Mobile bottom navigation */}
-        <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-200 safe-area-inset-bottom">
-          <div className="grid grid-cols-5 h-16 relative">
-            {mobileNavigation.map((item, index) => {
+        {/* Mobile bottom navigation - Clean icon-only design */}
+        <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-gray-100 safe-area-inset-bottom">
+          <div className="grid grid-cols-5 h-[72px] pb-2 relative">
+            {mobileNavigation.map((item) => {
               const Icon = item.icon;
               const isActive = pathname === item.href;
               const isCenter = item.isCenter;
@@ -364,20 +366,20 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                   <Link
                     key={item.name}
                     href={item.href}
-                    className="flex flex-col items-center justify-center relative"
+                    className="flex items-center justify-center relative"
                   >
                     {/* Elevated circular button */}
-                    <div className="absolute -top-3">
-                      <div className={`relative w-14 h-14 rounded-full shadow-lg transition-all duration-300 ${
+                    <div className="absolute -top-4">
+                      <div className={`relative w-14 h-14 rounded-full shadow-lg transition-all duration-200 ${
                         isActive
-                          ? "bg-gray-800 scale-110"
-                          : "bg-gray-800 lg:hover:bg-gray-700 lg:hover:scale-105"
+                          ? "bg-gray-900 scale-105"
+                          : "bg-gray-800"
                       }`}>
                         <div className="absolute inset-0 flex items-center justify-center">
-                          <Icon className="w-6 h-6 text-white" />
+                          <Icon className="w-6 h-6 text-white" strokeWidth={2} />
                         </div>
                         {item.badge && (
-                          <span className="absolute -top-1 -right-1 w-6 h-6 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center border-2 border-white shadow-md">
+                          <span className="absolute -top-1 -right-1 min-w-[22px] h-[22px] px-1 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center border-2 border-white shadow-md">
                             {item.badge > 9 ? '9+' : item.badge}
                           </span>
                         )}
@@ -391,16 +393,11 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                 <Link
                   key={item.name}
                   href={item.href}
-                  className={`flex flex-col items-center justify-center gap-1 relative transition-colors ${
-                    isActive
-                      ? "text-gray-900"
-                      : "text-gray-500 lg:hover:text-gray-700"
+                  className={`flex items-center justify-center relative transition-colors ${
+                    isActive ? "text-gray-900" : "text-gray-400"
                   }`}
                 >
-                  <div className="relative">
-                    <Icon className="w-5 h-5" />
-                  </div>
-                  <span className="text-[10px] font-medium">{item.name}</span>
+                  <Icon className="w-6 h-6" strokeWidth={isActive ? 2.5 : 2} />
                   {isActive && (
                     <motion.div
                       layoutId="mobileActiveTab"
@@ -413,19 +410,14 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               );
             })}
 
-            {/* More button */}
+            {/* More button - 3 dots */}
             <button
               onClick={() => setMoreMenuOpen(true)}
-              className={`flex flex-col items-center justify-center gap-1 relative transition-colors ${
-                moreMenuOpen
-                  ? "text-gray-900"
-                  : "text-gray-500 hover:text-gray-700"
+              className={`flex items-center justify-center relative transition-colors ${
+                moreMenuOpen ? "text-gray-900" : "text-gray-400"
               }`}
             >
-              <div className="relative">
-                <Grid3x3 className="w-5 h-5" />
-              </div>
-              <span className="text-[10px] font-medium">{t('nav.more')}</span>
+              <MoreHorizontal className="w-6 h-6" strokeWidth={moreMenuOpen ? 2.5 : 2} />
             </button>
           </div>
         </nav>
