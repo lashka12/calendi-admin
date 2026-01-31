@@ -1026,36 +1026,6 @@ export default function SettingsPage() {
                     </div>
                   </div>
 
-                  {/* Danger Zone */}
-                  <div className="bg-white border-2 border-red-200 rounded-xl p-6">
-                    <div className="flex items-start gap-3 mb-4">
-                      <AlertTriangle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-                      <div>
-                        <h3 className="text-base font-semibold text-red-900 mb-1">{t('settings.preferences.dangerZone')}</h3>
-                        <p className="text-sm text-red-700">
-                          {t('settings.preferences.dangerZoneDesc')}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="space-y-3 mt-4">
-                      <button className="w-full flex items-center justify-between p-4 border border-red-200 rounded-xl hover:bg-red-50 transition-colors text-left">
-                        <div>
-                          <p className="text-sm font-medium text-red-900">{t('settings.preferences.deleteAllData')}</p>
-                          <p className="text-sm text-red-600 mt-0.5">{t('settings.preferences.deleteAllDataDesc')}</p>
-                        </div>
-                        <Trash2 className="w-4 h-4 text-red-600 flex-shrink-0" />
-                      </button>
-
-                      <button className="w-full flex items-center justify-between p-4 border border-red-200 rounded-xl hover:bg-red-50 transition-colors text-left">
-                        <div>
-                          <p className="text-sm font-medium text-red-900">{t('settings.preferences.closeAccount')}</p>
-                          <p className="text-sm text-red-600 mt-0.5">{t('settings.preferences.closeAccountDesc')}</p>
-                        </div>
-                        <X className="w-4 h-4 text-red-600 flex-shrink-0" />
-                      </button>
-                    </div>
-                  </div>
                 </div>
               )}
                 </div>

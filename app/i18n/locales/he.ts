@@ -18,6 +18,7 @@ const he = {
     today: 'היום',
     tomorrow: 'מחר',
     yesterday: 'אתמול',
+    call: 'התקשר',
   },
 
   // Navigation / DashboardLayout
@@ -209,6 +210,13 @@ const he = {
     loadingSlots: 'טוען זמנים...',
     noAvailableSlots: 'אין זמנים פנויים לתאריך זה',
     deleteConfirmMessage: 'האם אתה בטוח שברצונך למחוק את הפגישה של {name} בתאריך {date} בשעה {time}? פעולה זו לא ניתנת לביטול.',
+    // Timeline view
+    timelineView: 'ציר זמן',
+    listView: 'רשימה',
+    tapToAdd: 'לחץ על שעה להוספת פגישה',
+    appointment: 'פגישה',
+    appointments: 'פגישות',
+    upcoming: 'קרובות',
     status: {
       pending: 'ממתין',
       confirmed: 'מאושר',
@@ -221,14 +229,19 @@ const he = {
       date: 'תאריך',
       service: 'שירות',
       selectService: 'בחר שירות',
+      selectDate: 'בחר תאריך',
+      select: 'בחר',
       availableSlots: 'זמנים פנויים',
+      fillDetails: 'מלא את הפרטים למטה',
+      clientInfo: 'פרטי לקוח',
+      appointmentDetails: 'פרטי התור',
     },
+    minutes: 'דק׳',
     validation: {
       fillAllFields: 'אנא מלא את כל השדות הנדרשים',
       phoneRequired: 'מספר טלפון נדרש',
-      phoneMinLength: 'הטלפון חייב להכיל לפחות {min} ספרות',
-      phoneMaxLength: 'הטלפון לא יכול לעלות על {max} ספרות',
-      phonePrefix: 'הטלפון חייב להתחיל ב-0 או +',
+      phoneLength: 'הטלפון חייב להכיל בדיוק 10 ספרות',
+      phonePrefix: 'הטלפון חייב להתחיל ב-05',
       invalidPhone: 'מספר טלפון לא תקין',
     },
     toast: {

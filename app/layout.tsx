@@ -80,18 +80,19 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       {/* Prevent flash of wrong color - this loads BEFORE React */}
       <style dangerouslySetInnerHTML={{ __html: `
         html, body { 
-          background-color: #f9fafb !important; 
+          background-color: #faf9f7 !important; 
           margin: 0; 
           padding: 0;
         }
       `}} />
       <link rel="manifest" href="/manifest.json" />
-      <meta name="theme-color" content="#f9fafb" />
+      <meta name="theme-color" content="#faf9f7" />
+      <meta name="mobile-web-app-capable" content="yes" />
       <meta name="apple-mobile-web-app-capable" content="yes" />
-      <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+      <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
       <meta name="apple-mobile-web-app-title" content="Calendi" />
       <link rel="apple-touch-icon" href="/icons/icon-192.svg" />
-      <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+      <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
     </head>
   );
 
@@ -103,7 +104,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     return (
       <html lang="en">
         <PwaHead />
-        <body style={{ backgroundColor: '#f9fafb' }}>
+        <body style={{ backgroundColor: '#faf9f7' }}>
           <SplashScreen isVisible={showSplash} />
           {showContent && children}
         </body>
@@ -115,20 +116,44 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <PwaHead />
-      <body style={{ backgroundColor: '#f9fafb' }}>
+      <body style={{ backgroundColor: '#faf9f7' }}>
         <SplashScreen isVisible={showSplash} />
         {showContent && (
-          <LanguageProvider>
-            <SettingsProvider>
-              <ToastProvider>
-                <AppContent>{children}</AppContent>
-              </ToastProvider>
-            </SettingsProvider>
-          </LanguageProvider>
+          <>
+            <IOSPWAViewportFix />
+            <LanguageProvider>
+              <SettingsProvider>
+                <ToastProvider>
+                  <AppContent>{children}</AppContent>
+                </ToastProvider>
+              </SettingsProvider>
+            </LanguageProvider>
+          </>
         )}
       </body>
     </html>
   );
+}
+
+/** One-time viewport correction when first showing app after splash (PWA resume). */
+function IOSPWAViewportFix() {
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const isStandalone =
+      (navigator as { standalone?: boolean }).standalone === true ||
+      window.matchMedia("(display-mode: standalone)").matches;
+    if (!isStandalone) return;
+
+    const id = requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        const y = window.scrollY;
+        window.scrollTo(0, y + 1);
+        window.scrollTo(0, y);
+      });
+    });
+    return () => cancelAnimationFrame(id);
+  }, []);
+  return null;
 }
 
 function AppContent({ children }: { children: React.ReactNode }) {

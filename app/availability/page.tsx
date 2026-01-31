@@ -712,13 +712,14 @@ export default function AvailabilityPage() {
       <AnimatePresence>
         {showSpecialModal && (
           <>
-            {/* Backdrop */}
+            {/* Backdrop - extends above safe area to cover status bar */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setShowSpecialModal(false)}
-              className="fixed inset-0 bg-black/50 z-50"
+              className="fixed left-0 right-0 bottom-0 bg-black/50 z-50"
+              style={{ top: 'calc(-1 * env(safe-area-inset-top, 0px))' }}
             />
 
             {/* Modal */}

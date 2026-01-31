@@ -326,13 +326,15 @@ export default function ServicesPage() {
         {modalOpen && (
           <>
             {/* Backdrop */}
+            {/* Backdrop - extends above safe area to cover status bar */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2, ease: "easeOut" }}
               onClick={() => setModalOpen(false)}
-              className="fixed inset-0 bg-gray-900/50 z-50"
+              className="fixed left-0 right-0 bottom-0 bg-gray-900/50 z-50"
+              style={{ top: 'calc(-1 * env(safe-area-inset-top, 0px))' }}
             />
 
             {/* Modal Sheet - Mobile bottom sheet, Desktop centered */}

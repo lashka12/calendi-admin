@@ -18,6 +18,7 @@ const ar = {
     today: 'اليوم',
     tomorrow: 'غداً',
     yesterday: 'أمس',
+    call: 'اتصل',
   },
 
   // Navigation / DashboardLayout
@@ -209,6 +210,13 @@ const ar = {
     loadingSlots: 'جارٍ تحميل الأوقات...',
     noAvailableSlots: 'لا توجد أوقات متاحة لهذا التاريخ',
     deleteConfirmMessage: 'هل أنت متأكد من حذف موعد {name} في {date} الساعة {time}؟ لا يمكن التراجع عن هذا الإجراء.',
+    // Timeline view
+    timelineView: 'الجدول الزمني',
+    listView: 'قائمة',
+    tapToAdd: 'اضغط على وقت لإضافة موعد',
+    appointment: 'موعد',
+    appointments: 'مواعيد',
+    upcoming: 'قادمة',
     status: {
       pending: 'معلق',
       confirmed: 'مؤكد',
@@ -220,15 +228,20 @@ const ar = {
       phonePlaceholder: '05XXXXXXXX',
       date: 'التاريخ',
       service: 'الخدمة',
-      selectService: 'اختر خدمة',
+      selectService: 'اختر الخدمة',
+      selectDate: 'اختر التاريخ',
+      select: 'اختر',
       availableSlots: 'الأوقات المتاحة',
+      fillDetails: 'املأ التفاصيل أدناه',
+      clientInfo: 'معلومات العميل',
+      appointmentDetails: 'تفاصيل الموعد',
     },
+    minutes: 'دقيقة',
     validation: {
       fillAllFields: 'يرجى ملء جميع الحقول المطلوبة',
       phoneRequired: 'رقم الهاتف مطلوب',
-      phoneMinLength: 'يجب أن يحتوي الهاتف على {min} أرقام على الأقل',
-      phoneMaxLength: 'لا يمكن أن يتجاوز الهاتف {max} أرقام',
-      phonePrefix: 'يجب أن يبدأ الهاتف بـ 0 أو +',
+      phoneLength: 'يجب أن يحتوي الهاتف على 10 أرقام بالضبط',
+      phonePrefix: 'يجب أن يبدأ الهاتف بـ 05',
       invalidPhone: 'رقم هاتف غير صالح',
     },
     toast: {

@@ -10,8 +10,20 @@
   }
   
   body {
-    @apply bg-white text-gray-900;
+    @apply text-gray-900;
+    background-color: #faf9f7;
     touch-action: pan-y pan-x;
+  }
+
+  /* Hide scrollbars on mobile for native app feel */
+  @media (max-width: 768px) {
+    * {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    *::-webkit-scrollbar {
+      display: none;
+    }
   }
 
   /* Improve tap targets on mobile */
@@ -26,6 +38,13 @@
   .touch-manipulation {
     touch-action: manipulation;
     -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Prevent iOS zoom on input focus (requires 16px minimum) */
+  @media screen and (max-width: 768px) {
+    input, select, textarea {
+      font-size: 16px !important;
+    }
   }
 
   /* RTL Support */
@@ -62,6 +81,34 @@
   }
   .pt-safe {
     padding-top: env(safe-area-inset-top);
+  }
+  .h-safe {
+    height: env(safe-area-inset-top);
+  }
+
+  /* Hide scrollbar */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Skeleton shimmer for loading states */
+  .skeleton-shimmer {
+    background: linear-gradient(
+      90deg,
+      rgb(243 244 246) 0%,
+      rgb(229 231 235) 40%,
+      rgb(243 244 246) 80%
+    );
+    background-size: 200% 100%;
+    animation: skeleton-shimmer 1.2s ease-in-out infinite;
+  }
+  @keyframes skeleton-shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
   }
 
   /* Floating bubbles animation */
@@ -111,6 +158,29 @@
   75% { transform: translate(10px, 15px) scale(1.04); }
   90% { transform: translate(-12px, 8px) scale(0.98); }
   100% { transform: translate(0, 0) scale(1); }
+}
+
+/* Login page background orbs - GPU-friendly (opacity + transform only, no blur) */
+@keyframes login-orb-1 {
+  0%, 100% { opacity: 0.35; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(1.08); }
+}
+@keyframes login-orb-2 {
+  0%, 100% { opacity: 0.25; transform: scale(1.05); }
+  50% { opacity: 0.4; transform: scale(1); }
+}
+@keyframes login-orb-3 {
+  0%, 100% { opacity: 0.2; transform: scale(1); }
+  50% { opacity: 0.35; transform: scale(1.1); }
+}
+.login-orb-1 { animation: login-orb-1 10s ease-in-out infinite; transform: translateZ(0); }
+.login-orb-2 { animation: login-orb-2 12s ease-in-out infinite; transform: translateZ(0); }
+.login-orb-3 { animation: login-orb-3 14s ease-in-out infinite; transform: translateZ(0); }
+@media (max-width: 768px) {
+  .login-orb-mobile-hide { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .login-orb-1, .login-orb-2, .login-orb-3 { animation: none; opacity: 0.4; }
 }
 
 @layer components {

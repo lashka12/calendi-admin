@@ -131,12 +131,11 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     { name: t('nav.settings'), href: "/settings", icon: Settings },
   ], [badgeCount, t]);
 
-  // Reorder for mobile bottom nav - put Requests in the middle, More at the end
-  // Icons: Home, Calendar (dates), Clock (requests), SlidersHorizontal (availability/time slots)
+  // Mobile bottom nav - simple flat bar
   const mobileNavigation = useMemo(() => [
     { name: t('nav.dashboard'), href: "/", icon: Home },
     { name: t('nav.calendar'), href: "/calendar", icon: Calendar },
-    { name: t('nav.requests'), href: "/requests", icon: Clock, badge: badgeCount, isCenter: true },
+    { name: t('nav.requests'), href: "/requests", icon: Clock, badge: badgeCount },
     { name: t('nav.availability'), href: "/availability", icon: SlidersHorizontal },
   ], [badgeCount, t]);
 
@@ -173,7 +172,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-[#faf9f7]">
       {/* Mobile sidebar overlay */}
       <AnimatePresence>
         {sidebarOpen && (
@@ -182,7 +181,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setSidebarOpen(false)}
-            className="fixed inset-0 bg-gray-800/50 z-40 lg:hidden"
+            className="fixed left-0 right-0 bottom-0 bg-gray-800/50 z-40 lg:hidden"
+            style={{ top: 'calc(-1 * env(safe-area-inset-top, 0px))' }}
           />
         )}
       </AnimatePresence>
@@ -302,7 +302,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       </aside>
 
       {/* Main content */}
-      <div className="lg:pl-72">
+      <div className="lg:pl-72 pt-safe lg:pt-0">
         {/* Top navbar - hidden on mobile */}
         <header className="hidden lg:block sticky top-0 z-30 h-16 bg-white border-b border-gray-200">
           <div className="h-full px-4 sm:px-6 lg:px-8 flex items-center justify-between">
@@ -341,8 +341,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           </div>
         </header>
 
-        {/* Page content */}
-        <main className="px-4 pt-1 pb-20 sm:px-6 sm:pt-2 lg:px-8 lg:pt-4 lg:pb-8">
+        {/* Page content - no bottom padding on calendar so timeline extends to nav */}
+        <main className={`px-4 pt-1 sm:px-6 sm:pt-2 lg:px-8 lg:pt-4 lg:pb-8 ${pathname === "/calendar" ? "pb-0" : "pb-20"}`}>
           <motion.div
             key={pathname}
             initial={{ opacity: 0 }}
@@ -353,71 +353,46 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           </motion.div>
         </main>
 
-        {/* Mobile bottom navigation - Clean icon-only design */}
-        <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-gray-100 safe-area-inset-bottom">
-          <div className="grid grid-cols-5 h-[72px] pb-2 relative">
+        {/* Mobile bottom navigation - lifted bar, pill active state, tap feedback (CSS-only, no blur) */}
+        <nav
+          className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-200/80 shadow-[0_-4px_20px_rgba(28,25,23,0.06)]"
+          style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+        >
+          <div className="flex h-12 items-center">
             {mobileNavigation.map((item) => {
               const Icon = item.icon;
               const isActive = pathname === item.href;
-              const isCenter = item.isCenter;
-
-              if (isCenter) {
-                return (
-                  <Link
-                    key={item.name}
-                    href={item.href}
-                    className="flex items-center justify-center relative"
-                  >
-                    {/* Elevated circular button */}
-                    <div className="absolute -top-4">
-                      <div className={`relative w-14 h-14 rounded-full shadow-lg transition-all duration-200 ${
-                        isActive
-                          ? "bg-gray-900 scale-105"
-                          : "bg-gray-800"
-                      }`}>
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <Icon className="w-6 h-6 text-white" strokeWidth={2} />
-                        </div>
-                        {item.badge && (
-                          <span className="absolute -top-1 -right-1 min-w-[22px] h-[22px] px-1 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center border-2 border-white shadow-md">
-                            {item.badge > 9 ? '9+' : item.badge}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </Link>
-                );
-              }
-
               return (
                 <Link
                   key={item.name}
                   href={item.href}
-                  className={`flex items-center justify-center relative transition-colors ${
-                    isActive ? "text-gray-900" : "text-gray-400"
-                  }`}
+                  className="flex-1 flex items-center justify-center min-h-[48px] active:scale-95 transition-transform duration-75"
                 >
-                  <Icon className="w-6 h-6" strokeWidth={isActive ? 2.5 : 2} />
-                  {isActive && (
-                    <motion.div
-                      layoutId="mobileActiveTab"
-                      className="absolute top-0 left-0 right-0 h-0.5 bg-gray-800"
-                      initial={false}
-                      transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                  <div className={`relative flex items-center justify-center rounded-full p-2 ${isActive ? "bg-gray-100" : ""}`}>
+                    <Icon
+                      className={isActive ? "w-6 h-6 text-gray-900" : "w-6 h-6 text-gray-300"}
+                      strokeWidth={isActive ? 2 : 1.5}
                     />
-                  )}
+                    {item.badge != null && item.badge > 0 && (
+                      <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-[16px] px-1 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center ring-2 ring-white">
+                        {item.badge > 9 ? '9+' : item.badge}
+                      </span>
+                    )}
+                  </div>
                 </Link>
               );
             })}
-
-            {/* More button - 3 dots */}
             <button
               onClick={() => setMoreMenuOpen(true)}
-              className={`flex items-center justify-center relative transition-colors ${
-                moreMenuOpen ? "text-gray-900" : "text-gray-400"
-              }`}
+              type="button"
+              className="flex-1 flex items-center justify-center min-h-[48px] border-l border-gray-100 active:scale-95 transition-transform duration-75"
             >
-              <MoreHorizontal className="w-6 h-6" strokeWidth={moreMenuOpen ? 2.5 : 2} />
+              <div className={`flex items-center justify-center rounded-full p-2 ${moreMenuOpen ? "bg-gray-100" : ""}`}>
+                <MoreHorizontal
+                  className={moreMenuOpen ? "w-6 h-6 text-gray-900" : "w-6 h-6 text-gray-300"}
+                  strokeWidth={moreMenuOpen ? 2 : 1.5}
+                />
+              </div>
             </button>
           </div>
         </nav>
@@ -426,13 +401,14 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         <AnimatePresence>
           {moreMenuOpen && (
             <>
-              {/* Backdrop */}
+              {/* Backdrop - no blur for performance */}
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
+                transition={{ duration: 0.15 }}
                 onClick={() => setMoreMenuOpen(false)}
-                className="lg:hidden fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-50"
+                className="lg:hidden fixed inset-0 bg-black/40 z-50"
               />
 
               {/* Modal Sheet */}
@@ -506,11 +482,12 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                     </div>
                   </div>
 
-                  {/* Logout button - separate card */}
+                  {/* Logout button */}
                   <motion.div
                     initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.25 }}
+                    className="mt-2.5"
                   >
                     <button
                       onClick={() => {
@@ -518,9 +495,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                         handleLogout();
                       }}
                       disabled={isLoggingOut}
-                      className="w-full mt-2.5 py-3.5 bg-white rounded-2xl text-gray-600 font-medium active:bg-gray-50 transition-colors disabled:opacity-50 shadow-lg"
+                      className="w-full py-3.5 bg-white rounded-2xl text-gray-600 font-medium active:bg-gray-50 transition-colors disabled:opacity-50 shadow-lg"
                     >
-                      {isLoggingOut ? `${t('nav.signOut')}...` : t('nav.signOut')}
+                      {isLoggingOut ? '...' : t('nav.signOut')}
                     </button>
                   </motion.div>
                   

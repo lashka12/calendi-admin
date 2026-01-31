@@ -18,6 +18,7 @@ const en = {
     today: 'Today',
     tomorrow: 'Tomorrow',
     yesterday: 'Yesterday',
+    call: 'Call',
   },
 
   // Navigation / DashboardLayout
@@ -209,6 +210,13 @@ const en = {
     loadingSlots: 'Loading slots...',
     noAvailableSlots: 'No available slots for this date',
     deleteConfirmMessage: "Are you sure you want to delete {name}'s appointment on {date} at {time}? This action cannot be undone.",
+    // Timeline view
+    timelineView: 'Timeline',
+    listView: 'List',
+    tapToAdd: 'Tap a time slot to add',
+    appointment: 'appointment',
+    appointments: 'appointments',
+    upcoming: 'upcoming',
     status: {
       pending: 'Pending',
       confirmed: 'Confirmed',
@@ -220,15 +228,20 @@ const en = {
       phonePlaceholder: '05XXXXXXXX',
       date: 'Date',
       service: 'Service',
-      selectService: 'Select a service',
+      selectService: 'Select Service',
+      selectDate: 'Select Date',
+      select: 'Select',
       availableSlots: 'Available Time Slots',
+      fillDetails: 'Fill in the details below',
+      clientInfo: 'Client Info',
+      appointmentDetails: 'Appointment Details',
     },
+    minutes: 'min',
     validation: {
       fillAllFields: 'Please fill in all required fields',
       phoneRequired: 'Phone number is required',
-      phoneMinLength: 'Phone must be at least {min} digits',
-      phoneMaxLength: 'Phone cannot exceed {max} digits',
-      phonePrefix: 'Phone must start with 0 or +',
+      phoneLength: 'Phone must be exactly 10 digits',
+      phonePrefix: 'Phone must start with 05',
       invalidPhone: 'Invalid phone number',
     },
     toast: {

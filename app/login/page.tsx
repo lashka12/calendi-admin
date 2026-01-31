@@ -49,55 +49,32 @@ export default function LoginPage() {
 
   return (
     <motion.div 
-      className="min-h-screen bg-gray-50 flex flex-col relative overflow-hidden"
-      animate={exiting ? { opacity: 0, scale: 0.98 } : { opacity: 1, scale: 1 }}
-      transition={{ duration: 0.4, ease: "easeOut" }}
+      className="min-h-screen bg-[#faf9f7] flex flex-col relative overflow-hidden"
+      initial={false}
+      animate={{ opacity: exiting ? 0 : 1 }}
+      transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
     >
-      {/* Animated gradient orbs */}
-      <div className="absolute inset-0 overflow-hidden">
-        <motion.div
-          animate={{
-            scale: [1, 1.2, 1],
-            opacity: [0.4, 0.6, 0.4],
-          }}
-          transition={{
-            duration: 8,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
-          className="absolute -top-[40%] -left-[20%] w-[80%] h-[80%] bg-gradient-to-br from-gray-200/80 to-transparent rounded-full blur-3xl"
+      {/* Background orbs - CSS-only (GPU-friendly), no blur. Hidden on mobile for performance. */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none login-orb-mobile-hide md:block">
+        <div
+          className="absolute -top-[40%] -left-[20%] w-[80%] h-[80%] rounded-full bg-gradient-to-br from-stone-200/60 to-transparent login-orb-1"
+          style={{ transformOrigin: "center center" }}
         />
-        <motion.div
-          animate={{
-            scale: [1.2, 1, 1.2],
-            opacity: [0.3, 0.5, 0.3],
-          }}
-          transition={{
-            duration: 10,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
-          className="absolute -bottom-[30%] -right-[20%] w-[70%] h-[70%] bg-gradient-to-tl from-gray-300/60 to-transparent rounded-full blur-3xl"
+        <div
+          className="absolute -bottom-[30%] -right-[20%] w-[70%] h-[70%] rounded-full bg-gradient-to-tl from-stone-200/40 to-transparent login-orb-2"
+          style={{ transformOrigin: "center center" }}
         />
-        <motion.div
-          animate={{
-            scale: [1, 1.3, 1],
-            opacity: [0.2, 0.35, 0.2],
-          }}
-          transition={{
-            duration: 12,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
-          className="absolute top-[20%] right-[10%] w-[40%] h-[40%] bg-gradient-to-bl from-gray-200/70 to-transparent rounded-full blur-3xl"
+        <div
+          className="absolute top-[20%] right-[10%] w-[40%] h-[40%] rounded-full bg-gradient-to-bl from-stone-200/50 to-transparent login-orb-3"
+          style={{ transformOrigin: "center center" }}
         />
       </div>
 
-      {/* Dot pattern overlay */}
+      {/* Dot pattern - static, low cost */}
       <div 
-        className="absolute inset-0 opacity-[0.4]"
+        className="absolute inset-0 opacity-[0.3] pointer-events-none"
         style={{
-          backgroundImage: `radial-gradient(circle at center, #d1d5db 1px, transparent 1px)`,
+          backgroundImage: `radial-gradient(circle at center, #d4d2ce 1px, transparent 1px)`,
           backgroundSize: '24px 24px',
         }}
       />
@@ -107,15 +84,13 @@ export default function LoginPage() {
         <div className="w-full max-w-sm mx-auto">
           {/* Logo */}
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
+            transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
             className="text-center mb-12"
           >
             <div className="relative inline-block">
-              {/* Shadow */}
-              <div className="absolute inset-0 bg-gray-900/20 rounded-3xl blur-2xl scale-110 translate-y-2" />
-              <div className="relative w-20 h-20 bg-gray-900 rounded-3xl flex flex-col items-center justify-center shadow-2xl overflow-hidden">
+              <div className="w-20 h-20 bg-gray-900 rounded-3xl flex flex-col items-center justify-center overflow-hidden shadow-[0_8px_24px_rgba(0,0,0,0.12)]">
                 <span className="text-white text-4xl font-bold -mb-1">C</span>
                 <div className="flex flex-col gap-1 mt-1">
                   <div className="w-10 h-0.5 bg-white/30 rounded-full" />
@@ -123,36 +98,26 @@ export default function LoginPage() {
                 </div>
               </div>
             </div>
-            <motion.h1
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.2 }}
-              className="text-4xl font-bold text-gray-900 mt-6 tracking-tight"
-            >
+            <h1 className="text-4xl font-bold text-gray-900 mt-6 tracking-tight">
               Calendi
-            </motion.h1>
-            <motion.p
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.3 }}
-              className="text-gray-400 mt-2 text-sm tracking-wide uppercase font-medium"
-            >
+            </h1>
+            <p className="text-gray-400 mt-2 text-sm tracking-wide uppercase font-medium">
               Admin Portal
-            </motion.p>
+            </p>
           </motion.div>
 
           {/* Form Card */}
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-            className="bg-white rounded-3xl shadow-xl shadow-gray-200/50 border border-gray-100 p-8"
+            transition={{ duration: 0.4, delay: 0.1, ease: [0.4, 0, 0.2, 1] }}
+            className="bg-white rounded-3xl shadow-xl shadow-stone-200/40 border border-stone-100 p-8"
           >
             <motion.form 
               onSubmit={handleSubmit} 
               className="space-y-5"
-              animate={error ? { x: [0, -8, 8, -8, 8, 0] } : {}}
-              transition={{ duration: 0.4 }}
+              animate={error ? { x: [0, -6, 6, -6, 6, 0] } : {}}
+              transition={{ duration: 0.35 }}
             >
               {/* Email */}
               <div>
@@ -163,8 +128,8 @@ export default function LoginPage() {
                   type="email"
                   value={email}
                   onChange={(e) => { setEmail(e.target.value); setError(null); }}
-                  className={`w-full px-5 py-4 bg-gray-50 border-2 rounded-2xl text-gray-900 placeholder-gray-400 focus:outline-none focus:bg-white transition-all duration-200 text-base ${
-                    error ? 'border-red-300 bg-red-50/50' : 'border-gray-100 focus:border-gray-900'
+                  className={`w-full px-5 py-4 bg-[#f5f4f2] border-2 rounded-2xl text-gray-900 placeholder-gray-500 focus:outline-none focus:bg-white transition-all duration-200 text-base ${
+                    error ? 'border-red-300 bg-red-50/50' : 'border-stone-200 focus:border-gray-900'
                   }`}
                   placeholder="you@example.com"
                   autoComplete="email"
@@ -182,8 +147,8 @@ export default function LoginPage() {
                     type={showPassword ? "text" : "password"}
                     value={password}
                     onChange={(e) => { setPassword(e.target.value); setError(null); }}
-                    className={`w-full px-5 py-4 pr-14 bg-gray-50 border-2 rounded-2xl text-gray-900 placeholder-gray-400 focus:outline-none focus:bg-white transition-all duration-200 text-base ${
-                      error ? 'border-red-300 bg-red-50/50' : 'border-gray-100 focus:border-gray-900'
+                    className={`w-full px-5 py-4 pr-14 bg-[#f5f4f2] border-2 rounded-2xl text-gray-900 placeholder-gray-500 focus:outline-none focus:bg-white transition-all duration-200 text-base ${
+                      error ? 'border-red-300 bg-red-50/50' : 'border-stone-200 focus:border-gray-900'
                     }`}
                     placeholder="••••••••"
                     autoComplete="current-password"
@@ -192,7 +157,7 @@ export default function LoginPage() {
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-xl text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-all"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-xl text-gray-400 hover:text-gray-600 hover:bg-stone-100 transition-all"
                   >
                     {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                   </button>
@@ -219,14 +184,14 @@ export default function LoginPage() {
                 disabled={loading || success || !email || !password}
                 whileTap={{ scale: 0.98 }}
                 animate={success ? { scale: [1, 1.02, 1] } : {}}
-                transition={{ duration: 0.3 }}
-                className="w-full py-4 px-6 mt-4 rounded-2xl font-semibold text-base shadow-lg focus:outline-none focus:ring-4 transition-all duration-300 flex items-center justify-center gap-3 disabled:cursor-not-allowed group bg-gray-900 text-white shadow-gray-900/25 hover:bg-gray-800 hover:shadow-xl hover:shadow-gray-900/30 focus:ring-gray-900/20 disabled:opacity-50 disabled:shadow-none"
+                transition={{ duration: 0.25 }}
+                className="w-full py-4 px-6 mt-4 rounded-2xl font-semibold text-base shadow-lg focus:outline-none focus:ring-4 transition-all duration-200 flex items-center justify-center gap-3 disabled:cursor-not-allowed group bg-gray-900 text-white shadow-gray-900/25 hover:bg-gray-800 focus:ring-gray-900/20 disabled:opacity-50 disabled:shadow-none"
               >
                 {success ? (
                   <motion.div
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ type: "spring", stiffness: 400, damping: 15 }}
+                    initial={{ scale: 0.9, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ duration: 0.2, ease: "easeOut" }}
                     className="flex items-center gap-2"
                   >
                     <Check className="w-5 h-5" strokeWidth={3} />
@@ -247,11 +212,11 @@ export default function LoginPage() {
             </motion.form>
           </motion.div>
 
-          {/* Bottom text */}
+          {/* Bottom text - same animation sequence as form card */}
           <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.5 }}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.25, ease: [0.4, 0, 0.2, 1] }}
             className="text-center mt-8 text-gray-400 text-sm"
           >
             Secure access for administrators

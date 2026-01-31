@@ -382,21 +382,22 @@ export default function DashboardPage() {
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.1 + index * 0.05 }}
                     onClick={() => setSelectedSession(booking)}
+                    dir="ltr"
                     className={`w-full flex items-center gap-4 p-4 lg:hover:bg-gray-100 active:bg-gray-100 transition-colors ${
                       index === 0 ? 'bg-gray-50' : ''
                     }`}
                   >
-                    <div className="w-14 text-center">
+                    <div className="w-14 text-center flex-shrink-0">
                       <p className="font-semibold text-sm text-gray-900">{booking.time.split(' ')[0]}</p>
                       <p className="text-[10px] text-gray-400">{booking.time.split(' ')[1]}</p>
                     </div>
-                    <div className={`w-px h-8 ${index === 0 ? 'bg-gray-900' : 'bg-gray-200'}`} />
-                    <div className="flex-1 min-w-0">
+                    <div className={`w-px h-8 flex-shrink-0 ${index === 0 ? 'bg-gray-900' : 'bg-gray-200'}`} />
+                    <div className="flex-1 min-w-0 text-left">
                       <p className="font-medium text-gray-900 truncate">{booking.client}</p>
                       <p className="text-sm text-gray-500 truncate">{booking.service}</p>
                     </div>
                     {index === 0 && (
-                      <span className="text-xs font-semibold text-white bg-gray-900 px-2.5 py-1 rounded-full">
+                      <span className="text-xs font-semibold text-white bg-gray-900 px-2.5 py-1 rounded-full flex-shrink-0">
                         {t('time.in')} {getTimeUntil(booking.rawTime)}
                       </span>
                     )}
@@ -608,9 +609,9 @@ export default function DashboardPage() {
                     </div>
                     <button
                       onClick={() => setSelectedWeekDay(null)}
-                      className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 active:bg-gray-200 transition-colors"
+                      className="w-8 h-8 flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
                     >
-                      <X className="w-5 h-5 text-gray-400" />
+                      <X className="w-4 h-4 text-gray-500" />
                     </button>
                   </div>
                 </div>
@@ -739,9 +740,9 @@ export default function DashboardPage() {
                     </div>
                     <button
                       onClick={() => setSelectedSession(null)}
-                      className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 active:bg-gray-200 transition-colors -mr-1"
+                      className="w-8 h-8 flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
                     >
-                      <X className="w-5 h-5 text-gray-400" />
+                      <X className="w-4 h-4 text-gray-500" />
                     </button>
                   </div>
 
