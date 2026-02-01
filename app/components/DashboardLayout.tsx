@@ -141,7 +141,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
   // Items shown in the More menu
   const moreMenuItems = useMemo(() => [
-    { name: t('nav.clients'), href: "/clients", icon: Users, description: t('nav.clientsDesc') },
+    { name: t('nav.clients'), href: "/clients", icon: Users, description: t('nav.clientsDesc'), comingSoon: true },
     { name: t('nav.services'), href: "/services", icon: Briefcase, description: t('nav.servicesDesc') },
     { name: t('nav.blacklist'), href: "/blacklist", icon: ShieldAlert, description: t('nav.blacklistDesc') },
     { name: t('nav.settings'), href: "/settings", icon: Settings, description: t('nav.settingsDesc') },
@@ -215,6 +215,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             {navigation.map((item) => {
               const Icon = item.icon;
               const isActive = pathname === item.href;
+              const hasBadge = item.badge != null && item.badge > 0;
+              const isPendingRequests = item.href === "/requests";
+              
               return (
                 <Link
                   key={item.name}
@@ -227,15 +230,20 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                   }`}
                 >
                   <div className="flex items-center gap-3">
-                    <Icon className="w-5 h-5 flex-shrink-0" />
+                    <Icon 
+                      className={`w-5 h-5 flex-shrink-0 ${
+                        !isActive && isPendingRequests && hasBadge ? "text-orange-500" : ""
+                      }`}
+                      strokeWidth={isPendingRequests && hasBadge ? 2.5 : undefined}
+                    />
                     <span>{item.name}</span>
                   </div>
-                  {item.badge && (
+                  {hasBadge && (
                     <span
-                      className={`px-2 py-0.5 rounded-lg text-xs font-semibold ${
+                      className={`px-2 py-0.5 rounded-lg text-xs font-semibold animate-pulse ${
                         isActive
                           ? "bg-white/20 text-white"
-                          : "bg-red-500 text-white"
+                          : "bg-orange-500 text-white"
                       }`}
                     >
                       {item.badge}
@@ -353,156 +361,181 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           </motion.div>
         </main>
 
-        {/* Mobile bottom navigation - lifted bar, pill active state, tap feedback (CSS-only, no blur) */}
+        {/* Simple, polished navigation bar - icons only */}
         <nav
-          className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-200/80 shadow-[0_-4px_20px_rgba(28,25,23,0.06)]"
+          className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-200"
           style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
         >
           <div className="flex h-12 items-center">
             {mobileNavigation.map((item) => {
               const Icon = item.icon;
               const isActive = pathname === item.href;
+              const hasBadge = item.badge != null && item.badge > 0;
+              const badgeCount = item.badge ?? 0;
+              
               return (
                 <Link
                   key={item.name}
                   href={item.href}
-                  className="flex-1 flex items-center justify-center min-h-[48px] active:scale-95 transition-transform duration-75"
+                  className="flex-1 flex items-center justify-center h-12 active:opacity-60 transition-opacity"
                 >
-                  <div className={`relative flex items-center justify-center rounded-full p-2 ${isActive ? "bg-gray-100" : ""}`}>
+                  <div className="relative">
                     <Icon
-                      className={isActive ? "w-6 h-6 text-gray-900" : "w-6 h-6 text-gray-300"}
-                      strokeWidth={isActive ? 2 : 1.5}
+                      className={`w-6 h-6 ${
+                        isActive 
+                          ? "text-gray-900" 
+                          : hasBadge 
+                            ? "text-gray-700" 
+                            : "text-gray-400"
+                      }`}
+                      strokeWidth={isActive ? 2.2 : hasBadge ? 2 : 1.8}
                     />
-                    {item.badge != null && item.badge > 0 && (
-                      <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-[16px] px-1 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center ring-2 ring-white">
-                        {item.badge > 9 ? '9+' : item.badge}
+                    {hasBadge && (
+                      <span className="absolute -top-1.5 -right-2.5 min-w-[18px] h-[18px] px-1 bg-red-500 text-white text-[11px] font-semibold rounded-full flex items-center justify-center shadow-sm">
+                        {badgeCount > 99 ? '99+' : badgeCount}
                       </span>
                     )}
                   </div>
                 </Link>
               );
             })}
+            {/* Profile avatar - opens menu */}
             <button
               onClick={() => setMoreMenuOpen(true)}
               type="button"
-              className="flex-1 flex items-center justify-center min-h-[48px] border-l border-gray-100 active:scale-95 transition-transform duration-75"
+              className="flex-1 flex items-center justify-center h-12 active:scale-95 transition-transform"
             >
-              <div className={`flex items-center justify-center rounded-full p-2 ${moreMenuOpen ? "bg-gray-100" : ""}`}>
-                <MoreHorizontal
-                  className={moreMenuOpen ? "w-6 h-6 text-gray-900" : "w-6 h-6 text-gray-300"}
-                  strokeWidth={moreMenuOpen ? 2 : 1.5}
-                />
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold text-white bg-gray-900 ${
+                moreMenuOpen ? 'ring-2 ring-gray-900 ring-offset-2' : ''
+              }`}>
+                {userInitials}
               </div>
             </button>
           </div>
         </nav>
 
-        {/* More Menu Modal */}
+        {/* More Menu Modal - matches app modal style */}
         <AnimatePresence>
           {moreMenuOpen && (
             <>
-              {/* Backdrop - no blur for performance */}
+              {/* Backdrop */}
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                transition={{ duration: 0.15 }}
+                transition={{ duration: 0.25, ease: "easeOut" }}
                 onClick={() => setMoreMenuOpen(false)}
-                className="lg:hidden fixed inset-0 bg-black/40 z-50"
+                onTouchMove={(e) => e.preventDefault()}
+                className="lg:hidden fixed -top-20 -left-4 -right-4 -bottom-20 bg-black/60 z-50 touch-none overscroll-contain"
               />
 
               {/* Modal Sheet */}
               <motion.div
-                initial={{ y: "100%", opacity: 0.5 }}
-                animate={{ y: 0, opacity: 1 }}
-                exit={{ y: "100%", opacity: 0 }}
-                transition={{ type: "spring", damping: 30, stiffness: 350 }}
+                initial={{ y: "100%" }}
+                animate={{ y: 0 }}
+                exit={{ y: "100%" }}
+                transition={{ duration: 0.35, ease: [0.32, 0.72, 0, 1] }}
                 className="lg:hidden fixed bottom-0 left-0 right-0 z-50"
               >
-                {/* Card container with margin */}
-                <div className="mx-3 mb-3">
-                  {/* Main card */}
-                  <div className="bg-white rounded-2xl shadow-2xl overflow-hidden">
-                    {/* Dark header with profile */}
-                    <div className="bg-gray-900 px-4 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${avatarColor} text-white font-semibold shadow-lg`}>
-                          {userInitials}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-white font-semibold truncate">{userName}</p>
-                          <p className="text-gray-400 text-sm truncate">{settings.businessName}</p>
-                        </div>
-                        <button
-                          onClick={() => setMoreMenuOpen(false)}
-                          className="w-8 h-8 flex items-center justify-center rounded-full bg-white/10 active:bg-white/20 transition-colors"
-                        >
-                          <X className="w-4 h-4 text-white/70" />
-                        </button>
+                <div className="bg-[#faf9f7] rounded-t-[28px] shadow-2xl overflow-hidden">
+                  {/* Handle */}
+                  <div className="flex justify-center pt-2.5 pb-1">
+                    <div className="w-9 h-[5px] bg-gray-300 rounded-full" />
+                  </div>
+                  
+                  {/* Header with Profile */}
+                  <div className="px-5 pt-1 pb-4 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-full flex items-center justify-center bg-gray-900 text-white font-semibold">
+                        {userInitials}
+                      </div>
+                      <div>
+                        <h2 className="text-[18px] font-bold text-gray-900">{userName}</h2>
+                        <p className="text-[13px] text-gray-500">{settings.businessName}</p>
                       </div>
                     </div>
-
-                    {/* Menu items */}
-                    <div className="p-2">
-                      {moreMenuItems.map((item, index) => {
+                    <button 
+                      onClick={() => setMoreMenuOpen(false)} 
+                      className="w-8 h-8 flex items-center justify-center bg-gray-200/80 hover:bg-gray-300 rounded-full transition-colors"
+                    >
+                      <X className="w-4 h-4 text-gray-600" />
+                    </button>
+                  </div>
+                  
+                  {/* Menu Items */}
+                  <div className="px-4 pb-2">
+                    <div className="bg-white rounded-2xl shadow-sm overflow-hidden divide-y divide-gray-100">
+                      {moreMenuItems.map((item) => {
                         const Icon = item.icon;
                         const isActive = pathname === item.href;
-                        return (
-                          <motion.div
-                            key={item.name}
-                            initial={{ opacity: 0, x: -12 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: 0.05 + index * 0.04 }}
-                          >
-                            <Link
-                              href={item.href}
-                              onClick={() => setMoreMenuOpen(false)}
-                              className={`flex items-center gap-3 px-3 py-3.5 rounded-xl transition-colors active:bg-gray-100 ${
-                                isActive ? "bg-gray-100" : ""
-                              }`}
+                        
+                        // Coming soon items are not clickable
+                        if (item.comingSoon) {
+                          return (
+                            <div
+                              key={item.name}
+                              className="flex items-center gap-3 px-4 py-3.5 opacity-50 cursor-not-allowed"
                             >
-                              <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                                isActive ? "bg-gray-900" : "bg-gray-100"
-                              }`}>
-                                <Icon className={`w-5 h-5 ${isActive ? "text-white" : "text-gray-600"}`} />
+                              <div className="w-9 h-9 rounded-xl flex items-center justify-center bg-gray-100">
+                                <Icon className="w-5 h-5 text-gray-400" />
                               </div>
                               <div className="flex-1 min-w-0">
-                                <span className={`block font-medium ${isActive ? "text-gray-900" : "text-gray-700"}`}>
+                                <span className="block text-[15px] font-medium text-gray-500">
                                   {item.name}
                                 </span>
-                                <span className="block text-xs text-gray-400 truncate">
+                                <span className="block text-[12px] text-gray-400">
                                   {item.description}
                                 </span>
                               </div>
-                              <ChevronRight className={`w-5 h-5 text-gray-300 ${isRTL ? 'rotate-180' : ''}`} />
-                            </Link>
-                          </motion.div>
+                              <span className="text-[11px] font-medium text-gray-400 bg-gray-100 px-2 py-1 rounded-full">
+                                Soon
+                              </span>
+                            </div>
+                          );
+                        }
+                        
+                        return (
+                          <Link
+                            key={item.name}
+                            href={item.href}
+                            onClick={() => setMoreMenuOpen(false)}
+                            className="flex items-center gap-3 px-4 py-3.5 active:bg-gray-50 transition-colors"
+                          >
+                            <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${
+                              isActive ? "bg-gray-900" : "bg-gray-100"
+                            }`}>
+                              <Icon className={`w-5 h-5 ${isActive ? "text-white" : "text-gray-600"}`} />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <span className="block text-[15px] font-medium text-gray-900">
+                                {item.name}
+                              </span>
+                              <span className="block text-[12px] text-gray-500">
+                                {item.description}
+                              </span>
+                            </div>
+                            <ChevronRight className={`w-5 h-5 text-gray-400 ${isRTL ? 'rotate-180' : ''}`} />
+                          </Link>
                         );
                       })}
                     </div>
-                  </div>
-
-                  {/* Logout button */}
-                  <motion.div
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.25 }}
-                    className="mt-2.5"
-                  >
+                    
+                    {/* Sign Out Button */}
                     <button
                       onClick={() => {
                         setMoreMenuOpen(false);
                         handleLogout();
                       }}
                       disabled={isLoggingOut}
-                      className="w-full py-3.5 bg-white rounded-2xl text-gray-600 font-medium active:bg-gray-50 transition-colors disabled:opacity-50 shadow-lg"
+                      className="w-full mt-3 py-3.5 bg-white rounded-2xl text-red-600 text-[15px] font-medium active:bg-gray-50 transition-colors disabled:opacity-50 shadow-sm flex items-center justify-center gap-2"
                     >
-                      {isLoggingOut ? '...' : t('nav.signOut')}
+                      <LogOut className="w-4 h-4" />
+                      {isLoggingOut ? `${t('nav.signOut')}...` : t('nav.signOut')}
                     </button>
-                  </motion.div>
+                  </div>
                   
-                  {/* Safe area for iPhone */}
-                  <div className="h-1 pb-safe" />
+                  {/* Safe area padding */}
+                  <div style={{ paddingBottom: 'env(safe-area-inset-bottom, 16px)' }} />
                 </div>
               </motion.div>
             </>

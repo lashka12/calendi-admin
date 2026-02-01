@@ -278,7 +278,7 @@ export default function DashboardPage() {
         </div>
         
         {/* Header Row */}
-        <div className="flex items-center justify-between mb-4 relative">
+        <div className="flex items-center mb-4 relative">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center">
               <TimeIcon className="w-5 h-5 text-amber-400" />
@@ -288,13 +288,6 @@ export default function DashboardPage() {
               <h1 className="text-white text-lg sm:text-xl font-semibold">{greeting}</h1>
             </div>
           </div>
-          <Link
-            href="/calendar"
-            className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-lg shadow-black/20 lg:hover:scale-105 active:scale-95 transition-transform"
-            aria-label="New Session"
-          >
-            <Plus className="w-5 h-5 text-gray-900" strokeWidth={2.5} />
-          </Link>
         </div>
 
         {/* Stats Row */}

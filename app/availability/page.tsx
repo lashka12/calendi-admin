@@ -852,7 +852,10 @@ export default function AvailabilityPage() {
                 </div>
 
                 {/* Footer */}
-                <div className="px-6 py-4 border-t border-gray-200">
+                <div 
+                  className="px-6 py-4 border-t border-gray-200"
+                  style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 16px)' }}
+                >
                   {/* Delete button (only when editing) */}
                   {editingSpecial && (
                     <button
@@ -1612,15 +1615,17 @@ function SpecialsTab({ specialDays, deleteSpecialDay, openAddSpecialModal, openE
         </>
       )}
 
-      {/* Floating Action Button - Mobile */}
+      {/* Mobile FAB - White for visual balance */}
       <motion.button
         initial={{ opacity: 0, scale: 0.8 }}
         animate={{ opacity: 1, scale: 1 }}
-        transition={{ delay: 0.2, duration: 0.2 }}
+        transition={{ delay: 0.3, type: "spring", stiffness: 400, damping: 25 }}
+        whileTap={{ scale: 0.92 }}
         onClick={openAddSpecialModal}
-        className="lg:hidden fixed bottom-20 right-4 w-14 h-14 bg-gray-900 text-white rounded-full shadow-lg flex items-center justify-center active:scale-95 transition-transform z-10"
+        className="lg:hidden fixed right-5 z-30 w-14 h-14 bg-white text-gray-900 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.15)] border border-gray-200 flex items-center justify-center"
+        style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 72px)' }}
       >
-        <Plus className="w-6 h-6" />
+        <Plus className="w-6 h-6 stroke-[2.5]" />
       </motion.button>
 
       {/* Desktop: Add button at bottom right */}

@@ -370,7 +370,7 @@ export default function RequestsPage() {
             </motion.p>
           </motion.div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-3">
             {requests.map((request, index) => (
               <motion.div
                 key={request.id}
@@ -379,112 +379,91 @@ export default function RequestsPage() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, x: -100 }}
                 transition={{ delay: index * 0.05 }}
-                className={`bg-white border border-gray-200 rounded-xl overflow-hidden relative ${
-                  request.isExpired ? 'opacity-60' : ''
+                className={`bg-white border border-gray-200 rounded-2xl overflow-hidden ${
+                  request.isExpired ? 'opacity-50' : ''
                 }`}
               >
-                {/* Expired corner ribbon */}
-                {request.isExpired && (
-                  <div className="absolute top-0 right-0 z-10">
-                    <div className="bg-red-500 text-white text-[10px] lg:text-xs font-bold px-2 lg:px-3 py-0.5 lg:py-1 shadow-sm rounded-bl-lg uppercase tracking-wide">
-                      {t('requests.expired')}
-                    </div>
-                  </div>
-                )}
-
-                <div className="bg-gray-50 px-4 py-2.5 lg:px-6 lg:py-3 border-b border-gray-200 flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-xs lg:text-sm text-gray-600">
-                    <Clock className="w-3.5 h-3.5 lg:w-4 lg:h-4" />
-                    <span className="truncate">{request.requestedDate}</span>
-                  </div>
-                  {request.amount && (
-                    <span className="text-sm lg:text-base font-semibold text-gray-900">{request.amount}</span>
-                  )}
-                </div>
-
-                <div className="p-4 lg:p-6">
-                  {/* Client info */}
-                  <div className="flex items-start gap-3 mb-4">
+                <div className="p-4">
+                  {/* Header row: Client + Amount + Expired badge */}
+                  <div className="flex items-center gap-3 mb-3">
                     <div
-                      className={`w-12 h-12 lg:w-14 lg:h-14 rounded-full flex items-center justify-center flex-shrink-0 ${request.avatar.color} text-white text-base lg:text-lg font-semibold`}
-                      aria-label={request.client}
+                      className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${request.avatar.color} text-white text-sm font-semibold`}
                     >
                       {request.avatar.initials}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h3 className="text-base lg:text-lg font-semibold text-gray-900 mb-1 truncate">{request.client}</h3>
-                      <div className="space-y-1">
-                        {request.email && (
-                          <p className="text-xs lg:text-sm text-gray-500 flex items-center gap-2 truncate">
-                            <Mail className="w-3 h-3 lg:w-3.5 lg:h-3.5 flex-shrink-0" />
-                            <span className="truncate">{request.email}</span>
-                          </p>
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-[15px] font-semibold text-gray-900 truncate">{request.client}</h3>
+                        {request.isExpired && (
+                          <span className="px-1.5 py-0.5 bg-red-100 text-red-600 text-[9px] font-bold rounded uppercase">
+                            {t('requests.expired')}
+                          </span>
                         )}
-                        <p className="text-xs lg:text-sm text-gray-500 flex items-center gap-2">
-                          <Phone className="w-3 h-3 lg:w-3.5 lg:h-3.5 flex-shrink-0" />
-                          {request.phone}
-                        </p>
                       </div>
+                      <p className="text-xs text-gray-500 flex items-center gap-1.5 mt-0.5">
+                        <Phone className="w-3 h-3" />
+                        {request.phone}
+                      </p>
                     </div>
-                  </div>
-
-                  {/* Booking details */}
-                  <div className="bg-gray-50 rounded-xl p-3 lg:p-4 mb-4">
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <p className="text-xs text-gray-500 mb-1">{t('requests.details.service')}</p>
-                        <p className="text-sm font-medium text-gray-900">{request.service}</p>
-                      </div>
-                      {request.duration && (
-                        <div>
-                          <p className="text-xs text-gray-500 mb-1">{t('requests.details.duration')}</p>
-                          <p className="text-sm font-medium text-gray-900">{request.duration}</p>
-                        </div>
-                      )}
-                      <div>
-                        <p className="text-xs text-gray-500 mb-1">{t('requests.details.date')}</p>
-                        <p className="text-sm font-medium text-gray-900">{request.date}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-500 mb-1">{t('requests.details.time')}</p>
-                        <p className="text-sm font-medium text-gray-900">{request.time}</p>
-                      </div>
-                    </div>
-                    {request.notes && (
-                      <div className="mt-3 pt-3 border-t border-gray-200">
-                        <p className="text-xs text-gray-500 mb-1">{t('requests.details.notes')}</p>
-                        <p className="text-sm text-gray-700">"{request.notes}"</p>
-                      </div>
+                    {request.amount && (
+                      <span className="text-sm font-bold text-gray-900">{request.amount}</span>
                     )}
                   </div>
 
+                  {/* Booking details - compact */}
+                  <div className="bg-gray-50 rounded-xl p-3 mb-3">
+                    <p className="text-sm font-medium text-gray-900 mb-2">{request.service}</p>
+                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                      <span>{request.date}</span>
+                      <span className="text-gray-300">·</span>
+                      <span>{request.time}</span>
+                      {request.duration && (
+                        <>
+                          <span className="text-gray-300">·</span>
+                          <span className="text-gray-500">{request.duration} mins</span>
+                        </>
+                      )}
+                    </div>
+                    {request.notes && (
+                      <p className="mt-2 pt-2 border-t border-gray-200 text-xs text-gray-600 italic">
+                        "{request.notes}"
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Meta: Requested time */}
+                  <div className="flex items-center gap-1.5 text-[11px] text-gray-400 mb-3">
+                    <Clock className="w-3 h-3" />
+                    {request.requestedDate}
+                  </div>
+
                   {/* Actions */}
-                  <div className="flex gap-2 lg:gap-3">
+                  <div className="flex gap-2">
                     <button
                       onClick={() => handleApprove(request.id)}
                       disabled={isProcessing(request.id) || request.isExpired}
-                      className={`flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 lg:py-2.5 text-sm font-semibold rounded-xl active:scale-95 transition-all shadow-sm disabled:cursor-not-allowed ${
+                      className={`flex-[2] inline-flex items-center justify-center gap-2 h-12 text-sm font-semibold rounded-xl active:scale-[0.98] transition-all disabled:cursor-not-allowed ${
                         request.isExpired
-                          ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                          : 'bg-gray-800 text-white hover:bg-gray-700 disabled:opacity-50'
+                          ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                          : 'bg-gray-900 text-white hover:bg-gray-800 disabled:opacity-50'
                       }`}
                     >
                       {processing.has(`approve:${request.id}`) ? (
                         <Loader2 className="w-4 h-4 animate-spin" />
                       ) : (
-                        <Check className="w-4 h-4" />
+                        <Check className="w-5 h-5" strokeWidth={2.5} />
                       )}
                       {request.isExpired ? t('requests.expired') : t('requests.approve')}
                     </button>
                     <button
                       onClick={() => handleDecline(request.id)}
                       disabled={isProcessing(request.id)}
-                      className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 lg:py-2.5 bg-white border-2 border-gray-300 text-gray-700 text-sm font-semibold rounded-xl hover:bg-gray-50 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="flex-1 inline-flex items-center justify-center gap-2 h-12 bg-white border border-gray-200 text-gray-600 text-sm font-semibold rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {processing.has(`decline:${request.id}`) ? (
                         <Loader2 className="w-4 h-4 animate-spin" />
                       ) : (
-                        <X className="w-4 h-4" />
+                        <X className="w-4 h-4" strokeWidth={2.5} />
                       )}
                       {t('requests.decline')}
                     </button>
