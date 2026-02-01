@@ -206,6 +206,7 @@ const en = {
     todaysSchedule: "Today's Schedule",
     loadingAppointments: 'Loading appointments...',
     noAppointments: 'No appointments',
+    emptyDayHint: 'Tap + to add a session',
     scheduleClear: 'Your schedule is clear for this date',
     loadingSlots: 'Loading slots...',
     noAvailableSlots: 'No available slots for this date',
@@ -227,6 +228,7 @@ const en = {
       phoneNumber: 'Phone Number',
       phonePlaceholder: '05XXXXXXXX',
       date: 'Date',
+      time: 'Time',
       service: 'Service',
       selectService: 'Select Service',
       selectDate: 'Select Date',
@@ -478,6 +480,27 @@ const en = {
       monthly: 'Monthly',
       yearly: 'Yearly',
     },
+  },
+
+  // Services
+  services: {
+    title: 'Services',
+    activeServices: 'active services',
+    addService: 'Add Service',
+    newService: 'New Service',
+    editService: 'Edit Service',
+    serviceName: 'Service Name',
+    serviceNamePlaceholder: 'e.g. Gel Manicure',
+    description: 'Description',
+    descriptionPlaceholder: 'Optional description...',
+    duration: 'Duration',
+    price: 'Price',
+    saveChanges: 'Save Changes',
+    deleteService: 'Delete Service?',
+    deleteMessage: 'will be permanently deleted.',
+    tapToEdit: 'Tap to edit',
+    noServices: 'No services yet',
+    addFirst: 'Add your first service',
   },
 } as const;
 

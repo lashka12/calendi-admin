@@ -206,6 +206,7 @@ const he = {
     todaysSchedule: 'לוח הזמנים להיום',
     loadingAppointments: 'טוען פגישות...',
     noAppointments: 'אין פגישות',
+    emptyDayHint: 'לחץ + להוספת פגישה',
     scheduleClear: 'היומן פנוי לתאריך זה',
     loadingSlots: 'טוען זמנים...',
     noAvailableSlots: 'אין זמנים פנויים לתאריך זה',
@@ -227,6 +228,7 @@ const he = {
       phoneNumber: 'מספר טלפון',
       phonePlaceholder: '05XXXXXXXX',
       date: 'תאריך',
+      time: 'שעה',
       service: 'שירות',
       selectService: 'בחר שירות',
       selectDate: 'בחר תאריך',
@@ -478,6 +480,27 @@ const he = {
       monthly: 'חודשי',
       yearly: 'שנתי',
     },
+  },
+
+  // Services
+  services: {
+    title: 'שירותים',
+    activeServices: 'שירותים פעילים',
+    addService: 'הוסף שירות',
+    newService: 'שירות חדש',
+    editService: 'עריכת שירות',
+    serviceName: 'שם השירות',
+    serviceNamePlaceholder: 'לדוגמה: מניקור ג׳ל',
+    description: 'תיאור',
+    descriptionPlaceholder: 'תיאור אופציונלי...',
+    duration: 'משך',
+    price: 'מחיר',
+    saveChanges: 'שמור שינויים',
+    deleteService: 'למחוק שירות?',
+    deleteMessage: 'יימחק לצמיתות.',
+    tapToEdit: 'לחץ לעריכה',
+    noServices: 'אין שירותים עדיין',
+    addFirst: 'הוסף את השירות הראשון שלך',
   },
 } as const;
 

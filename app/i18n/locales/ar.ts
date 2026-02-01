@@ -206,6 +206,7 @@ const ar = {
     todaysSchedule: 'جدول اليوم',
     loadingAppointments: 'جارٍ تحميل المواعيد...',
     noAppointments: 'لا توجد مواعيد',
+    emptyDayHint: 'اضغط + لإضافة جلسة',
     scheduleClear: 'الجدول فارغ لهذا التاريخ',
     loadingSlots: 'جارٍ تحميل الأوقات...',
     noAvailableSlots: 'لا توجد أوقات متاحة لهذا التاريخ',
@@ -227,6 +228,7 @@ const ar = {
       phoneNumber: 'رقم الهاتف',
       phonePlaceholder: '05XXXXXXXX',
       date: 'التاريخ',
+      time: 'الوقت',
       service: 'الخدمة',
       selectService: 'اختر الخدمة',
       selectDate: 'اختر التاريخ',
@@ -478,6 +480,27 @@ const ar = {
       monthly: 'شهري',
       yearly: 'سنوي',
     },
+  },
+
+  // Services
+  services: {
+    title: 'الخدمات',
+    activeServices: 'خدمات نشطة',
+    addService: 'إضافة خدمة',
+    newService: 'خدمة جديدة',
+    editService: 'تعديل الخدمة',
+    serviceName: 'اسم الخدمة',
+    serviceNamePlaceholder: 'مثال: مناكير جل',
+    description: 'الوصف',
+    descriptionPlaceholder: 'وصف اختياري...',
+    duration: 'المدة',
+    price: 'السعر',
+    saveChanges: 'حفظ التغييرات',
+    deleteService: 'حذف الخدمة؟',
+    deleteMessage: 'سيتم حذفها نهائياً.',
+    tapToEdit: 'انقر للتعديل',
+    noServices: 'لا توجد خدمات بعد',
+    addFirst: 'أضف خدمتك الأولى',
   },
 } as const;
 

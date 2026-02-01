@@ -249,84 +249,81 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        {/* Mobile: List-based navigation */}
+        {/* Mobile: Clean settings with consistent coloring */}
         <div className="lg:hidden">
           <AnimatePresence mode="wait">
             {mobileListMode ? (
               // Main settings list view
               <motion.div
                 key="settings-list"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ 
-                  type: "spring",
-                  stiffness: 400,
-                  damping: 30,
-                  mass: 1
-                }}
-                className="space-y-4"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="space-y-5"
               >
-                {/* Header */}
-                <div className="mb-7">
-                  <h1 className="text-2xl font-semibold text-gray-900 mb-1.5">{t('settings.title')}</h1>
-                  <p className="text-sm text-gray-500 leading-relaxed">Manage your account and preferences</p>
-                </div>
-                
-                <div className="space-y-2.5">
-                  {tabs.map((tab, index) => {
+                {/* Profile Card - Prominent at top */}
+                <motion.button
+                  onClick={() => {
+                    setActiveTab("profile");
+                    setMobileListMode(false);
+                  }}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.05 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="w-full bg-white rounded-2xl p-4 shadow-sm border border-gray-200 active:bg-gray-50 transition-colors"
+                >
+                  <div className="flex items-center gap-4">
+                    {/* Avatar */}
+                    <div className="w-14 h-14 rounded-full bg-gray-900 flex items-center justify-center text-white text-lg font-semibold">
+                      {settings.businessName?.charAt(0) || 'A'}
+                    </div>
+                    <div className="flex-1 text-left">
+                      <p className="text-base font-semibold text-gray-900">
+                        {t('settings.tabs.profile')}
+                      </p>
+                      <p className="text-sm text-gray-500">{settings.businessName || 'Your Business'}</p>
+                    </div>
+                    <ChevronRight className={`w-5 h-5 text-gray-400 ${isRTL ? 'rotate-180' : ''}`} />
+                  </div>
+                </motion.button>
+
+                {/* Settings List */}
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1 }}
+                  className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden divide-y divide-gray-100"
+                >
+                  {tabs.filter(tab => tab.id !== 'profile').map((tab) => {
                     const Icon = tab.icon;
                     
                     return (
-                      <motion.button
+                      <button
                         key={tab.id}
                         onClick={() => {
                           setActiveTab(tab.id);
                           setMobileListMode(false);
                         }}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ 
-                          delay: index * 0.05, 
-                          duration: 0.2, 
-                          ease: "easeOut" 
-                        }}
-                        whileTap={{ scale: 0.98 }}
-                        className="w-full relative overflow-hidden bg-white rounded-2xl shadow-sm border border-gray-200 active:border-gray-300 active:shadow transition-all duration-150 touch-manipulation"
+                        className="w-full flex items-center gap-3 px-4 py-4 active:bg-gray-50 transition-colors"
                       >
-                        {/* Active state overlay for better touch feedback */}
-                        <motion.div
-                          className="absolute inset-0 bg-gray-50/80"
-                          initial={{ opacity: 0 }}
-                          whileTap={{ opacity: 1 }}
-                          transition={{ duration: 0.1 }}
-                        />
-                        
-                        <div className="relative p-5 flex items-center justify-between">
-                          <div className="flex items-center gap-4 flex-1 min-w-0">
-                            {/* Icon with subtle background */}
-                            <div className="w-12 h-12 rounded-xl bg-gray-50 border border-gray-100 flex items-center justify-center flex-shrink-0">
-                              <Icon className="w-6 h-6 text-gray-700" />
-                            </div>
-                            
-                            <div className="flex-1 min-w-0">
-                              <p className="text-base font-semibold text-gray-900">
-                                {tab.name}
-                              </p>
-                              <p className="text-xs text-gray-500 mt-1 truncate">
-                                {tab.description}
-                              </p>
-                            </div>
-                          </div>
-                          
-                          {/* Chevron */}
-                          <div className="flex-shrink-0 ml-3">
-                            <ChevronRight className={`w-5 h-5 text-gray-400 ${isRTL ? 'rotate-180' : ''}`} />
-                          </div>
+                        <div className="w-9 h-9 rounded-xl bg-gray-100 flex items-center justify-center flex-shrink-0">
+                          <Icon className="w-5 h-5 text-gray-600" strokeWidth={2} />
                         </div>
-                      </motion.button>
+                        <div className="flex-1 text-left">
+                          <p className="text-[15px] font-medium text-gray-900">{tab.name}</p>
+                          <p className="text-xs text-gray-500 mt-0.5">{tab.description}</p>
+                        </div>
+                        <ChevronRight className={`w-5 h-5 text-gray-400 ${isRTL ? 'rotate-180' : ''}`} />
+                      </button>
                     );
                   })}
+                </motion.div>
+
+                {/* App Version */}
+                <div className="text-center pt-4">
+                  <p className="text-xs text-gray-400">Calendi Admin v1.0</p>
                 </div>
               </motion.div>
             ) : (

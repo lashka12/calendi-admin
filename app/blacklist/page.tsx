@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { Plus, Search, Trash2, X, AlertTriangle, User, Phone, Calendar } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { Plus, Search, X, Phone, UserX, Bell, ChevronRight } from "lucide-react";
+import { motion, AnimatePresence, PanInfo } from "framer-motion";
 import { 
   subscribeToBlacklist,
   addToBlacklist,
@@ -11,6 +11,7 @@ import {
 } from "../lib/firebase/blacklist";
 import { useToast } from "../lib/hooks/useToast";
 import ConfirmationModal from "../components/ConfirmationModal";
+import { useTranslation } from "@/app/i18n";
 
 interface BlacklistedClient {
   id: string;
@@ -18,16 +19,8 @@ interface BlacklistedClient {
   phone: string;
   reason: string;
   dateAdded: string;
-  avatar?: string;
 }
 
-// Helper: Generate avatar URL from name
-const generateAvatar = (name: string): string => {
-  const hash = name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-  return `https://i.pravatar.cc/150?img=${(hash % 70) + 1}`;
-};
-
-// Transform Firebase blacklist entry to display format
 const transformBlacklistEntry = (entry: FirebaseBlacklistedClient): BlacklistedClient => {
   const dateAdded = (entry.dateAdded && typeof entry.dateAdded === 'object' && 'toDate' in entry.dateAdded)
     ? (entry.dateAdded as any).toDate().toISOString().split('T')[0]
@@ -41,30 +34,24 @@ const transformBlacklistEntry = (entry: FirebaseBlacklistedClient): BlacklistedC
     phone: entry.phone || "",
     reason: entry.reason || "",
     dateAdded,
-    avatar: generateAvatar(entry.clientName || "Unknown"),
   };
 };
 
 export default function BlacklistPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
-  const [formData, setFormData] = useState({
-    name: "",
-    phone: "",
-    reason: "",
-  });
+  const [formData, setFormData] = useState({ name: "", phone: "", reason: "" });
   const [blacklistedClients, setBlacklistedClients] = useState<BlacklistedClient[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [processing, setProcessing] = useState<Set<string>>(new Set());
+  const [swipedId, setSwipedId] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean; id: string | null; clientName: string }>({
-    open: false,
-    id: null,
-    clientName: "",
+    open: false, id: null, clientName: "",
   });
   const { showToast } = useToast();
+  const { t } = useTranslation();
 
-  // Subscribe to real-time blacklist updates
   useEffect(() => {
     const unsubscribe = subscribeToBlacklist((firebaseClients) => {
       const transformed = firebaseClients.map(transformBlacklistEntry);
@@ -72,18 +59,14 @@ export default function BlacklistPage() {
       setLoading(false);
       setError(null);
     });
-
-    return () => {
-      unsubscribe();
-    };
+    return () => unsubscribe();
   }, []);
 
   const filteredClients = useMemo(() => {
     return blacklistedClients.filter(
       (client) =>
         client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        client.phone.includes(searchTerm) ||
-        client.reason.toLowerCase().includes(searchTerm.toLowerCase())
+        client.phone.includes(searchTerm)
     );
   }, [blacklistedClients, searchTerm]);
 
@@ -93,8 +76,28 @@ export default function BlacklistPage() {
     setModalOpen(true);
   };
 
+  // Phone validation
+  const validatePhone = (phone: string): string | null => {
+    const cleaned = phone.replace(/\D/g, '');
+    if (!cleaned) return "Phone number is required";
+    if (cleaned.length !== 10) return "Phone must be 10 digits";
+    if (!cleaned.startsWith('05')) return "Phone must start with 05";
+    return null;
+  };
+
+  const isPhoneValid = !validatePhone(formData.phone);
+
   const handleSubmit = async () => {
-    if (!formData.name || !formData.phone || !formData.reason) return;
+    if (!formData.name) {
+      setError("Name is required");
+      return;
+    }
+    
+    const phoneError = validatePhone(formData.phone);
+    if (phoneError) {
+      setError(phoneError);
+      return;
+    }
 
     if (processing.has('new')) return;
 
@@ -104,363 +107,405 @@ export default function BlacklistPage() {
     try {
       await addToBlacklist({
         clientName: formData.name,
-        phone: formData.phone,
-        reason: formData.reason,
+        phone: formData.phone.replace(/\D/g, ''),
+        reason: formData.reason || "No reason provided",
       });
-      
-      showToast(`${formData.name} has been added to the blacklist`, "success");
+      showToast(`${formData.name} added to blacklist`, "success");
       setModalOpen(false);
       setFormData({ name: "", phone: "", reason: "" });
     } catch (err: any) {
-      console.error("Error saving blacklist entry:", err);
-      const errorMessage = err.message || "Failed to save blacklist entry";
+      const errorMessage = err.message || "Failed to add to blacklist";
       setError(errorMessage);
       showToast(errorMessage, "error");
     } finally {
-      setProcessing(prev => {
-        const next = new Set(prev);
-        next.delete('new');
-        return next;
-      });
+      setProcessing(prev => { const next = new Set(prev); next.delete('new'); return next; });
     }
-  };
-
-  const openDeleteConfirm = (id: string, clientName: string) => {
-    setDeleteConfirm({ open: true, id, clientName });
-  };
-
-  const closeDeleteConfirm = () => {
-    setDeleteConfirm({ open: false, id: null, clientName: "" });
   };
 
   const handleDelete = async () => {
-    if (!deleteConfirm.id) return;
-
-    if (processing.has(deleteConfirm.id)) return;
+    if (!deleteConfirm.id || processing.has(deleteConfirm.id)) return;
 
     setProcessing(prev => new Set(prev).add(deleteConfirm.id!));
     const clientName = deleteConfirm.clientName;
+    
     try {
       await removeFromBlacklist(deleteConfirm.id);
-      closeDeleteConfirm();
-      showToast(`${clientName} has been removed from the blacklist`, "success");
+      setDeleteConfirm({ open: false, id: null, clientName: "" });
+      showToast(`${clientName} removed from blacklist`, "success");
     } catch (err: any) {
-      console.error("Error removing from blacklist:", err);
-      setError(err.message || "Failed to remove from blacklist");
-      showToast(err.message || "Failed to remove from blacklist", "error");
+      showToast(err.message || "Failed to remove", "error");
     } finally {
-      setProcessing(prev => {
-        const next = new Set(prev);
-        next.delete(deleteConfirm.id!);
-        return next;
-      });
+      setProcessing(prev => { const next = new Set(prev); next.delete(deleteConfirm.id!); return next; });
     }
   };
 
+  const handleSwipe = (id: string) => {
+    setSwipedId(swipedId === id ? null : id);
+  };
+
+  const getInitials = (name: string) => {
+    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+  };
+
+  const formatDate = (dateStr: string) => {
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 0) return "Today";
+    if (diffDays === 1) return "Yesterday";
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  };
+
+  // Loading skeleton
+  if (loading) {
+    return (
+      <div className="pt-2 pb-16 lg:pt-0 lg:pb-6">
+        <div className="h-11 bg-white border border-gray-200 rounded-xl mb-4" />
+        <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+          {[0, 1, 2, 3].map((i) => (
+            <div key={i} className={`p-4 ${i > 0 ? 'border-t border-gray-100' : ''}`}>
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-gray-100 rounded-full overflow-hidden relative">
+                  <div className="absolute inset-0 bg-gradient-to-r from-gray-100 via-gray-50 to-gray-100 animate-shimmer" />
+                </div>
+                <div className="flex-1">
+                  <div className="h-4 w-28 bg-gray-100 rounded mb-2 overflow-hidden relative">
+                    <div className="absolute inset-0 bg-gradient-to-r from-gray-100 via-gray-50 to-gray-100 animate-shimmer" />
+                  </div>
+                  <div className="h-3 w-20 bg-gray-50 rounded overflow-hidden relative">
+                    <div className="absolute inset-0 bg-gradient-to-r from-gray-50 via-white to-gray-50 animate-shimmer" />
+                  </div>
+                </div>
+                <div className="h-4 w-12 bg-gray-50 rounded overflow-hidden relative">
+                  <div className="absolute inset-0 bg-gradient-to-r from-gray-50 via-white to-gray-50 animate-shimmer" />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-6">
-      {/* Header - hidden on mobile */}
-      <div className="hidden lg:flex items-center justify-between">
+    <div className="pt-2 pb-16 lg:pt-0 lg:pb-6">
+      {/* Desktop Header */}
+      <div className="hidden lg:flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-900">Blacklist</h1>
-          <p className="text-sm text-gray-500 mt-1">Manage blocked clients</p>
+          <h1 className="text-2xl font-bold text-gray-900">Blacklist</h1>
+          <p className="text-sm text-gray-500">{blacklistedClients.length} flagged clients</p>
         </div>
         <button
           onClick={openAddModal}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-gray-800 text-white text-sm font-medium rounded-xl hover:bg-gray-700 transition-colors shadow-sm"
+          className="inline-flex items-center gap-2 px-4 py-2.5 bg-gray-900 text-white text-sm font-semibold rounded-xl hover:bg-gray-800 transition-colors"
         >
           <Plus className="w-4 h-4" />
           Add to Blacklist
         </button>
       </div>
 
-      {/* Mobile Add Button */}
-      <button
+      {/* Mobile FAB */}
+      <motion.button
+        initial={{ opacity: 0, scale: 0.8 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ delay: 0.2 }}
+        whileTap={{ scale: 0.92 }}
         onClick={openAddModal}
-        className="lg:hidden fixed bottom-20 right-4 z-30 w-14 h-14 bg-gray-800 text-white rounded-full shadow-lg hover:bg-gray-700 transition-all hover:scale-105 flex items-center justify-center"
+        className="lg:hidden fixed right-5 z-30 w-14 h-14 bg-white text-gray-900 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.12)] border border-gray-200 flex items-center justify-center"
+        style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 72px)' }}
       >
-        <Plus className="w-6 h-6" />
-      </button>
+        <Plus className="w-6 h-6 stroke-[2.5]" />
+      </motion.button>
 
-      {/* Search and Stats */}
-      <div className="bg-white border border-gray-200 rounded-xl p-4">
-        <div className="flex items-center gap-4 mb-4">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search blacklisted clients..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-800 focus:border-transparent"
-            />
+      {/* Info Header */}
+      <div className="mb-4 bg-white rounded-2xl border border-gray-200 p-4">
+        <div className="flex gap-3">
+          <div className="w-10 h-10 bg-gray-900 rounded-xl flex items-center justify-center flex-shrink-0">
+            <Bell className="w-5 h-5 text-white" />
           </div>
-        </div>
-
-        <div className="flex items-center gap-2 text-sm">
-          <AlertTriangle className="w-4 h-4 text-red-600" />
-          <span className="text-gray-600">
-            <span className="font-semibold text-gray-900">{blacklistedClients.length}</span> clients
-            blacklisted
-          </span>
-        </div>
-      </div>
-
-      {/* Blacklist */}
-      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-        {loading ? (
-          <div className="p-12 text-center">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mb-4"></div>
-            <p className="text-sm text-gray-500">Loading blacklist...</p>
-          </div>
-        ) : error && !modalOpen ? (
-          <div className="p-12 text-center">
-            <AlertTriangle className="w-12 h-12 text-red-300 mx-auto mb-4" />
-            <p className="text-sm text-red-600">Error: {error}</p>
-          </div>
-        ) : filteredClients.length === 0 ? (
-          <div className="p-12 text-center">
-            <AlertTriangle className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              {searchTerm ? "No results found" : "No blacklisted clients"}
-            </h3>
-            <p className="text-sm text-gray-500">
-              {searchTerm
-                ? "Try adjusting your search"
-                : "Clients you blacklist will appear here"}
+          <div className="flex-1 min-w-0">
+            <h3 className="text-[15px] font-semibold text-gray-900 mb-1">What is the Blacklist?</h3>
+            <p className="text-[13px] text-gray-500 leading-relaxed">
+              Clients on this list can still send booking requests, but you'll see a warning when reviewing them. Use this to track clients you'd prefer not to serve.
             </p>
           </div>
-        ) : (
-          <div className="divide-y divide-gray-200 lg:divide-y-0 lg:space-y-4">
-            {filteredClients.map((client, index) => (
-              <motion.div
-                key={client.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.05 }}
-                className="p-4 lg:p-6 lg:bg-white lg:rounded-xl lg:border lg:border-gray-200 hover:bg-gray-50 transition-colors"
-              >
-                {/* Mobile: Compact Card Style */}
-                <div className="flex items-start gap-3">
-                  {/* Avatar with indicator */}
-                  <div className="relative flex-shrink-0">
-                    <img
-                      src={client.avatar}
-                      alt={client.name}
-                      className="w-14 h-14 rounded-full"
-                    />
-                    <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 bg-red-500 rounded-full border-2 border-white flex items-center justify-center">
-                      <AlertTriangle className="w-3 h-3 text-white" />
-                    </div>
-                  </div>
-
-                  {/* Content */}
-                  <div className="flex-1 min-w-0">
-                    {/* Header */}
-                    <div className="flex items-start justify-between gap-2 mb-2">
-                      <div className="flex-1 min-w-0">
-                        <h3 className="text-base font-semibold text-gray-900 truncate mb-0.5">
-                          {client.name}
-                        </h3>
-                        <div className="flex items-center gap-1.5 text-sm text-gray-600">
-                          <Phone className="w-3.5 h-3.5 flex-shrink-0" />
-                          <span className="truncate">{client.phone}</span>
-                        </div>
-                      </div>
-
-                      {/* Desktop: Action buttons */}
-                      <div className="hidden lg:flex items-center gap-1 flex-shrink-0">
-                        <button
-                          onClick={() => openDeleteConfirm(client.id, client.name)}
-                          disabled={processing.has(client.id)}
-                          className="p-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Reason - Clean design */}
-                    <div className="bg-red-50 rounded-lg px-3 py-2 mb-2.5">
-                      <p className="text-sm text-red-900 leading-relaxed">
-                        {client.reason}
-                      </p>
-                    </div>
-
-                    {/* Footer with date and mobile actions */}
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-1.5 text-xs text-gray-500">
-                        <Calendar className="w-3.5 h-3.5 flex-shrink-0" />
-                        <span>
-                          {new Date(client.dateAdded).toLocaleDateString("en-US", {
-                            month: "short",
-                            day: "numeric",
-                            year: "numeric",
-                          })}
-                        </span>
-                      </div>
-
-                      {/* Mobile: Action buttons */}
-                      <div className="flex lg:hidden items-center gap-2 flex-shrink-0">
-                        <button
-                          onClick={() => openDeleteConfirm(client.id, client.name)}
-                          disabled={processing.has(client.id)}
-                          className="px-3 py-1.5 text-xs font-medium text-red-600 bg-red-50 rounded-lg active:bg-red-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          {processing.has(client.id) ? "Removing..." : "Remove"}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
+        </div>
+        
+        {/* Stats */}
+        {blacklistedClients.length > 0 && (
+          <div className="mt-3 pt-3 border-t border-gray-100 flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 bg-gray-400 rounded-full" />
+              <span className="text-[13px] text-gray-500">
+                <span className="font-semibold text-gray-900">{blacklistedClients.length}</span> flagged
+              </span>
+            </div>
           </div>
         )}
       </div>
 
-      {/* Add/Edit Modal */}
+      {/* Search */}
+      {(blacklistedClients.length > 0 || searchTerm) && (
+        <div className="relative mb-4">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Search..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full h-11 pl-11 pr-4 bg-white border border-gray-200 rounded-xl text-[15px] text-gray-900 placeholder-gray-400 outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all"
+          />
+          {searchTerm && (
+            <button
+              onClick={() => setSearchTerm("")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-gray-100 rounded-full flex items-center justify-center"
+            >
+              <X className="w-3.5 h-3.5 text-gray-500" />
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Empty State */}
+      {filteredClients.length === 0 && !searchTerm ? (
+        <div className="flex flex-col items-center justify-center py-16 px-6">
+          <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-5">
+            <UserX className="w-10 h-10 text-gray-300" />
+          </div>
+          <h3 className="text-[18px] font-semibold text-gray-900 mb-2">No flagged clients</h3>
+          <p className="text-[14px] text-gray-500 text-center mb-6 max-w-[260px]">
+            Blacklisted clients can still request bookings, but you'll be notified they're flagged
+          </p>
+          <button
+            onClick={openAddModal}
+            className="h-11 px-6 bg-gray-900 text-white text-[15px] font-semibold rounded-xl active:scale-[0.98] transition-transform"
+          >
+            Add to Blacklist
+          </button>
+        </div>
+      ) : filteredClients.length === 0 && searchTerm ? (
+        <div className="flex flex-col items-center justify-center py-16 px-6">
+          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+            <Search className="w-7 h-7 text-gray-300" />
+          </div>
+          <h3 className="text-[17px] font-semibold text-gray-900 mb-1">No results</h3>
+          <p className="text-[14px] text-gray-500">Try a different search term</p>
+        </div>
+      ) : (
+        /* List */
+        <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+          {filteredClients.map((client, index) => (
+            <div
+              key={client.id}
+              className={`relative overflow-hidden ${index > 0 ? 'border-t border-gray-100' : ''}`}
+            >
+              {/* Delete action (revealed on swipe) */}
+              <div className="absolute inset-y-0 right-0 w-20 bg-red-500 flex items-center justify-center">
+                <button
+                  onClick={() => setDeleteConfirm({ open: true, id: client.id, clientName: client.name })}
+                  className="w-full h-full flex items-center justify-center text-white"
+                >
+                  <UserX className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Card content */}
+              <motion.div
+                drag="x"
+                dragConstraints={{ left: -80, right: 0 }}
+                dragElastic={0.1}
+                onDragEnd={(_, info: PanInfo) => {
+                  if (info.offset.x < -40) {
+                    handleSwipe(client.id);
+                  } else {
+                    handleSwipe('');
+                  }
+                }}
+                animate={{ x: swipedId === client.id ? -80 : 0 }}
+                transition={{ type: "tween", duration: 0.2 }}
+                className="relative bg-white p-4 cursor-grab active:cursor-grabbing"
+                onClick={() => swipedId === client.id && handleSwipe('')}
+              >
+                <div className="flex items-center gap-3">
+                  {/* Avatar */}
+                  <div className="w-12 h-12 bg-gray-900 rounded-full flex items-center justify-center flex-shrink-0">
+                    <span className="text-[14px] font-semibold text-white">
+                      {getInitials(client.name)}
+                    </span>
+                  </div>
+
+                  {/* Info */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <h3 className="text-[16px] font-semibold text-gray-900 truncate">
+                        {client.name}
+                      </h3>
+                    </div>
+                    <p className="text-[14px] text-gray-500 truncate">
+                      {client.phone}
+                    </p>
+                  </div>
+
+                  {/* Date & Arrow */}
+                  <div className="flex items-center gap-1 flex-shrink-0">
+                    <span className="text-[13px] text-gray-400">
+                      {formatDate(client.dateAdded)}
+                    </span>
+                    <ChevronRight className="w-4 h-4 text-gray-300" />
+                  </div>
+                </div>
+
+                {/* Reason (if exists and not empty) */}
+                {client.reason && client.reason !== "No reason provided" && (
+                  <div className="mt-2.5 pl-[60px]">
+                    <p className="text-[13px] text-gray-400 line-clamp-1">
+                      "{client.reason}"
+                    </p>
+                  </div>
+                )}
+              </motion.div>
+            </div>
+          ))}
+          
+          {/* Swipe hint */}
+          {filteredClients.length > 0 && (
+            <div className="lg:hidden px-4 py-3 bg-gray-50 border-t border-gray-100">
+              <p className="text-[12px] text-gray-400 text-center">
+                Swipe left to remove
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Add Modal */}
       <AnimatePresence>
         {modalOpen && (
           <>
-            {/* Backdrop */}
-            {/* Backdrop - extends above safe area to cover status bar */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.2, ease: "easeOut" }}
               onClick={() => setModalOpen(false)}
-              className="fixed left-0 right-0 bottom-0 bg-gray-900/50 z-50"
-              style={{ top: 'calc(-1 * env(safe-area-inset-top, 0px))' }}
+              className="fixed inset-0 bg-black/40 z-[9999]"
             />
 
-            {/* Modal */}
             <motion.div
-              initial={{ y: "100%", opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: "100%", opacity: 0 }}
-              transition={{ duration: 0.3, ease: [0.32, 0.72, 0, 1] }}
-              onClick={(e) => e.stopPropagation()}
-              className="fixed bottom-0 left-0 right-0 lg:inset-auto lg:left-1/2 lg:top-1/2 lg:-translate-x-1/2 lg:-translate-y-1/2 lg:w-full lg:max-w-lg z-50 bg-white rounded-t-3xl lg:rounded-2xl shadow-2xl flex flex-col max-h-[90vh] lg:max-h-[85vh]"
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "tween", duration: 0.3, ease: [0.32, 0.72, 0, 1] }}
+              className="fixed bottom-0 left-0 right-0 z-[10000]"
             >
-              {/* Handle bar for mobile */}
-              <div className="lg:hidden flex justify-center p-3">
-                <div className="w-16 h-1.5 bg-gray-300 rounded-full" />
-              </div>
+              <div className="bg-[#fafafa] rounded-t-[28px] max-h-[85vh] flex flex-col">
+                {/* Handle */}
+                <div className="flex justify-center pt-3 pb-1">
+                  <div className="w-10 h-1 bg-gray-300 rounded-full" />
+                </div>
 
-              {/* Header */}
-              <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between flex-shrink-0">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center">
-                    <AlertTriangle className="w-5 h-5 text-red-600" />
-                  </div>
+                {/* Header */}
+                <div className="px-5 py-3 flex items-center justify-between">
                   <div>
-                    <h2 className="text-lg font-semibold text-gray-900">
-                      Add to Blacklist
-                    </h2>
-                    <p className="text-sm text-gray-500">
-                      Block a client from booking
-                    </p>
+                    <h2 className="text-[17px] font-bold text-gray-900">Add to Blacklist</h2>
+                    <p className="text-[13px] text-gray-500">Flag for review on booking requests</p>
+                  </div>
+                  <button 
+                    onClick={() => setModalOpen(false)}
+                    className="w-8 h-8 flex items-center justify-center text-gray-400"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                {/* Form */}
+                <div className="flex-1 overflow-y-auto px-5 overscroll-contain">
+                  {error && (
+                    <p className="text-[13px] text-red-500 bg-red-50 px-3 py-2 rounded-xl mb-4">{error}</p>
+                  )}
+
+                  <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+                    {/* Name */}
+                    <div className="p-4 border-b border-gray-100">
+                      <label className="block text-[11px] font-medium text-gray-400 uppercase tracking-wide mb-2">
+                        Name <span className="text-red-400">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.name}
+                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                        placeholder="Client's name"
+                        className="w-full text-[17px] font-medium text-gray-900 placeholder-gray-300 outline-none bg-transparent"
+                      />
+                    </div>
+
+                    {/* Phone */}
+                    <div className="p-4 border-b border-gray-100">
+                      <label className="block text-[11px] font-medium text-gray-400 uppercase tracking-wide mb-2">
+                        Phone <span className="text-red-400">*</span>
+                      </label>
+                      <input
+                        type="tel"
+                        value={formData.phone}
+                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                        placeholder="05XXXXXXXX"
+                        className="w-full text-[17px] font-medium text-gray-900 placeholder-gray-300 outline-none bg-transparent"
+                      />
+                      {formData.phone && !isPhoneValid && (
+                        <p className="text-[12px] text-red-500 mt-1.5">{validatePhone(formData.phone)}</p>
+                      )}
+                    </div>
+
+                    {/* Reason */}
+                    <div className="p-4">
+                      <label className="block text-[11px] font-medium text-gray-400 uppercase tracking-wide mb-2">
+                        Reason <span className="text-gray-300">(optional)</span>
+                      </label>
+                      <textarea
+                        value={formData.reason}
+                        onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
+                        placeholder="Add a note..."
+                        rows={2}
+                        className="w-full text-[15px] text-gray-700 placeholder-gray-300 outline-none bg-transparent resize-none"
+                      />
+                    </div>
                   </div>
                 </div>
-                <button
-                  onClick={() => setModalOpen(false)}
-                  className="p-2 hover:bg-gray-100 rounded-xl transition-colors"
+
+                {/* Footer */}
+                <div 
+                  className="px-5 pt-5 flex gap-3"
+                  style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 16px)' }}
                 >
-                  <X className="w-5 h-5 text-gray-500" />
-                </button>
-              </div>
-
-              {/* Form */}
-              <div className="flex-1 overflow-y-auto p-6 space-y-4">
-                {error && (
-                  <div className="bg-red-50 border border-red-200 rounded-xl p-3">
-                    <p className="text-sm text-red-600">{error}</p>
-                  </div>
-                )}
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-900 mb-2">
-                    Client Name *
-                  </label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                    <input
-                      type="text"
-                      value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      placeholder="Enter client name"
-                      className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-800 focus:border-transparent"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-900 mb-2">
-                    Phone Number *
-                  </label>
-                  <div className="relative">
-                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                    <input
-                      type="tel"
-                      value={formData.phone}
-                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                      placeholder="+1 (555) 123-4567"
-                      className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-800 focus:border-transparent"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-900 mb-2">
-                    Reason for Blacklisting *
-                  </label>
-                  <textarea
-                    value={formData.reason}
-                    onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
-                    placeholder="Describe the reason for blacklisting this client..."
-                    rows={4}
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-800 focus:border-transparent resize-none"
-                  />
-                  <p className="text-xs text-gray-500 mt-1.5">
-                    Be specific about incidents or patterns of behavior
-                  </p>
+                  <button
+                    onClick={() => setModalOpen(false)}
+                    className="flex-1 h-12 bg-white border border-gray-200 text-gray-700 font-semibold text-[15px] rounded-2xl active:bg-gray-50 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleSubmit}
+                    disabled={!formData.name || !isPhoneValid || processing.has('new')}
+                    className="flex-1 h-12 bg-gray-900 text-white font-semibold text-[15px] rounded-2xl disabled:bg-gray-300 disabled:text-gray-500 active:scale-[0.98] transition-all"
+                  >
+                    {processing.has('new') ? "Adding..." : "Add to Blacklist"}
+                  </button>
                 </div>
               </div>
-
-              {/* Footer */}
-              <div className="px-6 py-4 border-t border-gray-200 flex justify-end gap-3 flex-shrink-0">
-                <button
-                  onClick={() => setModalOpen(false)}
-                  className="px-4 py-2.5 border border-gray-300 text-gray-700 text-sm font-medium rounded-xl hover:bg-gray-50 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleSubmit}
-                  disabled={!formData.name || !formData.phone || !formData.reason || processing.has('new')}
-                  className="px-4 py-2.5 bg-gray-800 text-white text-sm font-medium rounded-xl hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {processing.has('new') ? "Adding..." : "Add to Blacklist"}
-                </button>
-              </div>
-
-              {/* Safe area padding for iPhone */}
-              <div className="h-8 lg:hidden flex-shrink-0"></div>
             </motion.div>
           </>
         )}
       </AnimatePresence>
 
-      {/* Delete Confirmation Modal */}
+      {/* Delete Confirmation */}
       <ConfirmationModal
         isOpen={deleteConfirm.open}
-        onClose={closeDeleteConfirm}
+        onClose={() => setDeleteConfirm({ open: false, id: null, clientName: "" })}
         onConfirm={handleDelete}
         title="Remove from Blacklist?"
-        message={`Are you sure you want to remove ${deleteConfirm.clientName} from the blacklist? This action cannot be undone.`}
-        confirmText="Remove from Blacklist"
+        message={`${deleteConfirm.clientName} will no longer be flagged on booking requests.`}
+        confirmText="Remove"
         isLoading={processing.has(deleteConfirm.id || '')}
         variant="danger"
       />

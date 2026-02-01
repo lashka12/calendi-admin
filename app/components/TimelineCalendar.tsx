@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronLeft, ChevronRight, ChevronDown, Phone, Sparkles } from "lucide-react";
+import { ChevronLeft, ChevronRight, ChevronDown, Phone, Sparkles, Calendar as CalendarIcon } from "lucide-react";
 import { useTranslation } from "@/app/i18n";
 
 interface TimelineAppointment {
@@ -29,6 +29,7 @@ interface TimelineCalendarProps {
   allAppointments?: TimelineAppointment[];
   onDateChange: (date: string) => void;
   onAppointmentClick: (appointment: TimelineAppointment) => void;
+  onPendingClick?: () => void;
   onEmptySlotClick?: (date: string, time: string) => void;
   workingHours?: { start: number; end: number };
   slotDuration?: number;
@@ -45,7 +46,7 @@ const HOUR_HEIGHT = 60 * MINUTE_HEIGHT;
 
 
 export default function TimelineCalendar({
-  selectedDate, appointments, allAppointments = [], onDateChange, onAppointmentClick, onEmptySlotClick,
+  selectedDate, appointments, allAppointments = [], onDateChange, onAppointmentClick, onPendingClick, onEmptySlotClick,
   workingHours = { start: 0, end: 24 },
   slotDuration = 15,
   scrollLock = false,
@@ -86,15 +87,6 @@ export default function TimelineCalendar({
     return (total - start) * MINUTE_HEIGHT;
   }, [currentTime, isToday, workingHours]);
 
-  // Scroll to "now" before first paint to avoid flash of wrong position
-  useLayoutEffect(() => {
-    if (currentTimePosition !== null && scrollContainerRef.current && !hasScrolled && viewMode === 'day') {
-      const container = scrollContainerRef.current;
-      container.scrollTop = currentTimePosition - 100;
-      setHasScrolled(true);
-    }
-  }, [currentTimePosition, hasScrolled, viewMode]);
-
   const timeLabels = useMemo(() => {
     const labels = [];
     const slotsPerHour = 60 / slotDuration;
@@ -128,6 +120,42 @@ export default function TimelineCalendar({
       height: Math.max((timeToMinutes(a.endTime) - timeToMinutes(a.time)) * MINUTE_HEIGHT - 4, 52),
     }));
   }, [appointments, workingHours]);
+
+  // Track if this is the first load (for instant scroll) vs date change (for smooth scroll)
+  const isInitialLoad = useRef(true);
+  
+  // Scroll to relevant position when date changes
+  useLayoutEffect(() => {
+    if (!scrollContainerRef.current || hasScrolled || viewMode !== 'day') return;
+    
+    const container = scrollContainerRef.current;
+    
+    let targetScroll = 0;
+    
+    if (isToday && currentTimePosition !== null) {
+      // Today: scroll to current time
+      targetScroll = currentTimePosition - 100;
+    } else if (blocks.length > 0) {
+      // Other days with appointments: scroll to first appointment
+      const firstAppointmentTop = Math.min(...blocks.map(b => b.top));
+      targetScroll = Math.max(0, firstAppointmentTop - 60);
+    } else {
+      // Empty days: scroll to a sensible default (9 AM)
+      const defaultHour = 9;
+      const defaultPosition = (defaultHour - workingHours.start) * HOUR_HEIGHT;
+      targetScroll = Math.max(0, defaultPosition - 50);
+    }
+    
+    // Use smooth scroll for date changes, instant for initial load
+    if (isInitialLoad.current) {
+      container.scrollTop = targetScroll;
+      isInitialLoad.current = false;
+    } else {
+      container.scrollTo({ top: targetScroll, behavior: 'smooth' });
+    }
+    
+    setHasScrolled(true);
+  }, [currentTimePosition, hasScrolled, viewMode, isToday, blocks, workingHours]);
 
   const navigateWeek = (dir: 'prev'|'next') => {
     const d = new Date(selectedDate + 'T00:00:00');
@@ -287,97 +315,83 @@ export default function TimelineCalendar({
 
   return (
     <div className="flex flex-col h-full">
-      {/* Header - Clean & Refined */}
-      <div className="flex-shrink-0 pb-3">
-        {/* Top Row - Month & Navigation */}
-        <div className="flex items-center justify-between mb-3">
+      {/* Header - Clean & Minimal */}
+      <div className="flex-shrink-0">
+        {/* Top Row - Month & Today */}
+        <div className="flex items-center justify-between mb-4">
           <button
             onClick={() => setIsMonthExpanded(!isMonthExpanded)}
-            className="flex items-center gap-1 active:opacity-70 transition-opacity"
+            className="flex items-center gap-2 active:opacity-70 transition-opacity"
           >
-            <h1 className="text-xl font-bold text-gray-900">
-              {dateInfo.month} {dateInfo.year}
+            <h1 className="text-2xl font-bold text-gray-900 tracking-tight">
+              {dateInfo.month}
             </h1>
-            <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${isMonthExpanded ? 'rotate-180' : ''}`} />
+            <span className="text-2xl font-light text-gray-400">{dateInfo.year}</span>
+            <ChevronDown className={`w-5 h-5 text-gray-400 transition-transform duration-200 ${isMonthExpanded ? 'rotate-180' : ''}`} />
           </button>
           
-          {!isMonthExpanded && (
-            <div className="flex items-center gap-1">
-              {!isCurrentWeek && (
-                <button
-                  onClick={() => onDateChange(formatDateString(new Date()))}
-                  className="px-2.5 py-1 text-[11px] font-semibold text-gray-500 hover:text-gray-900 transition-colors"
-                >
-                  {t('common.today')}
-                </button>
-              )}
-              <button 
-                onClick={() => navigateWeek('prev')}
-                className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-900 rounded-full hover:bg-gray-100 transition-colors"
-              >
-                <ChevronLeft className={`w-4 h-4 ${isRTL ? 'rotate-180' : ''}`} />
-              </button>
-              <button 
-                onClick={() => navigateWeek('next')}
-                className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-900 rounded-full hover:bg-gray-100 transition-colors"
-              >
-                <ChevronRight className={`w-4 h-4 ${isRTL ? 'rotate-180' : ''}`} />
-              </button>
-            </div>
+          {/* Today button - only shows when not viewing current week */}
+          {!isMonthExpanded && !isCurrentWeek && (
+            <button
+              onClick={() => onDateChange(formatDateString(new Date()))}
+              className="px-3 py-1.5 text-[12px] font-semibold text-gray-600 bg-white border border-gray-200 rounded-full hover:border-gray-300 hover:text-gray-900 active:scale-95 transition-all shadow-sm"
+            >
+              {t('common.today')}
+            </button>
           )}
         </div>
 
         {/* Month Picker Dropdown */}
         {isMonthExpanded && (
-          <div className="bg-gray-50 rounded-2xl p-4 mb-3">
+          <div className="bg-white rounded-2xl p-4 mb-4 shadow-sm border border-gray-200">
             {/* Month Navigation */}
-            <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center justify-between mb-4">
               <button
                 onClick={() => navigateMonth('prev')}
-                className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-900 rounded-full hover:bg-white transition-colors"
+                className="w-9 h-9 flex items-center justify-center text-gray-500 hover:text-gray-900 rounded-full hover:bg-gray-100 active:scale-95 transition-all"
               >
-                <ChevronLeft className={`w-4 h-4 ${isRTL ? 'rotate-180' : ''}`} />
+                <ChevronLeft className={`w-5 h-5 ${isRTL ? 'rotate-180' : ''}`} />
               </button>
-              <span className="text-sm font-semibold text-gray-900">
+              <span className="text-base font-semibold text-gray-900">
                 {monthNames[displayedMonth.month]} {displayedMonth.year}
               </span>
               <button
                 onClick={() => navigateMonth('next')}
-                className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-900 rounded-full hover:bg-white transition-colors"
+                className="w-9 h-9 flex items-center justify-center text-gray-500 hover:text-gray-900 rounded-full hover:bg-gray-100 active:scale-95 transition-all"
               >
-                <ChevronRight className={`w-4 h-4 ${isRTL ? 'rotate-180' : ''}`} />
+                <ChevronRight className={`w-5 h-5 ${isRTL ? 'rotate-180' : ''}`} />
               </button>
             </div>
             
             {/* Day Headers */}
-            <div className="grid grid-cols-7 gap-0.5 mb-1">
+            <div className="grid grid-cols-7 gap-1 mb-2">
               {shortDayNames.map((day, i) => (
-                <div key={i} className="text-center text-[10px] font-medium text-gray-400 uppercase py-1">
+                <div key={i} className="text-center text-[11px] font-semibold text-gray-400 uppercase py-1">
                   {day}
                 </div>
               ))}
             </div>
                 
             {/* Calendar Grid */}
-            <div className="grid grid-cols-7 gap-0.5">
+            <div className="grid grid-cols-7 gap-1">
               {monthCalendarDays.map((day, index) => (
                 <button
                   key={`${displayedMonth.month}-${index}`}
                   onClick={() => selectDateFromPicker(day.dateStr)}
-                  className={`aspect-square flex flex-col items-center justify-center rounded-xl text-[13px] font-medium transition-colors ${
+                  className={`aspect-square flex flex-col items-center justify-center rounded-xl text-[13px] font-medium transition-all ${
                     day.isSelected
-                      ? 'bg-gray-900 text-white'
+                      ? 'bg-gray-900 text-white shadow-md'
                       : day.isToday
-                        ? 'bg-white text-gray-900 font-semibold'
+                        ? 'bg-gray-100 text-gray-900 font-bold'
                         : day.isCurrentMonth
-                          ? 'text-gray-700 hover:bg-white'
+                          ? 'text-gray-700 hover:bg-gray-50 active:scale-95'
                           : 'text-gray-300'
                   }`}
                 >
                   <span>{day.date}</span>
                   {day.hasAppointments && (
-                    <span className={`mt-0.5 w-1 h-1 rounded-full shrink-0 ${
-                      day.isSelected ? 'bg-white/80' : day.isToday ? 'bg-gray-500' : 'bg-gray-400'
+                    <span className={`mt-0.5 w-1.5 h-1.5 rounded-full shrink-0 ${
+                      day.isSelected ? 'bg-white/80' : 'bg-gray-900'
                     }`} />
                   )}
                 </button>
@@ -385,13 +399,13 @@ export default function TimelineCalendar({
             </div>
                 
             {/* Quick Actions */}
-            <div className="flex justify-center mt-3 pt-3 border-t border-gray-200">
+            <div className="flex justify-center mt-4 pt-3 border-t border-gray-100">
               <button
                 onClick={() => {
                   onDateChange(formatDateString(new Date()));
                   setIsMonthExpanded(false);
                 }}
-                className="px-4 py-1.5 text-[12px] font-semibold text-gray-500 hover:text-gray-900 transition-colors"
+                className="px-4 py-2 text-[13px] font-semibold text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-all"
               >
                 {t('common.today')}
               </button>
@@ -399,52 +413,48 @@ export default function TimelineCalendar({
           </div>
         )}
 
-        {/* Week Strip */}
+        {/* Week Strip - Matches Dashboard Style */}
         {!isMonthExpanded && (
-          <div className="flex items-center justify-between gap-1 mb-3">
-            {weekDates.map((day) => {
-              const isSelected = day.date === selectedDate;
-              const hasAppointments = day.appointments.length > 0;
-              
-              return (
-                <button
-                  key={day.date}
-                  onClick={() => onDateChange(day.date)}
-                  className={`flex-1 py-2 rounded-xl text-center transition-colors ${
-                    isSelected
-                      ? 'bg-gray-900'
-                      : 'hover:bg-gray-50 active:bg-gray-100'
-                  }`}
-                >
-                  <p className={`text-[10px] font-medium uppercase ${
-                    isSelected ? 'text-gray-400' : 'text-gray-400'
-                  }`}>
-                    {day.dayName}
-                  </p>
-                  <p className={`text-[17px] font-semibold mt-0.5 ${
-                    isSelected ? 'text-white' : day.isToday ? 'text-gray-900' : 'text-gray-600'
-                  }`}>
-                    {day.dayNum}
-                  </p>
-                  {hasAppointments && !isSelected && (
-                    <div className="w-1 h-1 rounded-full bg-gray-400 mx-auto mt-1" />
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        )}
-
-        {/* Stats - Simple & Clean */}
-        {!isMonthExpanded && (
-          <div className="flex items-center justify-between text-[13px]">
-            <span className="text-gray-500">
-              <span className="font-semibold text-gray-900">{appointments.length}</span>
-              {' '}{appointments.length === 1 ? t('calendar.appointment') : t('calendar.appointments')}
-            </span>
-            {appointments.length === 0 && (
-              <span className="text-gray-400">{t('calendar.noAppointments')}</span>
-            )}
+          <div className="bg-white rounded-t-2xl p-2 pt-3 shadow-sm border border-gray-200/80 border-b-0">
+            <div className="flex gap-1">
+              {weekDates.map((day) => {
+                const isSelected = day.date === selectedDate;
+                const hasAppointments = day.appointments.length > 0;
+                const appointmentCount = day.appointments.length;
+                
+                return (
+                  <button
+                    key={day.date}
+                    onClick={() => onDateChange(day.date)}
+                    className={`flex-1 flex flex-col items-center gap-0.5 py-2.5 rounded-3xl transition-colors active:scale-95 ${
+                      isSelected
+                        ? 'bg-gray-900 text-white'
+                        : day.isToday
+                        ? 'bg-gray-100 text-gray-900'
+                        : 'text-gray-700 hover:bg-gray-100 active:bg-gray-200'
+                    }`}
+                  >
+                    <p className={`text-[10px] font-medium uppercase ${
+                      isSelected ? 'text-gray-400' : ''
+                    }`}>
+                      {day.dayName}
+                    </p>
+                    <p className="text-lg font-semibold">
+                      {day.dayNum}
+                    </p>
+                    {hasAppointments ? (
+                      <p className={`text-[10px] font-medium ${
+                        isSelected ? 'text-gray-400' : 'text-gray-500'
+                      }`}>
+                        {appointmentCount}
+                      </p>
+                    ) : (
+                      <p className={`text-[10px] ${isSelected ? 'text-gray-500' : 'text-gray-400'}`}>-</p>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         )}
       </div>
@@ -454,21 +464,49 @@ export default function TimelineCalendar({
         <motion.div 
           ref={scrollContainerRef} 
           dir="ltr" 
-          className={`flex-1 bg-white rounded-t-2xl border border-gray-200/80 shadow-sm ${scrollLock ? "overflow-hidden touch-none" : "overflow-y-auto"}`}
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, ease: "easeOut" }}
+          className={`flex-1 bg-white border-x border-gray-200/80 relative ${scrollLock ? "overflow-hidden touch-none" : "overflow-y-auto"}`}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.2 }}
         >
-          <div className="p-3 sm:p-4">
+          {/* Empty State Overlay */}
+          {appointments.length === 0 && (
+            <div className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none">
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.2 }}
+                className="text-center px-6"
+              >
+                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 flex items-center justify-center">
+                  <CalendarIcon className="w-8 h-8 text-gray-300" />
+                </div>
+                <p className="text-[15px] font-medium text-gray-400">
+                  {t('calendar.noAppointments')}
+                </p>
+                <p className="text-[13px] text-gray-300 mt-1">
+                  {t('calendar.emptyDayHint')}
+                </p>
+              </motion.div>
+            </div>
+          )}
+          
+          <motion.div 
+            key={selectedDate}
+            initial={{ opacity: 0.5 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.15, ease: "easeOut" }}
+            className={`p-3 sm:p-4 ${appointments.length === 0 ? 'opacity-30' : ''}`}
+          >
             <div className="relative" style={{ height: timelineHeight }} onClick={handleClick}>
               {/* Time Grid */}
               {timeLabels.map(({ time, position, type }) => (
                 <div 
                   key={time} 
-                  className="absolute left-0 right-0 flex items-center" 
+                  className="absolute left-0 right-0 flex items-center -translate-y-1/2" 
                   style={{ top: position }}
                 >
-                  <span className={`w-12 text-right pr-3 -translate-y-1/2 tabular-nums ${
+                  <span className={`w-12 text-right pr-3 tabular-nums ${
                     type === 'hour' ? 'text-[11px] font-semibold text-gray-400' : 'text-[10px] text-gray-300'
                   }`}>
                     {time}
@@ -504,8 +542,8 @@ export default function TimelineCalendar({
 
               {/* Event Blocks */}
               <div className="absolute left-14 right-1 top-0 bottom-0">
-                <AnimatePresence mode="popLayout">
-                  {blocks.map((apt, i) => {
+                <AnimatePresence mode="sync">
+                  {blocks.map((apt) => {
                     const isNow = apt.timeStatus === 'now' && !apt.isPast;
                     const isPending = apt.isPending;
                     const isCompact = apt.height < 60;
@@ -513,32 +551,27 @@ export default function TimelineCalendar({
                     return (
                       <motion.div
                         key={apt.id}
-                        initial={{ opacity: 0, x: -16, scale: 0.97 }}
-                        animate={{ 
-                          opacity: 1, 
-                          x: 0, 
-                          scale: 1,
-                          transition: {
-                            type: "spring",
-                            stiffness: 500,
-                            damping: 30,
-                            delay: i * 0.04,
-                          }
-                        }}
-                        exit={{ 
-                          opacity: 0, 
-                          scale: 0.95,
-                          transition: { duration: 0.12 }
-                        }}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.2, ease: "easeOut" }}
                         className={`absolute left-0 right-0 ${apt.isPast ? '' : 'cursor-pointer'}`}
                         style={{ top: apt.top, height: apt.height }}
-                        onClick={(e) => { e.stopPropagation(); if (!apt.isPast && !apt.isPending) onAppointmentClick(apt); }}
+                        onClick={(e) => { 
+                          e.stopPropagation(); 
+                          if (apt.isPast) return;
+                          if (apt.isPending && onPendingClick) {
+                            onPendingClick();
+                          } else if (!apt.isPending) {
+                            onAppointmentClick(apt);
+                          }
+                        }}
                       >
                         <div className={`group h-full rounded-xl overflow-hidden transition-all duration-200 ${
                           isNow
                             ? 'bg-gray-900 shadow-lg shadow-gray-900/25'
                             : isPending
-                            ? 'bg-amber-50 ring-1 ring-amber-200/80 hover:ring-amber-300 hover:shadow-md'
+                            ? 'bg-amber-50 border-2 border-dashed border-amber-300 hover:border-amber-400 hover:shadow-md'
                             : apt.isPast
                             ? 'bg-gray-100 ring-1 ring-gray-200/50 opacity-60'
                             : 'bg-white ring-1 ring-gray-300 shadow-md'
@@ -552,13 +585,23 @@ export default function TimelineCalendar({
                             {/* Content */}
                             <div className={`flex-1 px-2.5 flex flex-col justify-center min-w-0 ${isCompact ? 'py-0.5' : 'py-2'}`}>
                               <div className="flex items-center gap-1.5">
-                                <p className={`font-semibold truncate ${isNow ? 'text-white' : apt.isPast ? 'text-gray-400' : 'text-gray-900'} ${isCompact ? 'text-xs' : 'text-sm'}`}>
+                                <p className={`font-semibold truncate ${isNow ? 'text-white' : isPending ? 'text-amber-900' : apt.isPast ? 'text-gray-400' : 'text-gray-900'} ${isCompact ? 'text-xs' : 'text-sm'}`}>
                                   {apt.client}
                                 </p>
                                 {isNow && (
                                   <span className="flex-shrink-0 w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                                 )}
-                                {apt.isPast && (
+                                {isPending && (
+                                  <span className="flex-shrink-0 px-1.5 py-0.5 text-[9px] font-bold text-amber-700 bg-amber-200 rounded-full uppercase tracking-wide">
+                                    {t('requests.stats.pending')}
+                                  </span>
+                                )}
+                                {!isPending && !apt.isPast && !isNow && (
+                                  <span className="flex-shrink-0 px-1.5 py-0.5 text-[9px] font-bold text-emerald-700 bg-emerald-100 rounded-full uppercase tracking-wide">
+                                    {t('calendar.status.confirmed')}
+                                  </span>
+                                )}
+                                {apt.isPast && !isPending && (
                                   <span className="flex-shrink-0 px-1.5 py-0.5 text-[9px] font-semibold text-gray-500 bg-gray-200 rounded-full">
                                     {t('dashboard.schedule.completed')}
                                   </span>
@@ -576,8 +619,8 @@ export default function TimelineCalendar({
                               </p>
                             </div>
                             
-                            {/* Phone Button - Always visible except for past */}
-                            {apt.phone && !apt.isPast && (
+                            {/* Phone Button - Hidden for past and pending */}
+                            {apt.phone && !apt.isPast && !isPending && (
                               <a 
                                 href={`tel:${apt.phone}`} 
                                 onClick={(e) => e.stopPropagation()}
@@ -598,7 +641,7 @@ export default function TimelineCalendar({
                 </AnimatePresence>
               </div>
             </div>
-          </div>
+          </motion.div>
       </motion.div>
       )}
 
