@@ -135,6 +135,38 @@ export const getAvailableTimeSlots = onCall(
         };
       }
 
+      // Get advance booking limit and check if date is beyond it (default: 90 days)
+      const advanceBookingLimit =
+        typeof businessSettings?.advanceBookingLimit === "number" &&
+        businessSettings.advanceBookingLimit > 0
+          ? businessSettings.advanceBookingLimit
+          : 90;
+      
+      // Get minimum booking notice in hours (default: 0 = no minimum)
+      const minBookingNotice =
+        typeof businessSettings?.minBookingNotice === "number" &&
+        businessSettings.minBookingNotice >= 0
+          ? businessSettings.minBookingNotice
+          : 0;
+      
+      // Calculate the maximum bookable date
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const maxBookableDate = new Date(today);
+      maxBookableDate.setDate(maxBookableDate.getDate() + advanceBookingLimit);
+      const requestedDate = new Date(date + "T00:00:00");
+      
+      if (requestedDate > maxBookableDate) {
+        console.log(`🚫 [getAvailableTimeSlots] Date ${date} is beyond advance booking limit of ${advanceBookingLimit} days`);
+        return {
+          success: true,
+          date,
+          slots: [],
+          reason: "beyond_booking_limit",
+          advanceBookingLimit,
+        };
+      }
+
       // Check special days (is this date closed?)
       const specialDays = specialSnapshot.docs.map((doc) => ({
         id: doc.id,
@@ -204,6 +236,30 @@ export const getAvailableTimeSlots = onCall(
 
       // 7. Filter out booked times and past times (if today) - timezone-aware
       const isTodayDate = isTodayInTimezone(date, timezone);
+      
+      // Calculate the minimum bookable time if today (current time + minBookingNotice hours)
+      let minBookableTime: string | null = null;
+      if (isTodayDate && minBookingNotice > 0) {
+        const now = new Date();
+        // Get current time in business timezone
+        const formatter = new Intl.DateTimeFormat("en-US", {
+          timeZone: timezone,
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: false,
+        });
+        const parts = formatter.formatToParts(now);
+        const currentHour = parseInt(parts.find(p => p.type === "hour")?.value || "0");
+        const currentMinute = parseInt(parts.find(p => p.type === "minute")?.value || "0");
+        
+        // Add minimum notice hours
+        const minBookableMinutes = (currentHour * 60 + currentMinute) + (minBookingNotice * 60);
+        const minHour = Math.floor(minBookableMinutes / 60);
+        const minMinute = minBookableMinutes % 60;
+        minBookableTime = `${minHour.toString().padStart(2, "0")}:${minMinute.toString().padStart(2, "0")}`;
+        
+        console.log(`⏰ [getAvailableTimeSlots] Minimum booking notice: ${minBookingNotice}h, earliest bookable time: ${minBookableTime}`);
+      }
 
       let availableTimes = uniqueSlots.filter((slotTime) => {
         // Skip if not aligned with slot boundaries (shouldn't happen, but safety check)
@@ -218,6 +274,11 @@ export const getAvailableTimeSlots = onCall(
 
         // Skip if past time and today (timezone-aware)
         if (isTodayDate && isPastTimeInTimezone(slotTime, timezone)) {
+          return false;
+        }
+        
+        // Skip if within minimum booking notice window (today only)
+        if (isTodayDate && minBookableTime && slotTime < minBookableTime) {
           return false;
         }
 

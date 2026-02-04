@@ -2,7 +2,7 @@ import { onCall, HttpsError } from "firebase-functions/v2/https";
 import * as admin from "firebase-admin";
 import { FieldValue } from "firebase-admin/firestore";
 import { validateBookingData } from "./validators";
-import { calculateEndTime, getBusinessTimezone, isPastDateTimeInTimezone } from "../utils/helpers";
+import { calculateEndTime, isPastDateTimeInTimezone } from "../utils/helpers";
 import {
   getSlotDuration,
   calculateSlotsNeeded,
@@ -92,8 +92,22 @@ export const createPendingRequest = onCall(
 
     console.log("✅ [createPendingRequest] Data validation passed");
 
-    // Step 2: Validate booking is not in the past (timezone-aware)
-    const timezone = await getBusinessTimezone(db);
+    // Step 2: Get business settings (timezone, advance booking limit, min notice)
+    const businessSettingsDoc = await db.collection("settings").doc("businessSettings").get();
+    const businessSettings = businessSettingsDoc.exists ? businessSettingsDoc.data() : {};
+    const timezone = businessSettings?.timezone || "Asia/Jerusalem";
+    const advanceBookingLimit =
+      typeof businessSettings?.advanceBookingLimit === "number" &&
+      businessSettings.advanceBookingLimit > 0
+        ? businessSettings.advanceBookingLimit
+        : 90;
+    const minBookingNotice =
+      typeof businessSettings?.minBookingNotice === "number" &&
+      businessSettings.minBookingNotice >= 0
+        ? businessSettings.minBookingNotice
+        : 0;
+
+    // Step 2a: Validate booking is not in the past (timezone-aware)
     if (isPastDateTimeInTimezone(date, time, timezone)) {
       console.log(
         `❌ [createPendingRequest] Booking is in the past: ${date} ${time} (timezone: ${timezone})`
@@ -105,6 +119,66 @@ export const createPendingRequest = onCall(
     }
 
     console.log(`✅ [createPendingRequest] Booking time is valid (not in past, timezone: ${timezone})`);
+
+    // Step 2b: Validate booking is not beyond advance booking limit
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const maxBookableDate = new Date(today);
+    maxBookableDate.setDate(maxBookableDate.getDate() + advanceBookingLimit);
+    const requestedDate = new Date(date + "T00:00:00");
+
+    if (requestedDate > maxBookableDate) {
+      console.log(
+        `❌ [createPendingRequest] Booking date ${date} is beyond advance limit of ${advanceBookingLimit} days`
+      );
+      throw new HttpsError(
+        "failed-precondition",
+        `Bookings are only available up to ${advanceBookingLimit} days in advance`
+      );
+    }
+
+    console.log(`✅ [createPendingRequest] Booking date is within advance limit (${advanceBookingLimit} days)`);
+
+    // Step 2c: Validate booking meets minimum notice requirement
+    if (minBookingNotice > 0) {
+      // Get current time in business timezone
+      const now = new Date();
+      const formatter = new Intl.DateTimeFormat("en-US", {
+        timeZone: timezone,
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+      });
+      const parts = formatter.formatToParts(now);
+      const currentYear = parts.find(p => p.type === "year")?.value;
+      const currentMonth = parts.find(p => p.type === "month")?.value;
+      const currentDay = parts.find(p => p.type === "day")?.value;
+      const currentHour = parseInt(parts.find(p => p.type === "hour")?.value || "0");
+      const currentMinute = parseInt(parts.find(p => p.type === "minute")?.value || "0");
+      const todayStr = `${currentYear}-${currentMonth}-${currentDay}`;
+      
+      // Only check if booking is for today
+      if (date === todayStr) {
+        // Calculate minimum bookable time
+        const minBookableMinutes = (currentHour * 60 + currentMinute) + (minBookingNotice * 60);
+        const requestedMinutes = parseInt(time.split(":")[0]) * 60 + parseInt(time.split(":")[1]);
+        
+        if (requestedMinutes < minBookableMinutes) {
+          console.log(
+            `❌ [createPendingRequest] Booking time ${time} is within ${minBookingNotice}h notice window`
+          );
+          throw new HttpsError(
+            "failed-precondition",
+            `Bookings require at least ${minBookingNotice} hour${minBookingNotice > 1 ? 's' : ''} advance notice`
+          );
+        }
+      }
+    }
+
+    console.log(`✅ [createPendingRequest] Booking meets minimum notice requirement (${minBookingNotice}h)`);
 
     // Step 3: Check if service exists and is active
     const serviceRef = admin.firestore()

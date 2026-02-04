@@ -15,6 +15,7 @@ import { useSettings } from "../context/SettingsContext";
 import { useTranslation } from "@/app/i18n";
 import { db, requestNotificationPermission, onForegroundMessage } from "../lib/firebase/config";
 import { doc, getDoc, setDoc, deleteDoc } from "firebase/firestore";
+import { updateBusinessSettings } from "../lib/firebase/settings";
 
 interface DailyReminderSettings {
   enabled: boolean;
@@ -54,6 +55,22 @@ export default function SettingsPage() {
   const [pushLoading, setPushLoading] = useState(true);
   const [pushSaving, setPushSaving] = useState(false);
   const [pushError, setPushError] = useState<string | null>(null);
+
+  // Booking settings state
+  const [advanceBookingLimit, setAdvanceBookingLimit] = useState<number>(90);
+  const [minBookingNotice, setMinBookingNotice] = useState<number>(0);
+  const [savingBookingSettings, setSavingBookingSettings] = useState(false);
+  const [bookingSettingsSaved, setBookingSettingsSaved] = useState(false);
+
+  // Sync booking settings from context
+  useEffect(() => {
+    if (settings.advanceBookingLimit !== undefined) {
+      setAdvanceBookingLimit(settings.advanceBookingLimit);
+    }
+    if (settings.minBookingNotice !== undefined) {
+      setMinBookingNotice(settings.minBookingNotice);
+    }
+  }, [settings.advanceBookingLimit, settings.minBookingNotice]);
 
   // Load daily reminder settings from Firestore
   useEffect(() => {
@@ -177,6 +194,22 @@ export default function SettingsPage() {
       alert("Failed to save settings. Please try again.");
     } finally {
       setSavingReminder(false);
+    }
+  };
+
+  // Save booking settings (advance booking limit + min notice)
+  const saveBookingSettings = async () => {
+    setSavingBookingSettings(true);
+    setBookingSettingsSaved(false);
+    try {
+      await updateBusinessSettings({ advanceBookingLimit, minBookingNotice });
+      setBookingSettingsSaved(true);
+      setTimeout(() => setBookingSettingsSaved(false), 3000);
+    } catch (error) {
+      console.error("Error saving booking settings:", error);
+      alert("Failed to save settings. Please try again.");
+    } finally {
+      setSavingBookingSettings(false);
     }
   };
 
@@ -990,6 +1023,83 @@ export default function SettingsPage() {
                       <button className="inline-flex items-center gap-2 px-5 py-2.5 bg-gray-800 text-white text-sm font-medium rounded-xl hover:bg-gray-700 transition-colors">
                         <Save className="w-4 h-4" />
                         {t('settings.preferences.savePreferences')}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Booking Settings */}
+                  <div className="bg-white border border-gray-200 rounded-xl p-6">
+                    <h3 className="text-base font-semibold text-gray-900 mb-1">{t('settings.preferences.bookingSettings')}</h3>
+                    <p className="text-sm text-gray-500 mb-6">{t('settings.preferences.bookingSettingsDesc')}</p>
+
+                    <div className="space-y-5">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-900 mb-2">
+                          {t('settings.preferences.advanceBookingLimit')}
+                        </label>
+                        <p className="text-sm text-gray-500 mb-3">
+                          {t('settings.preferences.advanceBookingLimitDesc')}
+                        </p>
+                        <select 
+                          value={advanceBookingLimit}
+                          onChange={(e) => setAdvanceBookingLimit(Number(e.target.value))}
+                          className="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-800 focus:border-transparent"
+                        >
+                          <option value={7}>1 week (7 days)</option>
+                          <option value={14}>2 weeks (14 days)</option>
+                          <option value={21}>3 weeks (21 days)</option>
+                          <option value={30}>1 month (30 days)</option>
+                          <option value={60}>2 months (60 days)</option>
+                          <option value={90}>3 months (90 days)</option>
+                          <option value={180}>6 months (180 days)</option>
+                          <option value={365}>1 year (365 days)</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-900 mb-2">
+                          {t('settings.preferences.minBookingNotice')}
+                        </label>
+                        <p className="text-sm text-gray-500 mb-3">
+                          {t('settings.preferences.minBookingNoticeDesc')}
+                        </p>
+                        <select 
+                          value={minBookingNotice}
+                          onChange={(e) => setMinBookingNotice(Number(e.target.value))}
+                          className="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-800 focus:border-transparent"
+                        >
+                          <option value={0}>No minimum notice</option>
+                          <option value={1}>1 hour</option>
+                          <option value={2}>2 hours</option>
+                          <option value={3}>3 hours</option>
+                          <option value={4}>4 hours</option>
+                          <option value={6}>6 hours</option>
+                          <option value={12}>12 hours</option>
+                          <option value={24}>24 hours (1 day)</option>
+                          <option value={48}>48 hours (2 days)</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="mt-6 pt-6 border-t border-gray-200 flex items-center justify-between">
+                      {bookingSettingsSaved && (
+                        <div className="flex items-center gap-2 text-green-600 text-sm">
+                          <CheckCircle2 className="w-4 h-4" />
+                          {t('settings.common.saved')}
+                        </div>
+                      )}
+                      {!bookingSettingsSaved && <div />}
+                      <button 
+                        onClick={saveBookingSettings}
+                        disabled={savingBookingSettings}
+                        className="inline-flex items-center gap-2 px-5 py-2.5 bg-gray-800 text-white text-sm font-medium rounded-xl hover:bg-gray-700 transition-colors disabled:opacity-50"
+                      >
+                        {savingBookingSettings ? (
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        ) : (
+                          <Save className="w-4 h-4" />
+                        )}
+                        {t('settings.common.saveChanges')}
                       </button>
                     </div>
                   </div>
