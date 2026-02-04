@@ -38,17 +38,11 @@ export { verifyOTPWhatsApp } from "./src/otp/verifyOTP";
 export { sendCustomWhatsApp } from "./src/messaging/sendCustomWhatsApp";
 
 // ============================================
-// SLOTS FUNCTIONS
-// ============================================
-export { setAvailableSlots } from "./src/slots/setAvailableSlots";
-
-// ============================================
 // AVAILABILITY FUNCTIONS
 // ============================================
 export { checkBookingsForDate, checkBookingsForTimeRange } from "./src/availability/checkBookings";
 export { setWeeklyTemplate } from "./src/availability/setWeeklyTemplate";
 export { setPlannedDate, deletePlannedDate } from "./src/availability/setPlannedDate";
 export { setSpecialDay, deleteSpecialDay } from "./src/availability/setSpecialDay";
-export { generateWeeklySlots } from "./src/availability/generateWeeklySlots";
 
 

@@ -231,6 +231,32 @@ export const getAvailableDatesInRange = onCall(
         businessSettings.slotDuration > 0
           ? businessSettings.slotDuration
           : 15;
+      
+      // Get advance booking limit (default: 90 days)
+      const advanceBookingLimit =
+        typeof businessSettings?.advanceBookingLimit === "number" &&
+        businessSettings.advanceBookingLimit > 0
+          ? businessSettings.advanceBookingLimit
+          : 90;
+      
+      // Get minimum booking notice in hours (default: 0 = no minimum)
+      const minBookingNotice =
+        typeof businessSettings?.minBookingNotice === "number" &&
+        businessSettings.minBookingNotice >= 0
+          ? businessSettings.minBookingNotice
+          : 0;
+      
+      // Calculate the maximum bookable date
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const maxBookableDate = new Date(today);
+      maxBookableDate.setDate(maxBookableDate.getDate() + advanceBookingLimit);
+      const maxBookableDateStr = formatDate(maxBookableDate);
+      
+      // Cap the endDate to the advance booking limit
+      const effectiveEndDate = endDate > maxBookableDateStr ? maxBookableDateStr : endDate;
+      
+      console.log(`📅 [getAvailableDatesInRange] Advance booking limit: ${advanceBookingLimit} days, min notice: ${minBookingNotice}h, max date: ${maxBookableDateStr}, effective endDate: ${effectiveEndDate}`);
 
       // Get service duration
       if (!serviceDoc.exists) {
@@ -315,10 +341,21 @@ export const getAvailableDatesInRange = onCall(
 
       // Get current time for "today" filtering
       const { date: todayStr, time: currentTimeStr } = getCurrentBusinessTime(timezone);
+      
+      // Calculate minimum bookable time for today (current time + minBookingNotice hours)
+      let minBookableTimeToday: string | null = null;
+      if (minBookingNotice > 0) {
+        const [currentHour, currentMinute] = currentTimeStr.split(":").map(Number);
+        const minBookableMinutes = (currentHour * 60 + currentMinute) + (minBookingNotice * 60);
+        const minHour = Math.floor(minBookableMinutes / 60);
+        const minMinute = minBookableMinutes % 60;
+        minBookableTimeToday = `${minHour.toString().padStart(2, "0")}:${minMinute.toString().padStart(2, "0")}`;
+        console.log(`⏰ [getAvailableDatesInRange] Min booking notice: ${minBookingNotice}h, earliest bookable time today: ${minBookableTimeToday}`);
+      }
 
-      // Generate all dates in range
+      // Generate all dates in range (use effectiveEndDate to respect advance booking limit)
       const currentDate = new Date(startDate + "T00:00:00");
-      const endDateObj = new Date(endDate + "T00:00:00");
+      const endDateObj = new Date(effectiveEndDate + "T00:00:00");
 
       while (currentDate <= endDateObj) {
         const dateStr = formatDate(currentDate);
@@ -368,13 +405,14 @@ export const getAvailableDatesInRange = onCall(
         });
 
         // Check if at least ONE slot can fit the service
+        // For today, use minBookableTimeToday (includes notice) instead of currentTimeStr
         const hasAvailability = checkDateHasAvailability(
           dateStr,
           workingSlots,
           bookedTimes,
           serviceDuration,
           slotDuration,
-          dateStr === todayStr ? currentTimeStr : null
+          dateStr === todayStr ? (minBookableTimeToday || currentTimeStr) : null
         );
 
         if (hasAvailability) {
@@ -389,9 +427,11 @@ export const getAvailableDatesInRange = onCall(
       return {
         success: true,
         startDate,
-        endDate,
+        endDate: effectiveEndDate, // Return the effective end date (capped by advance booking limit)
+        requestedEndDate: endDate, // Original requested end date
         serviceId,
         serviceDuration,
+        advanceBookingLimit,
         availableDates,
         totalAvailable: availableDates.length,
       };

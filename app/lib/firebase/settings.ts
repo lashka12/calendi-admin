@@ -11,6 +11,10 @@ export interface BusinessSettings {
   slotDuration: number;
   currency: string;
   description?: string;
+  /** Maximum days in advance customers can book (default: 90) */
+  advanceBookingLimit?: number;
+  /** Minimum hours notice required before booking (default: 1) */
+  minBookingNotice?: number;
 }
 
 /**
@@ -21,6 +25,8 @@ export const DEFAULT_SETTINGS: BusinessSettings = {
   timezone: 'Asia/Jerusalem',
   slotDuration: 15,
   currency: 'ILS',
+  advanceBookingLimit: 90,
+  minBookingNotice: 0,
 };
 
 /**
@@ -43,6 +49,8 @@ export const subscribeToBusinessSettings = (
           slotDuration: data.slotDuration || DEFAULT_SETTINGS.slotDuration,
           currency: data.currency || DEFAULT_SETTINGS.currency,
           description: data.description,
+          advanceBookingLimit: data.advanceBookingLimit ?? DEFAULT_SETTINGS.advanceBookingLimit,
+          minBookingNotice: data.minBookingNotice ?? DEFAULT_SETTINGS.minBookingNotice,
         });
       } else {
         callback(DEFAULT_SETTINGS);
