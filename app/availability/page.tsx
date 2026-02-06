@@ -38,7 +38,7 @@ export default function AvailabilityPage() {
   const getLocale = () => {
     switch (language) {
       case 'he': return 'he-IL';
-      case 'ar': return 'ar-SA';
+      case 'ar': return 'ar-EG';
       default: return 'en-US';
     }
   };
@@ -1296,7 +1296,7 @@ function PlanningTab({
   const getLocale = () => {
     switch (language) {
       case 'he': return 'he-IL';
-      case 'ar': return 'ar-SA';
+      case 'ar': return 'ar-EG';
       default: return 'en-US';
     }
   };
@@ -1677,7 +1677,7 @@ function SpecialDayCard({ special, index, openEditSpecialModal, deleteSpecialDay
   const getLocale = () => {
     switch (language) {
       case 'he': return 'he-IL';
-      case 'ar': return 'ar-SA';
+      case 'ar': return 'ar-EG';
       default: return 'en-US';
     }
   };

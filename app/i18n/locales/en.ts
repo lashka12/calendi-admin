@@ -534,6 +534,11 @@ const en = {
       privacyPolicyDesc: 'Review our privacy policy',
       comingSoon: 'Coming soon',
     },
+    app: {
+      version: 'Version',
+      checkForUpdates: 'Check for Updates',
+      updating: 'Updating...',
+    },
   },
 
   // Blacklist Page
@@ -625,6 +630,15 @@ const en = {
       monthly: 'Monthly',
       yearly: 'Yearly',
     },
+  },
+
+  // Offline
+  offline: {
+    title: "You're Offline",
+    description: "No internet connection detected. Please check your network settings and try again.",
+    tryAgain: 'Try Again',
+    checking: 'Checking...',
+    tip: 'Tip: Make sure Wi-Fi or mobile data is enabled',
   },
 
   // Services

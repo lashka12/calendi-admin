@@ -1,5 +1,5 @@
 // Main i18n exports
-export { LanguageProvider, useLanguage, useTranslation } from './context/LanguageContext';
+export { LanguageContext, LanguageProvider, useLanguage, useTranslation } from './context/LanguageContext';
 export { 
   languages, 
   defaultLanguage, 

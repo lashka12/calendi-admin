@@ -534,6 +534,11 @@ const he = {
       privacyPolicyDesc: 'עיין במדיניות הפרטיות שלנו',
       comingSoon: 'בקרוב',
     },
+    app: {
+      version: 'גרסה',
+      checkForUpdates: 'בדוק עדכונים',
+      updating: 'מעדכן...',
+    },
   },
 
   // Blacklist Page
@@ -625,6 +630,15 @@ const he = {
       monthly: 'חודשי',
       yearly: 'שנתי',
     },
+  },
+
+  // Offline
+  offline: {
+    title: 'אין חיבור לאינטרנט',
+    description: 'לא זוהה חיבור לאינטרנט. אנא בדוק את הגדרות הרשת שלך ונסה שוב.',
+    tryAgain: 'נסה שוב',
+    checking: 'בודק...',
+    tip: 'טיפ: ודא שה-Wi-Fi או הנתונים הסלולריים מופעלים',
   },
 
   // Services
