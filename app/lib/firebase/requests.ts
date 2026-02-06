@@ -17,6 +17,7 @@ export interface PendingBooking {
   phone: string;
   email?: string;
   service: string;
+  serviceId?: string; // Reference to service document
   date: string;
   time: string;
   duration?: string;
@@ -196,6 +197,9 @@ export const approvePendingBooking = async (bookingId: string): Promise<boolean>
       duration: duration, // REQUIRED by security rules (must be divisible by 15)
       status: 'approved', // REQUIRED by security rules
     };
+    
+    // Add serviceId for multi-language service name lookups
+    if (bookingData.serviceId) sessionData.serviceId = bookingData.serviceId;
     
     // Add optional fields if they exist
     if (bookingData.email) sessionData.email = bookingData.email;

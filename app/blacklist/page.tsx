@@ -50,7 +50,7 @@ export default function BlacklistPage() {
     open: false, id: null, clientName: "",
   });
   const { showToast } = useToast();
-  const { t } = useTranslation();
+  const { t, isRTL } = useTranslation();
 
   useEffect(() => {
     const unsubscribe = subscribeToBlacklist((firebaseClients) => {
@@ -79,9 +79,9 @@ export default function BlacklistPage() {
   // Phone validation
   const validatePhone = (phone: string): string | null => {
     const cleaned = phone.replace(/\D/g, '');
-    if (!cleaned) return "Phone number is required";
-    if (cleaned.length !== 10) return "Phone must be 10 digits";
-    if (!cleaned.startsWith('05')) return "Phone must start with 05";
+    if (!cleaned) return t('blacklist.phoneRequired');
+    if (cleaned.length !== 10) return t('blacklist.phoneDigits');
+    if (!cleaned.startsWith('05')) return t('blacklist.phoneStart');
     return null;
   };
 
@@ -89,7 +89,7 @@ export default function BlacklistPage() {
 
   const handleSubmit = async () => {
     if (!formData.name) {
-      setError("Name is required");
+      setError(t('blacklist.nameRequired'));
       return;
     }
     
@@ -108,9 +108,9 @@ export default function BlacklistPage() {
       await addToBlacklist({
         clientName: formData.name,
         phone: formData.phone.replace(/\D/g, ''),
-        reason: formData.reason || "No reason provided",
+        reason: formData.reason || t('blacklist.noReason'),
       });
-      showToast(`${formData.name} added to blacklist`, "success");
+      showToast(t('blacklist.addedSuccess').replace('{name}', formData.name), "success");
       setModalOpen(false);
       setFormData({ name: "", phone: "", reason: "" });
     } catch (err: any) {
@@ -131,7 +131,7 @@ export default function BlacklistPage() {
     try {
       await removeFromBlacklist(deleteConfirm.id);
       setDeleteConfirm({ open: false, id: null, clientName: "" });
-      showToast(`${clientName} removed from blacklist`, "success");
+      showToast(t('blacklist.removedSuccess').replace('{name}', clientName), "success");
     } catch (err: any) {
       showToast(err.message || "Failed to remove", "error");
     } finally {
@@ -152,10 +152,10 @@ export default function BlacklistPage() {
     const now = new Date();
     const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
     
-    if (diffDays === 0) return "Today";
-    if (diffDays === 1) return "Yesterday";
-    if (diffDays < 7) return `${diffDays}d ago`;
-    return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+    if (diffDays === 0) return t('blacklist.today');
+    if (diffDays === 1) return t('blacklist.yesterday');
+    if (diffDays < 7) return t('blacklist.daysAgo').replace('{days}', String(diffDays));
+    return date.toLocaleDateString(isRTL ? "he-IL" : "en-US", { month: "short", day: "numeric" });
   };
 
   // Loading skeleton
@@ -194,15 +194,15 @@ export default function BlacklistPage() {
       {/* Desktop Header */}
       <div className="hidden lg:flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Blacklist</h1>
-          <p className="text-sm text-gray-500">{blacklistedClients.length} flagged clients</p>
+          <h1 className="text-2xl font-bold text-gray-900">{t('blacklist.title')}</h1>
+          <p className="text-sm text-gray-500">{t('blacklist.subtitle').replace('{count}', String(blacklistedClients.length))}</p>
         </div>
         <button
           onClick={openAddModal}
           className="inline-flex items-center gap-2 px-4 py-2.5 bg-gray-900 text-white text-sm font-semibold rounded-xl hover:bg-gray-800 transition-colors"
         >
           <Plus className="w-4 h-4" />
-          Add to Blacklist
+          {t('blacklist.addButton')}
         </button>
       </div>
 
@@ -220,15 +220,15 @@ export default function BlacklistPage() {
       </motion.button>
 
       {/* Info Header */}
-      <div className="mb-4 bg-white rounded-2xl border border-gray-200 p-4">
+      <div className="mb-4 bg-white rounded-2xl border border-gray-200 p-4" dir={isRTL ? 'rtl' : 'ltr'}>
         <div className="flex gap-3">
           <div className="w-10 h-10 bg-gray-900 rounded-xl flex items-center justify-center flex-shrink-0">
             <Bell className="w-5 h-5 text-white" />
           </div>
           <div className="flex-1 min-w-0">
-            <h3 className="text-[15px] font-semibold text-gray-900 mb-1">What is the Blacklist?</h3>
+            <h3 className="text-[15px] font-semibold text-gray-900 mb-1">{t('blacklist.infoTitle')}</h3>
             <p className="text-[13px] text-gray-500 leading-relaxed">
-              Clients on this list can still send booking requests, but you'll see a warning when reviewing them. Use this to track clients you'd prefer not to serve.
+              {t('blacklist.infoDesc')}
             </p>
           </div>
         </div>
@@ -239,7 +239,7 @@ export default function BlacklistPage() {
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 bg-gray-400 rounded-full" />
               <span className="text-[13px] text-gray-500">
-                <span className="font-semibold text-gray-900">{blacklistedClients.length}</span> flagged
+                <span className="font-semibold text-gray-900">{blacklistedClients.length}</span> {t('blacklist.flagged')}
               </span>
             </div>
           </div>
@@ -248,19 +248,19 @@ export default function BlacklistPage() {
 
       {/* Search */}
       {(blacklistedClients.length > 0 || searchTerm) && (
-        <div className="relative mb-4">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+        <div className="relative mb-4" dir={isRTL ? 'rtl' : 'ltr'}>
+          <Search className={`absolute top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 ${isRTL ? 'right-4' : 'left-4'}`} />
           <input
             type="text"
-            placeholder="Search..."
+            placeholder={t('blacklist.searchPlaceholder')}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full h-11 pl-11 pr-4 bg-white border border-gray-200 rounded-xl text-[15px] text-gray-900 placeholder-gray-400 outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all"
+            className={`w-full h-11 bg-white border border-gray-200 rounded-xl text-[15px] text-gray-900 placeholder-gray-400 outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all ${isRTL ? 'pr-11 pl-4' : 'pl-11 pr-4'}`}
           />
           {searchTerm && (
             <button
               onClick={() => setSearchTerm("")}
-              className="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-gray-100 rounded-full flex items-center justify-center"
+              className={`absolute top-1/2 -translate-y-1/2 w-6 h-6 bg-gray-100 rounded-full flex items-center justify-center ${isRTL ? 'left-3' : 'right-3'}`}
             >
               <X className="w-3.5 h-3.5 text-gray-500" />
             </button>
@@ -274,15 +274,15 @@ export default function BlacklistPage() {
           <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-5">
             <UserX className="w-10 h-10 text-gray-300" />
           </div>
-          <h3 className="text-[18px] font-semibold text-gray-900 mb-2">No flagged clients</h3>
+          <h3 className="text-[18px] font-semibold text-gray-900 mb-2">{t('blacklist.emptyTitle')}</h3>
           <p className="text-[14px] text-gray-500 text-center mb-6 max-w-[260px]">
-            Blacklisted clients can still request bookings, but you'll be notified they're flagged
+            {t('blacklist.emptyDesc')}
           </p>
           <button
             onClick={openAddModal}
             className="h-11 px-6 bg-gray-900 text-white text-[15px] font-semibold rounded-xl active:scale-[0.98] transition-transform"
           >
-            Add to Blacklist
+            {t('blacklist.addButton')}
           </button>
         </div>
       ) : filteredClients.length === 0 && searchTerm ? (
@@ -290,8 +290,8 @@ export default function BlacklistPage() {
           <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
             <Search className="w-7 h-7 text-gray-300" />
           </div>
-          <h3 className="text-[17px] font-semibold text-gray-900 mb-1">No results</h3>
-          <p className="text-[14px] text-gray-500">Try a different search term</p>
+          <h3 className="text-[17px] font-semibold text-gray-900 mb-1">{t('blacklist.noResults')}</h3>
+          <p className="text-[14px] text-gray-500">{t('blacklist.noResultsDesc')}</p>
         </div>
       ) : (
         /* List */
@@ -373,7 +373,7 @@ export default function BlacklistPage() {
           {filteredClients.length > 0 && (
             <div className="lg:hidden px-4 py-3 bg-gray-50 border-t border-gray-100">
               <p className="text-[12px] text-gray-400 text-center">
-                Swipe left to remove
+                {t('blacklist.swipeHint')}
               </p>
             </div>
           )}
@@ -406,10 +406,10 @@ export default function BlacklistPage() {
                 </div>
 
                 {/* Header */}
-                <div className="px-5 py-3 flex items-center justify-between">
+                <div className="px-5 py-3 flex items-center justify-between" dir={isRTL ? 'rtl' : 'ltr'}>
                   <div>
-                    <h2 className="text-[17px] font-bold text-gray-900">Add to Blacklist</h2>
-                    <p className="text-[13px] text-gray-500">Flag for review on booking requests</p>
+                    <h2 className="text-[17px] font-bold text-gray-900">{t('blacklist.addModalTitle')}</h2>
+                    <p className="text-[13px] text-gray-500">{t('blacklist.addModalDesc')}</p>
                   </div>
                   <button 
                     onClick={() => setModalOpen(false)}
@@ -425,17 +425,17 @@ export default function BlacklistPage() {
                     <p className="text-[13px] text-red-500 bg-red-50 px-3 py-2 rounded-xl mb-4">{error}</p>
                   )}
 
-                  <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+                  <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden" dir={isRTL ? 'rtl' : 'ltr'}>
                     {/* Name */}
                     <div className="p-4 border-b border-gray-100">
                       <label className="block text-[11px] font-medium text-gray-400 uppercase tracking-wide mb-2">
-                        Name <span className="text-red-400">*</span>
+                        {t('blacklist.nameLabel')} <span className="text-red-400">*</span>
                       </label>
                       <input
                         type="text"
                         value={formData.name}
                         onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                        placeholder="Client's name"
+                        placeholder={t('blacklist.namePlaceholder')}
                         className="w-full text-[17px] font-medium text-gray-900 placeholder-gray-300 outline-none bg-transparent"
                       />
                     </div>
@@ -443,14 +443,15 @@ export default function BlacklistPage() {
                     {/* Phone */}
                     <div className="p-4 border-b border-gray-100">
                       <label className="block text-[11px] font-medium text-gray-400 uppercase tracking-wide mb-2">
-                        Phone <span className="text-red-400">*</span>
+                        {t('blacklist.phoneLabel')} <span className="text-red-400">*</span>
                       </label>
                       <input
                         type="tel"
                         value={formData.phone}
                         onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                        placeholder="05XXXXXXXX"
+                        placeholder={t('blacklist.phonePlaceholder')}
                         className="w-full text-[17px] font-medium text-gray-900 placeholder-gray-300 outline-none bg-transparent"
+                        dir="ltr"
                       />
                       {formData.phone && !isPhoneValid && (
                         <p className="text-[12px] text-red-500 mt-1.5">{validatePhone(formData.phone)}</p>
@@ -460,12 +461,12 @@ export default function BlacklistPage() {
                     {/* Reason */}
                     <div className="p-4">
                       <label className="block text-[11px] font-medium text-gray-400 uppercase tracking-wide mb-2">
-                        Reason <span className="text-gray-300">(optional)</span>
+                        {t('blacklist.reasonLabel')} <span className="text-gray-300">({t('blacklist.optional')})</span>
                       </label>
                       <textarea
                         value={formData.reason}
                         onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
-                        placeholder="Add a note..."
+                        placeholder={t('blacklist.reasonPlaceholder')}
                         rows={2}
                         className="w-full text-[15px] text-gray-700 placeholder-gray-300 outline-none bg-transparent resize-none"
                       />
@@ -477,19 +478,20 @@ export default function BlacklistPage() {
                 <div 
                   className="px-5 pt-5 flex gap-3"
                   style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 16px)' }}
+                  dir={isRTL ? 'rtl' : 'ltr'}
                 >
                   <button
                     onClick={() => setModalOpen(false)}
                     className="flex-1 h-12 bg-white border border-gray-200 text-gray-700 font-semibold text-[15px] rounded-2xl active:bg-gray-50 transition-colors"
                   >
-                    Cancel
+                    {t('blacklist.cancel')}
                   </button>
                   <button
                     onClick={handleSubmit}
                     disabled={!formData.name || !isPhoneValid || processing.has('new')}
                     className="flex-1 h-12 bg-gray-900 text-white font-semibold text-[15px] rounded-2xl disabled:bg-gray-300 disabled:text-gray-500 active:scale-[0.98] transition-all"
                   >
-                    {processing.has('new') ? "Adding..." : "Add to Blacklist"}
+                    {processing.has('new') ? t('blacklist.adding') : t('blacklist.add')}
                   </button>
                 </div>
               </div>
@@ -503,9 +505,9 @@ export default function BlacklistPage() {
         isOpen={deleteConfirm.open}
         onClose={() => setDeleteConfirm({ open: false, id: null, clientName: "" })}
         onConfirm={handleDelete}
-        title="Remove from Blacklist?"
-        message={`${deleteConfirm.clientName} will no longer be flagged on booking requests.`}
-        confirmText="Remove"
+        title={t('blacklist.removeTitle')}
+        message={t('blacklist.removeMessage').replace('{name}', deleteConfirm.clientName)}
+        confirmText={t('blacklist.remove')}
         isLoading={processing.has(deleteConfirm.id || '')}
         variant="danger"
       />

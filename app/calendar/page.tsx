@@ -36,7 +36,8 @@ interface Appointment {
   time: string;
   endTime: string;
   client: string;
-  service: string;
+  service: string; // Cached service name (fallback)
+  serviceId?: string; // Reference to service document for multi-language lookups
   status: string; // 'confirmed' | 'pending'
   avatar: {
     initials: string;
@@ -132,14 +133,6 @@ const getCalendarDays = (year: number, month: number): { date: Date; isCurrentMo
   return days;
 };
 
-// Month names for display
-const monthNames = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December'
-];
-
-// Short day names
-const dayNames = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
 
 // Helper: Check if a session is past, now, soon, or upcoming
 const getTimeStatus = (date: string, time: string, endTime?: string): 'past' | 'now' | 'soon' | 'upcoming' => {
@@ -194,6 +187,7 @@ const transformSession = (session: Session): Appointment => {
     email: session.email,
     phone: session.phone || "",
     service: session.service || "Service",
+    serviceId: session.serviceId, // For multi-language lookups
     date: session.date,
     time,
     endTime,
@@ -231,6 +225,7 @@ const transformPendingBooking = (booking: PendingBooking): Appointment => {
     email: booking.email,
     phone: booking.phone || "",
     service: booking.service || "Service",
+    serviceId: booking.serviceId, // For multi-language lookups
     date: booking.date,
     time,
     endTime,
@@ -278,7 +273,6 @@ export default function CalendarPage() {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showServicePicker, setShowServicePicker] = useState(false);
   const [showEditDatePicker, setShowEditDatePicker] = useState(false);
-  const [showEditServicePicker, setShowEditServicePicker] = useState(false);
   const [datePickerMonth, setDatePickerMonth] = useState(new Date());
   const [editDatePickerMonth, setEditDatePickerMonth] = useState(new Date());
   
@@ -287,6 +281,19 @@ export default function CalendarPage() {
   const { t, language, isRTL } = useTranslation();
   const { settings } = useSettings();
   const router = useRouter();
+
+  // Translated month names
+  const translatedMonthNames = useMemo(() => [
+    t('months.january'), t('months.february'), t('months.march'), t('months.april'),
+    t('months.may'), t('months.june'), t('months.july'), t('months.august'),
+    t('months.september'), t('months.october'), t('months.november'), t('months.december')
+  ], [t]);
+
+  // Translated day names for calendar
+  const translatedDayNames = useMemo(() => [
+    t('days.calSun'), t('days.calMon'), t('days.calTue'), t('days.calWed'),
+    t('days.calThu'), t('days.calFri'), t('days.calSat')
+  ], [t]);
 
   // Phone validation constants
   const PHONE_LENGTH = 10;
@@ -322,9 +329,22 @@ export default function CalendarPage() {
   const phoneValidation = validatePhone(sessionFormData.phone);
   const showPhoneError = sessionFormData.phone.length > 0 && !phoneValidation.isValid;
 
+  // Helper: Get display service name using serviceId for multi-language support
+  // Falls back to cached service name if serviceId not available or service not found
+  const getDisplayServiceName = (appointment: Appointment): string => {
+    if (appointment.serviceId) {
+      const service = services.find(s => s.id === appointment.serviceId);
+      if (service) {
+        return getServiceName(service, language);
+      }
+    }
+    // Fallback to cached service name
+    return appointment.service;
+  };
+
   // Lock body scroll and touch when any modal is open (prevents scroll-behind on iOS)
   useEffect(() => {
-    const anyModalOpen = isModalOpen || addSessionModalOpen || showDatePicker || showServicePicker || showEditDatePicker || showEditServicePicker;
+    const anyModalOpen = isModalOpen || addSessionModalOpen || showDatePicker || showServicePicker || showEditDatePicker;
     
     if (anyModalOpen) {
       document.body.style.overflow = 'hidden';
@@ -338,7 +358,7 @@ export default function CalendarPage() {
       document.body.style.overflow = '';
       document.body.style.touchAction = '';
     };
-  }, [isModalOpen, addSessionModalOpen, showDatePicker, showServicePicker, showEditDatePicker, showEditServicePicker]);
+  }, [isModalOpen, addSessionModalOpen, showDatePicker, showServicePicker, showEditDatePicker]);
 
   // Subscribe to real-time sessions (fetch all, filter client-side)
   useEffect(() => {
@@ -381,28 +401,39 @@ export default function CalendarPage() {
   }, []);
 
 
+  // Helper: Apply service name lookup to appointment for display
+  const applyServiceNameLookup = (apt: Appointment): Appointment => {
+    if (apt.serviceId) {
+      const service = services.find(s => s.id === apt.serviceId);
+      if (service) {
+        return { ...apt, service: getServiceName(service, language) };
+      }
+    }
+    return apt;
+  };
+
   // Get appointments for selected date (combine sessions and pending bookings)
   const appointments = useMemo(() => {
     const daySessions = getSessionsForDate(sessions, selectedDate);
     const dayPending = pendingBookings.filter(b => b.date === selectedDate);
     
-    const confirmed = daySessions.map(transformSession);
-    const pending = dayPending.map(transformPendingBooking);
+    const confirmed = daySessions.map(transformSession).map(applyServiceNameLookup);
+    const pending = dayPending.map(transformPendingBooking).map(applyServiceNameLookup);
     
     // Combine and sort by time
     return [...confirmed, ...pending].sort((a, b) => a.time.localeCompare(b.time));
-  }, [sessions, pendingBookings, selectedDate]);
+  }, [sessions, pendingBookings, selectedDate, services, language]);
 
   // Get ALL appointments for week view
   const allAppointments = useMemo(() => {
-    const confirmed = sessions.map(transformSession);
-    const pending = pendingBookings.map(transformPendingBooking);
+    const confirmed = sessions.map(transformSession).map(applyServiceNameLookup);
+    const pending = pendingBookings.map(transformPendingBooking).map(applyServiceNameLookup);
     return [...confirmed, ...pending].sort((a, b) => {
       // Sort by date first, then by time
       if (a.date !== b.date) return a.date.localeCompare(b.date);
       return a.time.localeCompare(b.time);
     });
-  }, [sessions, pendingBookings]);
+  }, [sessions, pendingBookings, services, language]);
 
   // Calculate stats
   const stats = useMemo(() => {
@@ -439,7 +470,7 @@ export default function CalendarPage() {
     
     setLoadingEditSlots(true);
     try {
-      const selectedService = services.find(s => getServiceName(s) === serviceName);
+      const selectedService = services.find(s => getServiceName(s, language) === serviceName);
       const serviceId = selectedService?.id;
       
       // Pass sessionId to exclude from booked times calculation
@@ -494,8 +525,8 @@ export default function CalendarPage() {
     setError(null);
 
     try {
-      // Find service to get duration
-      const selectedService = services.find(s => getServiceName(s) === editedAppointment.service);
+      // Find service to get duration and ID
+      const selectedService = services.find(s => getServiceName(s, language) === editedAppointment.service);
       const serviceDuration = selectedService?.duration || editedAppointment.duration || 60;
       const endTime = calculateEndTime(editedAppointment.time, serviceDuration);
 
@@ -507,6 +538,7 @@ export default function CalendarPage() {
         endTime: endTime,
         duration: serviceDuration,
         service: editedAppointment.service,
+        serviceId: selectedService?.id || editedAppointment.serviceId, // For multi-language lookups
       });
 
       showToast(t('calendar.toast.sessionUpdated'), "success");
@@ -580,7 +612,7 @@ export default function CalendarPage() {
     setLoadingSlots(true);
     try {
       // Find service ID from service name
-      const selectedService = services.find(s => getServiceName(s) === serviceName);
+      const selectedService = services.find(s => getServiceName(s, language) === serviceName);
       const serviceId = selectedService?.id;
       
       const slots = await getAvailableTimeSlots(date, serviceId);
@@ -648,8 +680,8 @@ export default function CalendarPage() {
     setError(null);
 
     try {
-      // Find the selected service to get its duration (matching old app behavior)
-      const selectedService = services.find(s => getServiceName(s) === sessionFormData.service);
+      // Find the selected service to get its duration and ID
+      const selectedService = services.find(s => getServiceName(s, language) === sessionFormData.service);
       const serviceDuration = selectedService?.duration || 60; // Default to 60 if not found
       const endTime = calculateEndTime(sessionFormData.time, serviceDuration);
 
@@ -657,6 +689,7 @@ export default function CalendarPage() {
         clientName: sessionFormData.clientName,
         phone: sessionFormData.phone,
         service: sessionFormData.service,
+        serviceId: selectedService?.id, // For multi-language lookups
         date: sessionFormData.date,
         time: sessionFormData.time,
         duration: serviceDuration,
@@ -695,7 +728,7 @@ export default function CalendarPage() {
           onAppointmentClick={(apt) => !apt.isPast && !apt.isPending && openAppointmentModal(apt)}
           onPendingClick={() => router.push('/requests')}
           slotDuration={settings.slotDuration}
-          scrollLock={isModalOpen || addSessionModalOpen || showDatePicker || showServicePicker || showEditDatePicker || showEditServicePicker}
+          scrollLock={isModalOpen || addSessionModalOpen || showDatePicker || showServicePicker || showEditDatePicker}
         />
 
         {/* Mobile FAB - White for visual balance with dark avatar */}
@@ -795,22 +828,22 @@ export default function CalendarPage() {
                   {/* Service */}
                   <div className="mb-3 bg-white rounded-2xl p-4 shadow-sm">
                     <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-3">{t('calendar.form.service')}</p>
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-2 gap-2" dir={isRTL ? 'rtl' : 'ltr'}>
                       {services.map((service) => {
-                        const name = getServiceName(service);
+                        const name = getServiceName(service, language);
                         const selected = sessionFormData.service === name;
                         return (
                           <button
                             key={service.id}
                             onClick={() => setSessionFormData({ ...sessionFormData, service: name, time: "" })}
-                            className={`px-3 py-2.5 rounded-xl text-[13px] font-medium transition-colors text-left ${
+                            className={`px-3 py-2.5 rounded-xl text-[13px] font-medium transition-colors ${isRTL ? 'text-right' : 'text-left'} ${
                               selected 
                                 ? 'bg-gray-900 text-white' 
                                 : 'bg-gray-50 text-gray-700 active:bg-gray-100'
                             }`}
                           >
                             <span className="block truncate">{name}</span>
-                            {service.duration && <span className={`text-[11px] ${selected ? 'text-gray-400' : 'text-gray-500'}`}>{service.duration} min</span>}
+                            {service.duration && <span className={`text-[11px] ${selected ? 'text-gray-400' : 'text-gray-500'}`}>{service.duration} {t('calendar.minutes')}</span>}
                           </button>
                         );
                       })}
@@ -921,7 +954,7 @@ export default function CalendarPage() {
               transition={{ duration: 0.35, ease: [0.32, 0.72, 0, 1] }}
               className="fixed bottom-0 left-0 right-0 z-[10002]"
             >
-              <div className="bg-white rounded-t-2xl shadow-2xl p-4">
+              <div className="bg-white rounded-t-2xl shadow-2xl p-4" dir={isRTL ? 'rtl' : 'ltr'}>
                 <div className="flex justify-center mb-2">
                   <div className="w-9 h-1 bg-gray-300 rounded-full" />
                 </div>
@@ -939,24 +972,24 @@ export default function CalendarPage() {
                 {/* Month Navigation */}
                 <div className="flex items-center justify-between mb-3">
                   <button 
-                    onClick={() => setDatePickerMonth(new Date(datePickerMonth.getFullYear(), datePickerMonth.getMonth() - 1))} 
+                    onClick={() => setDatePickerMonth(new Date(datePickerMonth.getFullYear(), datePickerMonth.getMonth() + (isRTL ? 1 : -1)))} 
                     className="w-8 h-8 flex items-center justify-center hover:bg-gray-100 rounded-lg"
                   >
-                    <ChevronLeft className="w-5 h-5 text-gray-600" />
+                    <ChevronLeft className={`w-5 h-5 text-gray-600 ${isRTL ? 'rotate-180' : ''}`} />
                   </button>
-                  <span className="text-[14px] font-semibold text-gray-900">{monthNames[datePickerMonth.getMonth()]} {datePickerMonth.getFullYear()}</span>
+                  <span className="text-[14px] font-semibold text-gray-900">{translatedMonthNames[datePickerMonth.getMonth()]} {datePickerMonth.getFullYear()}</span>
                   <button 
-                    onClick={() => setDatePickerMonth(new Date(datePickerMonth.getFullYear(), datePickerMonth.getMonth() + 1))} 
+                    onClick={() => setDatePickerMonth(new Date(datePickerMonth.getFullYear(), datePickerMonth.getMonth() + (isRTL ? -1 : 1)))} 
                     className="w-8 h-8 flex items-center justify-center hover:bg-gray-100 rounded-lg"
                   >
-                    <ChevronRight className="w-5 h-5 text-gray-600" />
+                    <ChevronRight className={`w-5 h-5 text-gray-600 ${isRTL ? 'rotate-180' : ''}`} />
                   </button>
                 </div>
                 
                 {/* Day Names */}
                 <div className="grid grid-cols-7 gap-1 mb-1">
-                  {dayNames.map(day => (
-                    <div key={day} className="text-center text-[10px] font-medium text-gray-400 uppercase">{day}</div>
+                  {translatedDayNames.map((day, i) => (
+                    <div key={i} className={`text-center font-medium text-gray-400 ${language === 'ar' ? 'text-[9px]' : 'text-[10px] uppercase'}`}>{day}</div>
                   ))}
                 </div>
                 
@@ -1035,7 +1068,7 @@ export default function CalendarPage() {
                       </div>
                       <div>
                         <h2 className="text-[17px] font-semibold text-gray-900">{editedAppointment.client}</h2>
-                        <p className="text-[13px] text-gray-500">{editedAppointment.service}</p>
+                        <p className="text-[13px] text-gray-500">{getDisplayServiceName(editedAppointment)}</p>
                       </div>
                     </div>
                     <button 
@@ -1051,7 +1084,7 @@ export default function CalendarPage() {
                     <div className="flex gap-2">
                       <a 
                         href={`tel:${editedAppointment.phone}`} 
-                        className="flex-1 h-11 bg-white border border-gray-200 text-gray-700 text-[13px] font-medium rounded-xl flex items-center justify-center gap-2 hover:bg-gray-50 active:scale-[0.98] transition-all"
+                        className={`flex-1 h-11 bg-white border border-gray-200 text-gray-700 text-[13px] font-medium rounded-xl flex items-center justify-center gap-2 hover:bg-gray-50 active:scale-[0.98] transition-all ${isRTL ? 'flex-row-reverse' : ''}`}
                       >
                         <Phone className="w-4 h-4 text-gray-500" /> {t('common.call')}
                       </a>
@@ -1059,7 +1092,7 @@ export default function CalendarPage() {
                         href={`https://wa.me/${editedAppointment.phone?.replace(/\D/g, '')}`} 
                         target="_blank" 
                         rel="noopener noreferrer" 
-                        className="flex-1 h-11 bg-white border border-gray-200 text-gray-700 text-[13px] font-medium rounded-xl flex items-center justify-center gap-2 hover:bg-gray-50 active:scale-[0.98] transition-all"
+                        className={`flex-1 h-11 bg-white border border-gray-200 text-gray-700 text-[13px] font-medium rounded-xl flex items-center justify-center gap-2 hover:bg-gray-50 active:scale-[0.98] transition-all ${isRTL ? 'flex-row-reverse' : ''}`}
                       >
                         <svg className="w-4 h-4 text-gray-500" viewBox="0 0 24 24" fill="currentColor">
                           <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
@@ -1083,33 +1116,54 @@ export default function CalendarPage() {
                       </motion.div>
                     )}
                     
-                    {/* Date & Service Selection */}
+                    {/* Service & Date Selection */}
                     <div className="p-4 space-y-4">
-                      <div className="grid grid-cols-2 gap-3">
-                        <div>
-                          <label className="block text-[11px] font-medium text-gray-400 uppercase tracking-wide mb-1.5">{t('calendar.form.date')}</label>
-                          <button
-                            onClick={() => {
-                              setEditDatePickerMonth(editedAppointment.date ? new Date(editedAppointment.date) : new Date());
-                              setShowEditDatePicker(true);
-                            }}
-                            className="w-full h-11 px-3 bg-gray-50 rounded-xl text-left text-[14px] font-medium text-gray-900 hover:bg-gray-100 transition-colors flex items-center gap-2"
-                          >
-                            <CalendarIcon className="w-4 h-4 text-gray-400" />
-                            {editedAppointment.date 
-                              ? new Date(editedAppointment.date + 'T00:00:00').toLocaleDateString(language === 'he' ? 'he-IL' : language === 'ar' ? 'ar-SA' : 'en-US', { day: 'numeric', month: 'short' })
-                              : t('calendar.form.select')}
-                          </button>
+                      {/* Service */}
+                      <div>
+                        <label className="block text-[11px] font-medium text-gray-400 uppercase tracking-wide mb-1.5">{t('calendar.form.service')}</label>
+                        <div className="grid grid-cols-2 gap-2" dir={isRTL ? 'rtl' : 'ltr'}>
+                          {services.map((service) => {
+                            const name = getServiceName(service, language);
+                            const selected = editedAppointment.service === name || editedAppointment.serviceId === service.id;
+                            return (
+                              <button
+                                key={service.id}
+                                onClick={() => {
+                                  updateEditedField('service', name);
+                                  setEditedAppointment(prev => prev ? { ...prev, serviceId: service.id } : null);
+                                  updateEditedField('time', '');
+                                  setEditAvailableSlots([]);
+                                  if (editedAppointment.date) fetchEditAvailableSlots(editedAppointment.date, name, selectedAppointment?.id);
+                                }}
+                                className={`px-3 py-2.5 rounded-xl text-[13px] font-medium transition-colors ${isRTL ? 'text-right' : 'text-left'} ${
+                                  selected 
+                                    ? 'bg-gray-900 text-white' 
+                                    : 'bg-gray-50 text-gray-700 active:bg-gray-100'
+                                }`}
+                              >
+                                <span className="block truncate">{name}</span>
+                                {service.duration && <span className={`text-[11px] ${selected ? 'text-gray-400' : 'text-gray-500'}`}>{service.duration} {t('calendar.minutes')}</span>}
+                              </button>
+                            );
+                          })}
                         </div>
-                        <div>
-                          <label className="block text-[11px] font-medium text-gray-400 uppercase tracking-wide mb-1.5">{t('calendar.form.service')}</label>
-                          <button
-                            onClick={() => setShowEditServicePicker(true)}
-                            className="w-full h-11 px-3 bg-gray-50 rounded-xl text-left text-[14px] font-medium text-gray-900 truncate hover:bg-gray-100 transition-colors"
-                          >
-                            {editedAppointment.service || t('calendar.form.select')}
-                          </button>
-                        </div>
+                      </div>
+
+                      {/* Date */}
+                      <div>
+                        <label className="block text-[11px] font-medium text-gray-400 uppercase tracking-wide mb-1.5">{t('calendar.form.date')}</label>
+                        <button
+                          onClick={() => {
+                            setEditDatePickerMonth(editedAppointment.date ? new Date(editedAppointment.date) : new Date());
+                            setShowEditDatePicker(true);
+                          }}
+                          className="w-full h-11 px-3 bg-gray-50 rounded-xl text-left text-[14px] font-medium text-gray-900 hover:bg-gray-100 transition-colors flex items-center gap-2"
+                        >
+                          <CalendarIcon className="w-4 h-4 text-gray-400" />
+                          {editedAppointment.date 
+                            ? new Date(editedAppointment.date + 'T00:00:00').toLocaleDateString(language === 'he' ? 'he-IL' : language === 'ar' ? 'ar-SA' : 'en-US', { weekday: 'long', day: 'numeric', month: 'short' })
+                            : t('calendar.form.selectDate')}
+                        </button>
                       </div>
                       
                       {/* Time Slots */}
@@ -1202,7 +1256,7 @@ export default function CalendarPage() {
               transition={{ duration: 0.35, ease: [0.32, 0.72, 0, 1] }}
               className="fixed bottom-0 left-0 right-0 z-[10001]"
             >
-              <div className="bg-white rounded-t-3xl shadow-2xl p-5">
+              <div className="bg-white rounded-t-3xl shadow-2xl p-5" dir={isRTL ? 'rtl' : 'ltr'}>
                 {/* Handle */}
                 <div className="flex justify-center -mt-2 mb-3">
                   <div className="w-10 h-1 bg-gray-300 rounded-full" />
@@ -1221,24 +1275,24 @@ export default function CalendarPage() {
                 {/* Month Navigation */}
                 <div className="flex items-center justify-between mb-4 px-2">
                   <button 
-                    onClick={() => setEditDatePickerMonth(new Date(editDatePickerMonth.getFullYear(), editDatePickerMonth.getMonth() - 1))} 
+                    onClick={() => setEditDatePickerMonth(new Date(editDatePickerMonth.getFullYear(), editDatePickerMonth.getMonth() + (isRTL ? 1 : -1)))} 
                     className="w-9 h-9 flex items-center justify-center hover:bg-gray-100 rounded-xl transition-colors"
                   >
-                    <ChevronLeft className="w-5 h-5 text-gray-600" />
+                    <ChevronLeft className={`w-5 h-5 text-gray-600 ${isRTL ? 'rotate-180' : ''}`} />
                   </button>
-                  <span className="text-[15px] font-semibold text-gray-900">{monthNames[editDatePickerMonth.getMonth()]} {editDatePickerMonth.getFullYear()}</span>
+                  <span className="text-[15px] font-semibold text-gray-900">{translatedMonthNames[editDatePickerMonth.getMonth()]} {editDatePickerMonth.getFullYear()}</span>
                   <button 
-                    onClick={() => setEditDatePickerMonth(new Date(editDatePickerMonth.getFullYear(), editDatePickerMonth.getMonth() + 1))} 
+                    onClick={() => setEditDatePickerMonth(new Date(editDatePickerMonth.getFullYear(), editDatePickerMonth.getMonth() + (isRTL ? -1 : 1)))} 
                     className="w-9 h-9 flex items-center justify-center hover:bg-gray-100 rounded-xl transition-colors"
                   >
-                    <ChevronRight className="w-5 h-5 text-gray-600" />
+                    <ChevronRight className={`w-5 h-5 text-gray-600 ${isRTL ? 'rotate-180' : ''}`} />
                   </button>
                 </div>
                 
                 {/* Day Names */}
                 <div className="grid grid-cols-7 gap-1 mb-2">
-                  {dayNames.map(day => (
-                    <div key={day} className="text-center text-[11px] font-medium text-gray-400 uppercase">{day}</div>
+                  {translatedDayNames.map((day, i) => (
+                    <div key={i} className={`text-center font-medium text-gray-400 ${language === 'ar' ? 'text-[9px]' : 'text-[11px] uppercase'}`}>{day}</div>
                   ))}
                 </div>
                 
@@ -1274,82 +1328,6 @@ export default function CalendarPage() {
                   })}
                 </div>
                 <div style={{ height: 'calc(env(safe-area-inset-bottom, 0px) + 12px)' }} />
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-
-      {/* Edit Service Picker */}
-      <AnimatePresence mode="sync">
-        {showEditServicePicker && editedAppointment && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.25, ease: "easeOut" }}
-              onClick={() => setShowEditServicePicker(false)}
-              onTouchMove={(e) => e.preventDefault()}
-              className="fixed -top-20 -left-4 -right-4 -bottom-20 bg-black/60 z-[10000] touch-none overscroll-contain"
-            />
-            <motion.div
-              initial={{ y: "100%" }}
-              animate={{ y: 0 }}
-              exit={{ y: "100%" }}
-              transition={{ duration: 0.35, ease: [0.32, 0.72, 0, 1] }}
-              className="fixed bottom-0 left-0 right-0 z-[10001]"
-            >
-              <div className="bg-white rounded-t-3xl shadow-2xl max-h-[70vh] flex flex-col">
-                {/* Handle */}
-                <div className="flex justify-center pt-3 pb-1">
-                  <div className="w-10 h-1 bg-gray-300 rounded-full" />
-                </div>
-                
-                <div className="px-5 pt-2 pb-4 flex items-center justify-between">
-                  <h3 className="text-[17px] font-semibold text-gray-900">{t('calendar.form.selectService')}</h3>
-                  <button 
-                    onClick={() => setShowEditServicePicker(false)}
-                    className="w-8 h-8 flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-full transition-colors"
-                  >
-                    <X className="w-4 h-4 text-gray-500" />
-                  </button>
-                </div>
-                
-                <div className="flex-1 overflow-y-auto px-5 pb-5 space-y-2 border-t border-gray-100 pt-4 overscroll-contain">
-                  {services.map((service) => {
-                    const name = getServiceName(service);
-                    const selected = editedAppointment.service === name;
-                    return (
-                      <button
-                        key={service.id}
-                        onClick={() => {
-                          updateEditedField('service', name);
-                          updateEditedField('time', '');
-                          setEditAvailableSlots([]);
-                          if (editedAppointment.date) fetchEditAvailableSlots(editedAppointment.date, name, selectedAppointment?.id);
-                          setShowEditServicePicker(false);
-                        }}
-                        className={`w-full p-4 rounded-2xl text-left transition-colors flex items-center justify-between ${
-                          selected 
-                            ? 'bg-gray-900 text-white' 
-                            : 'bg-gray-50 active:bg-gray-100'
-                        }`}
-                      >
-                        <div>
-                          <p className="font-medium text-[15px]">{name}</p>
-                          {service.duration && (
-                            <p className={`text-[13px] mt-0.5 ${selected ? 'text-gray-400' : 'text-gray-500'}`}>
-                              {service.duration} {t('calendar.minutes')}
-                            </p>
-                          )}
-                        </div>
-                        {selected && <Check className="w-5 h-5 text-white" />}
-                      </button>
-                    );
-                  })}
-                </div>
-                <div style={{ height: 'calc(env(safe-area-inset-bottom, 0px) + 8px)' }} />
               </div>
             </motion.div>
           </>

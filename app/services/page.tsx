@@ -55,7 +55,7 @@ export default function ServicesPage() {
   });
   const [formError, setFormError] = useState<string | null>(null);
   const { showToast } = useToast();
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
 
   // Subscribe to settings
   useEffect(() => {
@@ -73,8 +73,8 @@ export default function ServicesPage() {
         .filter(s => s.active !== false)
         .map(s => ({
           id: s.id,
-          name: getServiceName(s),
-          description: getServiceDescription(s),
+          name: getServiceName(s, language),
+          description: getServiceDescription(s, language),
           duration: s.duration || 0,
           price: s.price || 0,
         }));
@@ -82,7 +82,7 @@ export default function ServicesPage() {
       setLoading(false);
     });
     return () => unsubscribe();
-  }, []);
+  }, [language]);
 
   // Duration options based on slot duration
   const durationOptions = useMemo(() => {

@@ -165,16 +165,16 @@ export const deleteService = async (serviceId: string): Promise<boolean> => {
 };
 
 /**
- * Helper to get service name in English (or fallback)
+ * Helper to get service name in specified language (with fallback)
  */
-export const getServiceName = (service: Service): string => {
-  return service.names?.en || service.name || 'Unnamed Service';
+export const getServiceName = (service: Service, language: 'en' | 'he' | 'ar' = 'en'): string => {
+  return service.names?.[language] || service.names?.en || service.name || 'Unnamed Service';
 };
 
 /**
- * Helper to get service description in English (or fallback)
+ * Helper to get service description in specified language (with fallback)
  */
-export const getServiceDescription = (service: Service): string => {
-  return service.descriptions?.en || service.description || '';
+export const getServiceDescription = (service: Service, language: 'en' | 'he' | 'ar' = 'en'): string => {
+  return service.descriptions?.[language] || service.descriptions?.en || service.description || '';
 };
 

@@ -51,7 +51,7 @@ export default function TimelineCalendar({
   slotDuration = 15,
   scrollLock = false,
 }: TimelineCalendarProps) {
-  const { t, isRTL } = useTranslation();
+  const { t, isRTL, language } = useTranslation();
   const [currentTime, setCurrentTime] = useState(new Date());
   const currentTimeRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -114,11 +114,21 @@ export default function TimelineCalendar({
 
   const blocks = useMemo(() => {
     const start = workingHours.start * 60;
-    return appointments.map(a => ({
-      ...a,
-      top: (timeToMinutes(a.time) - start) * MINUTE_HEIGHT + 4,
-      height: Math.max((timeToMinutes(a.endTime) - timeToMinutes(a.time)) * MINUTE_HEIGHT - 4, 52),
-    }));
+    const endOfDay = workingHours.end * 60;
+    
+    return appointments.map(a => {
+      const startMinutes = timeToMinutes(a.time);
+      const endMinutes = timeToMinutes(a.endTime);
+      
+      // Handle sessions that wrap past midnight (endTime < startTime means it crossed midnight)
+      const effectiveEndMinutes = endMinutes < startMinutes ? endOfDay : Math.min(endMinutes, endOfDay);
+      
+      return {
+        ...a,
+        top: (startMinutes - start) * MINUTE_HEIGHT + 4,
+        height: Math.max((effectiveEndMinutes - startMinutes) * MINUTE_HEIGHT - 4, 52),
+      };
+    });
   }, [appointments, workingHours]);
 
   // Track if this is the first load (for instant scroll) vs date change (for smooth scroll)
@@ -165,7 +175,7 @@ export default function TimelineCalendar({
 
   // Get translated day and month names
   const shortDayNames = useMemo(() => [
-    t('days.s'), t('days.m'), t('days.t'), t('days.w'), t('days.t'), t('days.f'), t('days.s')
+    t('days.calSun'), t('days.calMon'), t('days.calTue'), t('days.calWed'), t('days.calThu'), t('days.calFri'), t('days.calSat')
   ], [t]);
 
   const monthNames = useMemo(() => [
@@ -366,7 +376,7 @@ export default function TimelineCalendar({
             {/* Day Headers */}
             <div className="grid grid-cols-7 gap-1 mb-2">
               {shortDayNames.map((day, i) => (
-                <div key={i} className="text-center text-[11px] font-semibold text-gray-400 uppercase py-1">
+                <div key={i} className={`text-center font-semibold text-gray-400 py-1 ${language === 'ar' ? 'text-[9px]' : 'text-[11px] uppercase'}`}>
                   {day}
                 </div>
               ))}
@@ -496,7 +506,7 @@ export default function TimelineCalendar({
             initial={{ opacity: 0.5 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.15, ease: "easeOut" }}
-            className={`p-3 sm:p-4 ${appointments.length === 0 ? 'opacity-30' : ''}`}
+            className={`p-3 sm:p-4 pb-24 ${appointments.length === 0 ? 'opacity-30' : ''}`}
           >
             <div className="relative" style={{ height: timelineHeight }} onClick={handleClick}>
               {/* Time Grid */}
@@ -576,14 +586,14 @@ export default function TimelineCalendar({
                             ? 'bg-gray-100 ring-1 ring-gray-200/50 opacity-60'
                             : 'bg-white ring-1 ring-gray-300 shadow-md'
                         }`}>
-                          <div className="h-full flex" dir="ltr">
+                          <div className={`h-full flex ${isRTL ? 'flex-row-reverse' : ''}`}>
                             {/* Accent Bar */}
                             <div className={`w-1 flex-shrink-0 ${
                               isNow ? 'bg-white/20' : isPending ? 'bg-amber-400' : apt.isPast ? 'bg-gray-300' : apt.avatar.color
                             }`} />
                             
                             {/* Content */}
-                            <div className={`flex-1 px-2.5 flex flex-col justify-center min-w-0 ${isCompact ? 'py-0.5' : 'py-2'}`}>
+                            <div className={`flex-1 px-2.5 flex flex-col justify-center min-w-0 ${isCompact ? 'py-0.5' : 'py-2'}`} dir={isRTL ? 'rtl' : 'ltr'}>
                               <div className="flex items-center gap-1.5">
                                 <p className={`font-semibold truncate ${isNow ? 'text-white' : isPending ? 'text-amber-900' : apt.isPast ? 'text-gray-400' : 'text-gray-900'} ${isCompact ? 'text-xs' : 'text-sm'}`}>
                                   {apt.client}
@@ -687,11 +697,19 @@ export default function TimelineCalendar({
               {weekDates.map((day) => {
                 const dayAppointments = day.appointments;
                 const start = workingHours.start * 60;
-                const dayBlocks = dayAppointments.map(a => ({
-                  ...a,
-                  top: (timeToMinutes(a.time) - start) * (MINUTE_HEIGHT * 0.4),
-                  height: Math.max((timeToMinutes(a.endTime) - timeToMinutes(a.time)) * (MINUTE_HEIGHT * 0.4), 24),
-                }));
+                const endOfDay = workingHours.end * 60;
+                const dayBlocks = dayAppointments.map(a => {
+                  const startMinutes = timeToMinutes(a.time);
+                  const endMinutes = timeToMinutes(a.endTime);
+                  // Handle sessions that wrap past midnight
+                  const effectiveEndMinutes = endMinutes < startMinutes ? endOfDay : Math.min(endMinutes, endOfDay);
+                  
+                  return {
+                    ...a,
+                    top: (startMinutes - start) * (MINUTE_HEIGHT * 0.4),
+                    height: Math.max((effectiveEndMinutes - startMinutes) * (MINUTE_HEIGHT * 0.4), 24),
+                  };
+                });
                 
                 return (
                   <div 

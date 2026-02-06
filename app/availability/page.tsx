@@ -32,7 +32,16 @@ interface CustomDate {
 
 export default function AvailabilityPage() {
   const { showToast } = useToast();
-  const { t, isRTL } = useTranslation();
+  const { t, isRTL, language } = useTranslation();
+  
+  // Get locale for date formatting
+  const getLocale = () => {
+    switch (language) {
+      case 'he': return 'he-IL';
+      case 'ar': return 'ar-SA';
+      default: return 'en-US';
+    }
+  };
   
   const [expandedDay, setExpandedDay] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"weekly" | "planning" | "specials">("weekly");
@@ -305,7 +314,7 @@ export default function AvailabilityPage() {
   };
 
   const formatDateDisplay = (date: Date) => {
-    return date.toLocaleDateString("en-US", {
+    return date.toLocaleDateString(getLocale(), {
       weekday: "long",
       month: "long",
       day: "numeric",
@@ -501,10 +510,10 @@ export default function AvailabilityPage() {
 
       const recurringPatternText = specialForm.recurring
         ? specialForm.recurringPattern === "yearly"
-          ? `Yearly on ${new Date(specialForm.date).toLocaleDateString("en-US", { month: "long", day: "numeric" })}`
+          ? `Yearly on ${new Date(specialForm.date).toLocaleDateString(getLocale(), { month: "long", day: "numeric" })}`
           : specialForm.recurringPattern === "monthly"
           ? `Monthly on day ${new Date(specialForm.date).getDate()}`
-          : `Weekly on ${new Date(specialForm.date).toLocaleDateString("en-US", { weekday: "long" })}`
+          : `Weekly on ${new Date(specialForm.date).toLocaleDateString(getLocale(), { weekday: "long" })}`
         : undefined;
 
       const specialDayData: any = {
@@ -691,6 +700,7 @@ export default function AvailabilityPage() {
           loading={loading}
           t={t}
           isRTL={isRTL}
+          language={language}
         />
       )}
 
@@ -705,6 +715,7 @@ export default function AvailabilityPage() {
           loading={loading}
           t={t}
           isRTL={isRTL}
+          language={language}
         />
       )}
 
@@ -789,15 +800,14 @@ export default function AvailabilityPage() {
                       </div>
                       <button
                         onClick={() => setSpecialForm({ ...specialForm, recurring: !specialForm.recurring })}
+                        dir="ltr"
                         className={`toggle-switch relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors ${
                           specialForm.recurring ? "bg-gray-800" : "bg-gray-300"
                         }`}
                       >
                         <span
                           className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-sm transition-transform ${
-                            isRTL
-                              ? (specialForm.recurring ? 'translate-x-[2px]' : 'translate-x-[22px]')
-                              : (specialForm.recurring ? 'translate-x-[22px]' : 'translate-x-[2px]')
+                            specialForm.recurring ? 'translate-x-[22px]' : 'translate-x-[2px]'
                           }`}
                         />
                       </button>
@@ -984,15 +994,14 @@ function WeeklyScheduleTab({
                 <div className="flex items-center gap-3">
                   <button
                     onClick={() => toggleDay(day.id)}
+                    dir="ltr"
                     className={`toggle-switch relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors ${
                       isEnabled ? "bg-gray-800" : "bg-gray-300"
                     }`}
                   >
                     <span
                       className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-sm transition-transform ${
-                        isRTL
-                          ? (isEnabled ? 'translate-x-[2px]' : 'translate-x-[22px]')
-                          : (isEnabled ? 'translate-x-[22px]' : 'translate-x-[2px]')
+                        isEnabled ? 'translate-x-[22px]' : 'translate-x-[2px]'
                       }`}
                     />
                   </button>
@@ -1232,7 +1241,7 @@ function WeeklyScheduleTab({
         <button
           onClick={onSave}
           disabled={saving || !hasAnySlots}
-          className="w-full inline-flex items-center justify-center gap-2 px-6 py-3 bg-gray-800 text-white text-sm font-semibold rounded-xl hover:bg-gray-700 transition-all active:scale-95 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+          className={`w-full inline-flex items-center justify-center gap-2 px-6 py-3 bg-gray-800 text-white text-sm font-semibold rounded-xl hover:bg-gray-700 transition-all active:scale-95 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed ${isRTL ? 'flex-row-reverse' : ''}`}
           title={!hasAnySlots ? t('availability.weekly.addSlotToSave') : ""}
         >
           {saving ? (
@@ -1281,7 +1290,16 @@ function PlanningTab({
   loading,
   t,
   isRTL,
+  language,
 }: any) {
+  // Get locale for date formatting
+  const getLocale = () => {
+    switch (language) {
+      case 'he': return 'he-IL';
+      case 'ar': return 'ar-SA';
+      default: return 'en-US';
+    }
+  };
   // Skeleton for loading state
   if (loading) {
     return (
@@ -1333,7 +1351,7 @@ function PlanningTab({
       <div className="lg:col-span-1 bg-white border border-gray-200 rounded-2xl p-4">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-base font-semibold text-gray-900">
-            {currentMonth.toLocaleDateString("en-US", { month: "long", year: "numeric" })}
+            {currentMonth.toLocaleDateString(getLocale(), { month: "long", year: "numeric" })}
           </h2>
           <div className="flex items-center gap-1">
             <button
@@ -1352,8 +1370,16 @@ function PlanningTab({
         </div>
 
         <div className="grid grid-cols-7 gap-1">
-          {[t('days.s'), t('days.m'), t('days.t'), t('days.w'), t('days.t'), t('days.f'), t('days.s')].map((day, i) => (
-            <div key={i} className="text-center text-xs font-medium text-gray-500 py-2">
+          {[
+            t('days.calSun'),
+            t('days.calMon'),
+            t('days.calTue'),
+            t('days.calWed'),
+            t('days.calThu'),
+            t('days.calFri'),
+            t('days.calSat')
+          ].map((day, i) => (
+            <div key={i} className={`text-center font-medium text-gray-500 py-2 ${language === 'ar' ? 'text-[10px]' : 'text-xs'}`}>
               {day}
             </div>
           ))}
@@ -1470,7 +1496,7 @@ function PlanningTab({
               <button
                 onClick={onSave}
                 disabled={saving || !selectedDate}
-                className="w-full inline-flex items-center justify-center gap-2 px-6 py-3 bg-gray-800 text-white text-sm font-semibold rounded-xl hover:bg-gray-700 transition-all active:scale-95 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                className={`w-full inline-flex items-center justify-center gap-2 px-6 py-3 bg-gray-800 text-white text-sm font-semibold rounded-xl hover:bg-gray-700 transition-all active:scale-95 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed ${isRTL ? 'flex-row-reverse' : ''}`}
               >
                 {saving ? (
                   <>
@@ -1501,7 +1527,7 @@ function PlanningTab({
 }
 
 // Specials Tab Component
-function SpecialsTab({ specialDays, deleteSpecialDay, openAddSpecialModal, openEditSpecialModal, loading, t, isRTL }: any) {
+function SpecialsTab({ specialDays, deleteSpecialDay, openAddSpecialModal, openEditSpecialModal, loading, t, isRTL, language }: any) {
   const recurringDays = specialDays.filter((day: SpecialDay) => day.recurring);
   const oneTimeDays = specialDays.filter((day: SpecialDay) => !day.recurring);
 
@@ -1581,6 +1607,7 @@ function SpecialsTab({ specialDays, deleteSpecialDay, openAddSpecialModal, openE
                     openEditSpecialModal={openEditSpecialModal}
                     deleteSpecialDay={deleteSpecialDay}
                     isRTL={isRTL}
+                    language={language}
                   />
                 ))}
               </div>
@@ -1607,6 +1634,7 @@ function SpecialsTab({ specialDays, deleteSpecialDay, openAddSpecialModal, openE
                     openEditSpecialModal={openEditSpecialModal}
                     deleteSpecialDay={deleteSpecialDay}
                     isRTL={isRTL}
+                    language={language}
                   />
                 ))}
               </div>
@@ -1644,7 +1672,16 @@ function SpecialsTab({ specialDays, deleteSpecialDay, openAddSpecialModal, openE
 }
 
 // Special Day Card Component
-function SpecialDayCard({ special, index, openEditSpecialModal, deleteSpecialDay, isRTL }: any) {
+function SpecialDayCard({ special, index, openEditSpecialModal, deleteSpecialDay, isRTL, language }: any) {
+  // Get locale for date formatting
+  const getLocale = () => {
+    switch (language) {
+      case 'he': return 'he-IL';
+      case 'ar': return 'ar-SA';
+      default: return 'en-US';
+    }
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -1674,7 +1711,7 @@ function SpecialDayCard({ special, index, openEditSpecialModal, deleteSpecialDay
             <p className="text-sm text-gray-600 mb-1.5">
               {special.dates.map((date: string, i: number) => (
                 <span key={i}>
-                  {new Date(date).toLocaleDateString("en-US", {
+                  {new Date(date).toLocaleDateString(getLocale(), {
                     weekday: "short",
                     month: "short",
                     day: "numeric",

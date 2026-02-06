@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence, PanInfo } from "framer-motion";
 import { Check, X, Info, AlertTriangle } from "lucide-react";
+import { useTranslation } from "../i18n";
 
 export type ToastType = "success" | "error" | "info" | "warning";
 
@@ -19,6 +20,7 @@ interface ToastProps {
 }
 
 const ToastComponent = ({ toast, onRemove }: ToastProps) => {
+  const { isRTL } = useTranslation();
   const [progress, setProgress] = useState(100);
   const duration = toast.duration || 4000;
 
@@ -88,7 +90,7 @@ const ToastComponent = ({ toast, onRemove }: ToastProps) => {
       className="relative overflow-hidden cursor-grab active:cursor-grabbing bg-gray-900 rounded-2xl shadow-lg w-full max-w-[320px]"
     >
       {/* Inner content */}
-      <div className="relative flex items-center gap-3 px-4 py-3">
+      <div className={`relative flex items-center gap-3 px-4 py-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
         {/* Icon */}
         <motion.div 
           initial={{ scale: 0 }}
@@ -100,7 +102,7 @@ const ToastComponent = ({ toast, onRemove }: ToastProps) => {
         </motion.div>
         
         {/* Message */}
-        <p className="flex-1 text-[13px] font-medium text-white leading-snug">
+        <p className={`flex-1 text-[13px] font-medium text-white leading-snug ${isRTL ? 'text-right' : ''}`}>
           {toast.message}
         </p>
         
@@ -117,7 +119,7 @@ const ToastComponent = ({ toast, onRemove }: ToastProps) => {
       {/* Progress bar */}
       <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-white/10">
         <motion.div 
-          className="h-full bg-white/30"
+          className={`h-full bg-white/30 ${isRTL ? 'ml-auto' : ''}`}
           initial={{ width: "100%" }}
           animate={{ width: `${progress}%` }}
           transition={{ duration: 0.016, ease: "linear" }}

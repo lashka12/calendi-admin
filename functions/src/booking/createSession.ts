@@ -35,6 +35,7 @@ export const createSession = onCall(
         phone,
         email,
         service,
+        serviceId,
         date,
         time,
         duration,
@@ -46,6 +47,7 @@ export const createSession = onCall(
         phone: string;
         email?: string;
         service: string;
+        serviceId?: string; // Reference to service document for multi-language lookups
         date: string; // YYYY-MM-DD
         time: string; // HH:MM
         duration?: number; // in minutes
@@ -58,6 +60,7 @@ export const createSession = onCall(
         clientName,
         phone,
         service,
+        serviceId,
         date,
         time,
         duration,
@@ -181,6 +184,9 @@ export const createSession = onCall(
         status: "approved",
         createdAt: Timestamp.now(),
       };
+
+      // Add serviceId for multi-language service name lookups
+      if (serviceId) sessionData.serviceId = serviceId;
 
       // Add optional fields if provided
       if (email) sessionData.email = email.trim();

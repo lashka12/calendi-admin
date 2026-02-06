@@ -519,19 +519,6 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                         );
                       })}
                     </div>
-                    
-                    {/* Sign Out Button */}
-                    <button
-                      onClick={() => {
-                        setMoreMenuOpen(false);
-                        handleLogout();
-                      }}
-                      disabled={isLoggingOut}
-                      className="w-full mt-3 py-3.5 bg-white rounded-2xl text-red-600 text-[15px] font-medium active:bg-gray-50 transition-colors disabled:opacity-50 shadow-sm flex items-center justify-center gap-2"
-                    >
-                      <LogOut className="w-4 h-4" />
-                      {isLoggingOut ? `${t('nav.signOut')}...` : t('nav.signOut')}
-                    </button>
                   </div>
                   
                   {/* Safe area padding */}

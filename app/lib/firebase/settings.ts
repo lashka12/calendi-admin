@@ -15,6 +15,8 @@ export interface BusinessSettings {
   advanceBookingLimit?: number;
   /** Minimum hours notice required before booking (default: 1) */
   minBookingNotice?: number;
+  /** Whether to show prices in the booking UI (default: true) */
+  showPrices?: boolean;
 }
 
 /**

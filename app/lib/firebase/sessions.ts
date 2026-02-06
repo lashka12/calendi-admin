@@ -7,7 +7,8 @@ export interface Session {
   clientName: string;
   phone: string;
   email?: string;
-  service: string;
+  service: string; // Cached service name (fallback if service deleted)
+  serviceId?: string; // Reference to service document for dynamic lookups
   date: string; // YYYY-MM-DD
   time: string; // HH:MM
   duration?: number; // in minutes
@@ -118,6 +119,7 @@ export const createSession = async (sessionData: {
   phone: string;
   email?: string;
   service: string;
+  serviceId?: string; // Reference to service document
   date: string; // YYYY-MM-DD
   time: string; // HH:MM
   duration?: number; // in minutes
