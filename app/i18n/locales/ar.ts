@@ -19,6 +19,7 @@ const ar = {
     tomorrow: 'غداً',
     yesterday: 'أمس',
     call: 'اتصل',
+    soon: 'قريباً',
   },
 
   // Navigation / DashboardLayout
@@ -93,6 +94,7 @@ const ar = {
       startsIn: 'يبدأ خلال',
       minSession: 'دقيقة جلسة',
       viewFullDetails: 'عرض التفاصيل الكاملة',
+      addToCustomers: 'إضافة للعملاء',
     },
     weekDayModal: {
       noSessions: 'لا توجد جلسات',
@@ -493,6 +495,10 @@ const ar = {
       regional: 'الإعدادات الإقليمية',
       regionalDesc: 'تخصيص تفضيلاتك الإقليمية',
       language: 'اللغة',
+      theme: 'المظهر',
+      themeLight: 'فاتح',
+      themeDark: 'داكن',
+      themeSystem: 'النظام',
       dateFormat: 'تنسيق التاريخ',
       timeFormat: 'تنسيق الوقت',
       time12h: '12 ساعة (AM/PM)',

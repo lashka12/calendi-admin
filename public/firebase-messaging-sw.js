@@ -1,7 +1,7 @@
 // Service worker for PWA + Push Notifications
 // Minimal caching - only offline page for graceful degradation
 
-const CACHE_NAME = 'calendi-offline-v1';
+const CACHE_NAME = 'calendi-offline-v3';
 const OFFLINE_URL = '/offline.html';
 
 // Import Firebase scripts for push notifications
@@ -31,8 +31,8 @@ messaging.onBackgroundMessage((payload) => {
   
   self.registration.showNotification(title, {
     body: body,
-    icon: '/icons/icon-192.svg',
-    badge: '/icons/icon-192.svg',
+    icon: '/icons/icon-192.png',
+    badge: '/icons/icon-192.png',
     vibrate: [200, 100, 200],
     tag: 'new-request', // Replaces previous notification of same tag
     renotify: true,

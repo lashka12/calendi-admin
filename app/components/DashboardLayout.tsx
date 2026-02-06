@@ -3,6 +3,7 @@
 import { useState, useEffect, ReactNode, useMemo } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { useScrollLock } from "@/app/lib/hooks/useScrollLock";
 import {
   Home,
   Calendar,
@@ -96,17 +97,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     };
   }, []);
 
-  // Lock body scroll when more menu is open
-  useEffect(() => {
-    if (moreMenuOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
-    }
-    return () => {
-      document.body.style.overflow = '';
-    };
-  }, [moreMenuOpen]);
+  // Lock body scroll when more menu is open - iOS compatible
+  useScrollLock(moreMenuOpen);
 
   // Computed user display values
   const userName = userProfile 
@@ -172,7 +164,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   };
 
   return (
-    <div className="min-h-screen bg-[#faf9f7]">
+    <div className="min-h-screen theme-bg-primary">
       {/* Mobile sidebar overlay */}
       <AnimatePresence>
         {sidebarOpen && (
@@ -181,32 +173,32 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setSidebarOpen(false)}
-            className="fixed left-0 right-0 bottom-0 bg-gray-800/50 z-40 lg:hidden"
-            style={{ top: 'calc(-1 * env(safe-area-inset-top, 0px))' }}
+            className="fixed left-0 right-0 bottom-0 z-40 lg:hidden"
+            style={{ top: 'calc(-1 * env(safe-area-inset-top, 0px))', backgroundColor: 'var(--color-overlay)' }}
           />
         )}
       </AnimatePresence>
 
       {/* Sidebar */}
       <aside
-        className={`fixed top-0 left-0 z-50 h-full w-72 bg-white border-r border-gray-200 transition-transform duration-300 ease-in-out lg:translate-x-0 ${
+        className={`fixed top-0 left-0 z-50 h-full w-72 theme-bg-secondary theme-border border-r transition-transform duration-300 ease-in-out lg:translate-x-0 ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
         <div className="flex flex-col h-full">
           {/* Logo */}
-          <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200">
+          <div className="flex items-center justify-between h-16 px-6 theme-border border-b">
             <Link href="/" className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-gray-800 rounded-xl flex items-center justify-center">
-                <span className="text-white font-bold text-sm">C</span>
+              <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ backgroundColor: 'var(--color-accent)' }}>
+                <span style={{ color: 'var(--color-text-inverted)' }} className="font-bold text-sm">C</span>
               </div>
-              <span className="text-lg font-semibold text-gray-900">Calendi</span>
+              <span className="text-lg font-semibold theme-text-primary">Calendi</span>
             </Link>
             <button
               onClick={() => setSidebarOpen(false)}
-              className="lg:hidden p-2 hover:bg-gray-100 rounded-xl transition-colors"
+              className="lg:hidden p-2 hover:theme-bg-tertiary rounded-xl transition-colors"
             >
-              <X className="w-5 h-5" />
+              <X className="w-5 h-5 theme-text-secondary" />
             </button>
           </div>
 
@@ -225,9 +217,10 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                   onClick={() => setSidebarOpen(false)}
                   className={`flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl transition-colors text-sm font-medium ${
                     isActive
-                      ? "bg-gray-800 text-white"
-                      : "text-gray-700 hover:bg-gray-100"
+                      ? "text-white"
+                      : "theme-text-secondary hover:theme-bg-tertiary"
                   }`}
+                  style={isActive ? { backgroundColor: 'var(--color-accent)' } : undefined}
                 >
                   <div className="flex items-center gap-3">
                     <Icon 
@@ -255,21 +248,21 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           </nav>
 
           {/* User profile */}
-          <div className="p-4 border-t border-gray-200">
+          <div className="p-4 theme-border border-t">
             <div className="relative">
               <button
                 onClick={() => setProfileMenuOpen(!profileMenuOpen)}
-                className="w-full flex items-center gap-3 p-2 hover:bg-gray-100 rounded-xl transition-colors"
+                className="w-full flex items-center gap-3 p-2 hover:theme-bg-tertiary rounded-xl transition-colors"
               >
                 <div className={`w-10 h-10 rounded-full flex items-center justify-center ${avatarColor} text-white font-semibold text-sm`}>
                   {userInitials}
                 </div>
                 <div className="flex-1 text-left">
-                  <p className="text-sm font-medium text-gray-900">{userName}</p>
-                  <p className="text-xs text-gray-500">{settings.businessName}</p>
+                  <p className="text-sm font-medium theme-text-primary">{userName}</p>
+                  <p className="text-xs theme-text-secondary">{settings.businessName}</p>
                 </div>
                 <ChevronDown
-                  className={`w-4 h-4 text-gray-400 transition-transform ${
+                  className={`w-4 h-4 theme-text-tertiary transition-transform ${
                     profileMenuOpen ? "rotate-180" : ""
                   }`}
                 />
@@ -282,20 +275,20 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
-                    className="absolute bottom-full left-0 right-0 mb-2 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden"
+                    className="absolute bottom-full left-0 right-0 mb-2 theme-bg-secondary theme-border border rounded-xl shadow-lg overflow-hidden"
                   >
                     <Link
                       href="/settings"
-                      className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-sm"
+                      className="flex items-center gap-3 px-4 py-3 hover:theme-bg-hover transition-colors text-sm"
                     >
-                      <Settings className="w-4 h-4 text-gray-500" />
-                      <span className="text-gray-900">{t('nav.settings')}</span>
+                      <Settings className="w-4 h-4 theme-text-secondary" />
+                      <span className="theme-text-primary">{t('nav.settings')}</span>
                     </Link>
-                    <div className="border-t border-gray-200">
+                    <div className="theme-border border-t">
                       <button
                         onClick={handleLogout}
                         disabled={isLoggingOut}
-                        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-sm text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="w-full flex items-center gap-3 px-4 py-3 hover:theme-bg-hover transition-colors text-sm theme-text-secondary disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         <LogOut className="w-4 h-4" />
                         <span>{isLoggingOut ? `${t('nav.signOut')}...` : t('nav.signOut')}</span>
@@ -312,38 +305,38 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       {/* Main content */}
       <div className="lg:pl-72 pt-safe lg:pt-0">
         {/* Top navbar - hidden on mobile */}
-        <header className="hidden lg:block sticky top-0 z-30 h-16 bg-white border-b border-gray-200">
+        <header className="hidden lg:block sticky top-0 z-30 h-16 theme-bg-secondary theme-border border-b">
           <div className="h-full px-4 sm:px-6 lg:px-8 flex items-center justify-between">
             <div className="flex items-center gap-4">
               {/* Logo for mobile */}
               <Link href="/" className="lg:hidden flex items-center gap-2">
-                <div className="w-8 h-8 bg-gray-800 rounded-xl flex items-center justify-center">
-                  <span className="text-white font-bold text-sm">C</span>
+                <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ backgroundColor: 'var(--color-accent)' }}>
+                  <span style={{ color: 'var(--color-text-inverted)' }} className="font-bold text-sm">C</span>
                 </div>
-                <span className="text-lg font-semibold text-gray-900">Calendi</span>
+                <span className="text-lg font-semibold theme-text-primary">Calendi</span>
               </Link>
 
               {/* Search bar */}
               <div className="hidden sm:block relative">
-                <Search className={`absolute ${isRTL ? 'right-3' : 'left-3'} top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400`} />
+                <Search className={`absolute ${isRTL ? 'right-3' : 'left-3'} top-1/2 transform -translate-y-1/2 w-4 h-4 theme-text-tertiary`} />
                 <input
                   type="text"
                   placeholder={`${t('common.search')}...`}
-                  className={`w-64 ${isRTL ? 'pr-10 pl-4' : 'pl-10 pr-4'} py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent`}
+                  className={`w-64 ${isRTL ? 'pr-10 pl-4' : 'pl-10 pr-4'} py-2 theme-border border rounded-xl text-sm theme-bg-secondary theme-text-primary focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent`}
                 />
               </div>
             </div>
 
             <div className="flex items-center gap-3">
               {/* Notifications */}
-              <button className="relative p-2 hover:bg-gray-100 rounded-xl transition-colors">
-                <Bell className="w-5 h-5 text-gray-600" />
+              <button className="relative p-2 hover:theme-bg-tertiary rounded-xl transition-colors">
+                <Bell className="w-5 h-5 theme-text-secondary" />
                 <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full"></span>
               </button>
 
               {/* Mobile search */}
-              <button className="sm:hidden p-2 hover:bg-gray-100 rounded-xl transition-colors">
-                <Search className="w-5 h-5 text-gray-600" />
+              <button className="sm:hidden p-2 hover:theme-bg-tertiary rounded-xl transition-colors">
+                <Search className="w-5 h-5 theme-text-secondary" />
               </button>
             </div>
           </div>
@@ -363,7 +356,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
         {/* Simple, polished navigation bar - icons only */}
         <nav
-          className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-200"
+          className="lg:hidden fixed bottom-0 left-0 right-0 z-40 theme-bg-secondary theme-border border-t"
           style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
         >
           <div className="flex h-12 items-center">
@@ -383,10 +376,10 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                     <Icon
                       className={`w-6 h-6 ${
                         isActive 
-                          ? "text-gray-900" 
+                          ? "theme-text-primary" 
                           : hasBadge 
-                            ? "text-gray-700" 
-                            : "text-gray-400"
+                            ? "theme-text-secondary" 
+                            : "theme-text-tertiary"
                       }`}
                       strokeWidth={isActive ? 2.2 : hasBadge ? 2 : 1.8}
                     />
@@ -405,9 +398,11 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               type="button"
               className="flex-1 flex items-center justify-center h-12 active:scale-95 transition-transform"
             >
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold text-white bg-gray-900 ${
-                moreMenuOpen ? 'ring-2 ring-gray-900 ring-offset-2' : ''
-              }`}>
+              <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold" style={{ 
+                backgroundColor: 'var(--color-accent)', 
+                color: 'var(--color-text-inverted)',
+                boxShadow: moreMenuOpen ? '0 0 0 2px var(--color-bg-secondary), 0 0 0 4px var(--color-accent)' : 'none'
+              }}>
                 {userInitials}
               </div>
             </button>
@@ -426,7 +421,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                 transition={{ duration: 0.25, ease: "easeOut" }}
                 onClick={() => setMoreMenuOpen(false)}
                 onTouchMove={(e) => e.preventDefault()}
-                className="lg:hidden fixed -top-20 -left-4 -right-4 -bottom-20 bg-black/60 z-50 touch-none overscroll-contain"
+                className="lg:hidden fixed -top-20 -left-4 -right-4 -bottom-20 z-50 touch-none overscroll-contain"
+                style={{ backgroundColor: 'var(--color-overlay)' }}
               />
 
               {/* Modal Sheet */}
@@ -435,36 +431,36 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                 animate={{ y: 0 }}
                 exit={{ y: "100%" }}
                 transition={{ duration: 0.35, ease: [0.32, 0.72, 0, 1] }}
-                className="lg:hidden fixed bottom-0 left-0 right-0 z-50"
+                className="lg:hidden fixed bottom-0 left-0 right-0 z-50 touch-none"
               >
-                <div className="bg-[#faf9f7] rounded-t-[28px] shadow-2xl overflow-hidden">
+                <div className="theme-bg-primary rounded-t-[28px] shadow-2xl overflow-hidden touch-auto">
                   {/* Handle */}
                   <div className="flex justify-center pt-2.5 pb-1">
-                    <div className="w-9 h-[5px] bg-gray-300 rounded-full" />
+                    <div className="w-9 h-[5px] theme-bg-tertiary rounded-full" />
                   </div>
                   
                   {/* Header with Profile */}
                   <div className="px-5 pt-1 pb-4 flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-full flex items-center justify-center bg-gray-900 text-white font-semibold">
+                      <div className="w-12 h-12 rounded-full flex items-center justify-center font-semibold" style={{ backgroundColor: 'var(--color-accent)', color: 'var(--color-text-inverted)' }}>
                         {userInitials}
                       </div>
                       <div>
-                        <h2 className="text-[18px] font-bold text-gray-900">{userName}</h2>
-                        <p className="text-[13px] text-gray-500">{settings.businessName}</p>
+                        <h2 className="text-[18px] font-bold theme-text-primary">{userName}</h2>
+                        <p className="text-[13px] theme-text-secondary">{settings.businessName}</p>
                       </div>
                     </div>
                     <button 
                       onClick={() => setMoreMenuOpen(false)} 
-                      className="w-8 h-8 flex items-center justify-center bg-gray-200/80 hover:bg-gray-300 rounded-full transition-colors"
+                      className="w-8 h-8 flex items-center justify-center theme-bg-tertiary hover:theme-bg-active rounded-full transition-colors"
                     >
-                      <X className="w-4 h-4 text-gray-600" />
+                      <X className="w-4 h-4 theme-text-secondary" />
                     </button>
                   </div>
                   
                   {/* Menu Items */}
                   <div className="px-4 pb-2">
-                    <div className="bg-white rounded-2xl shadow-sm overflow-hidden divide-y divide-gray-100">
+                    <div className="theme-bg-secondary rounded-2xl shadow-sm overflow-hidden divide-y divide-theme">
                       {moreMenuItems.map((item) => {
                         const Icon = item.icon;
                         const isActive = pathname === item.href;
@@ -475,19 +471,20 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                             <div
                               key={item.name}
                               className="flex items-center gap-3 px-4 py-3.5 opacity-50 cursor-not-allowed"
+                              style={{ borderColor: 'var(--color-border-secondary)' }}
                             >
-                              <div className="w-9 h-9 rounded-xl flex items-center justify-center bg-gray-100">
-                                <Icon className="w-5 h-5 text-gray-400" />
+                              <div className="w-9 h-9 rounded-xl flex items-center justify-center theme-bg-tertiary">
+                                <Icon className="w-5 h-5 theme-text-tertiary" />
                               </div>
                               <div className="flex-1 min-w-0">
-                                <span className="block text-[15px] font-medium text-gray-500">
+                                <span className="block text-[15px] font-medium theme-text-secondary">
                                   {item.name}
                                 </span>
-                                <span className="block text-[12px] text-gray-400">
+                                <span className="block text-[12px] theme-text-tertiary">
                                   {item.description}
                                 </span>
                               </div>
-                              <span className="text-[11px] font-medium text-gray-400 bg-gray-100 px-2 py-1 rounded-full">
+                              <span className="text-[11px] font-medium theme-text-tertiary theme-bg-tertiary px-2 py-1 rounded-full">
                                 Soon
                               </span>
                             </div>
@@ -499,22 +496,23 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                             key={item.name}
                             href={item.href}
                             onClick={() => setMoreMenuOpen(false)}
-                            className="flex items-center gap-3 px-4 py-3.5 active:bg-gray-50 transition-colors"
+                            className="flex items-center gap-3 px-4 py-3.5 active:theme-bg-hover transition-colors"
+                            style={{ borderColor: 'var(--color-border-secondary)' }}
                           >
                             <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${
-                              isActive ? "bg-gray-900" : "bg-gray-100"
-                            }`}>
-                              <Icon className={`w-5 h-5 ${isActive ? "text-white" : "text-gray-600"}`} />
+                              isActive ? "" : "theme-bg-tertiary"
+                            }`} style={isActive ? { backgroundColor: 'var(--color-accent)' } : undefined}>
+                              <Icon className={`w-5 h-5 ${isActive ? "" : "theme-text-secondary"}`} style={isActive ? { color: 'var(--color-text-inverted)' } : undefined} />
                             </div>
                             <div className="flex-1 min-w-0">
-                              <span className="block text-[15px] font-medium text-gray-900">
+                              <span className="block text-[15px] font-medium theme-text-primary">
                                 {item.name}
                               </span>
-                              <span className="block text-[12px] text-gray-500">
+                              <span className="block text-[12px] theme-text-secondary">
                                 {item.description}
                               </span>
                             </div>
-                            <ChevronRight className={`w-5 h-5 text-gray-400 ${isRTL ? 'rotate-180' : ''}`} />
+                            <ChevronRight className={`w-5 h-5 theme-text-tertiary ${isRTL ? 'rotate-180' : ''}`} />
                           </Link>
                         );
                       })}

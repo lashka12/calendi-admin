@@ -2,6 +2,303 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ============================================
+   THEME SYSTEM - CSS Variables
+   Easy to maintain and extend with new themes
+   ============================================ */
+
+:root {
+  /* Light Theme (Default) */
+  --color-bg-primary: #faf9f7;
+  --color-bg-secondary: #ffffff;
+  --color-bg-tertiary: #f3f4f6;
+  --color-bg-hover: #f9fafb;
+  --color-bg-active: #f3f4f6;
+  --color-bg-card: #ffffff;
+  
+  --color-text-primary: #111827;
+  --color-text-secondary: #6b7280;
+  --color-text-tertiary: #9ca3af;
+  --color-text-muted: #d1d5db;
+  --color-text-inverted: #ffffff;
+  
+  --color-border-primary: #e5e7eb;
+  --color-border-secondary: #f3f4f6;
+  --color-border-card: #e5e7eb;
+  
+  --color-accent: #1e1a16;
+  --color-accent-hover: #332e28;
+  
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-error: #ef4444;
+  
+  --color-shadow: rgba(0, 0, 0, 0.1);
+  --color-overlay: rgba(0, 0, 0, 0.5);
+}
+
+[data-theme="dark"] {
+  /* Dark Theme - Professional grade, inspired by Linear/Vercel/GitHub
+     Using a cohesive neutral palette with clear hierarchy */
+  
+  /* Backgrounds - Clear elevation hierarchy */
+  --color-bg-primary: #0a0a0b;    /* Base canvas - slightly softer than pure black */
+  --color-bg-secondary: #141416;  /* Cards, modals - elevated surfaces */
+  --color-bg-tertiary: #1c1c1f;   /* Input fields, subtle fills */
+  --color-bg-hover: #202023;      /* Hover state - visible but subtle */
+  --color-bg-active: #27272b;     /* Active/pressed state */
+  --color-bg-card: #141416;       /* Same as secondary for consistency */
+  
+  /* Text - WCAG compliant with comfortable contrast */
+  --color-text-primary: #ececef;   /* Primary text - slightly off-white for less eye strain */
+  --color-text-secondary: #9898a0; /* Secondary text - clear hierarchy */
+  --color-text-tertiary: #5c5c66;  /* Muted text, placeholders */
+  --color-text-muted: #3e3e45;     /* Very subtle, decorative */
+  --color-text-inverted: #0a0a0b;  /* For light backgrounds */
+  
+  /* Borders - Subtle but visible */
+  --color-border-primary: #2a2a2e;  /* Primary borders - visible but not harsh */
+  --color-border-secondary: #1e1e22; /* Subtle dividers */
+  --color-border-card: #2a2a2e;     /* Card borders */
+  
+  /* Accent - Clean white for buttons/selected states */
+  --color-accent: #ececef;
+  --color-accent-hover: #d4d4d8;
+  
+  /* Semantic colors - Slightly muted for dark mode */
+  --color-success: #34d399;  /* Emerald-400 - easier on dark bg */
+  --color-warning: #fbbf24;  /* Amber-400 */
+  --color-error: #f87171;    /* Red-400 */
+  
+  /* Effects */
+  --color-shadow: rgba(0, 0, 0, 0.4);
+  --color-overlay: rgba(0, 0, 0, 0.7);
+}
+
+/* System preference auto-detection when theme is "system" */
+@media (prefers-color-scheme: dark) {
+  [data-theme="system"] {
+    /* Backgrounds - Clear elevation hierarchy */
+    --color-bg-primary: #0a0a0b;
+    --color-bg-secondary: #141416;
+    --color-bg-tertiary: #1c1c1f;
+    --color-bg-hover: #202023;
+    --color-bg-active: #27272b;
+    --color-bg-card: #141416;
+    
+    /* Text - WCAG compliant */
+    --color-text-primary: #ececef;
+    --color-text-secondary: #9898a0;
+    --color-text-tertiary: #5c5c66;
+    --color-text-muted: #3e3e45;
+    --color-text-inverted: #0a0a0b;
+    
+    /* Borders */
+    --color-border-primary: #2a2a2e;
+    --color-border-secondary: #1e1e22;
+    --color-border-card: #2a2a2e;
+    
+    /* Accent */
+    --color-accent: #ececef;
+    --color-accent-hover: #d4d4d8;
+    
+    /* Semantic */
+    --color-success: #34d399;
+    --color-warning: #fbbf24;
+    --color-error: #f87171;
+    
+    /* Effects */
+    --color-shadow: rgba(0, 0, 0, 0.4);
+    --color-overlay: rgba(0, 0, 0, 0.7);
+  }
+}
+
+/* Toggle switch theme-aware styles */
+.toggle-on {
+  background-color: #1e1a16;
+}
+.toggle-off {
+  background-color: #d1d5db;
+}
+
+[data-theme="dark"] .toggle-on,
+[data-theme="system"] .toggle-on {
+  background-color: #ececef;
+}
+[data-theme="dark"] .toggle-off,
+[data-theme="system"] .toggle-off {
+  background-color: #2a2a2e;
+}
+
+@media (prefers-color-scheme: light) {
+  [data-theme="system"] .toggle-on {
+    background-color: #1e1a16;
+  }
+  [data-theme="system"] .toggle-off {
+    background-color: #d1d5db;
+  }
+}
+
+/* Modal drag handle */
+.modal-handle {
+  background-color: #d1d5db;
+}
+[data-theme="dark"] .modal-handle {
+  background-color: #2a2a2e;
+}
+@media (prefers-color-scheme: dark) {
+  [data-theme="system"] .modal-handle {
+    background-color: #2a2a2e;
+  }
+}
+
+/* Disabled/muted row background - subtle emphasis */
+.disabled-row-bg {
+  background-color: #f9fafb;
+}
+[data-theme="dark"] .disabled-row-bg {
+  background-color: #0c0c0d;
+}
+@media (prefers-color-scheme: dark) {
+  [data-theme="system"] .disabled-row-bg {
+    background-color: #0c0c0d;
+  }
+}
+
+/* Theme-aware dividers - use with divide-y */
+.divide-theme {
+  --tw-divide-opacity: 1;
+}
+.divide-theme > :not([hidden]) ~ :not([hidden]) {
+  border-color: var(--color-border-secondary);
+}
+
+/* Primary action button - theme aware */
+.btn-action {
+  background-color: #1e1a16;
+  color: #ffffff;
+}
+.btn-action:hover {
+  background-color: #332e28;
+}
+[data-theme="dark"] .btn-action {
+  background-color: #ececef;
+  color: #0a0a0b;
+}
+[data-theme="dark"] .btn-action:hover {
+  background-color: #d4d4d8;
+}
+@media (prefers-color-scheme: dark) {
+  [data-theme="system"] .btn-action {
+    background-color: #ececef;
+    color: #0a0a0b;
+  }
+  [data-theme="system"] .btn-action:hover {
+    background-color: #d4d4d8;
+  }
+}
+
+/* Selected/Active tab or pill - theme aware */
+.selected-tab {
+  background-color: #1e1a16;
+  color: #ffffff;
+}
+[data-theme="dark"] .selected-tab {
+  background-color: #ececef;
+  color: #0a0a0b;
+}
+@media (prefers-color-scheme: dark) {
+  [data-theme="system"] .selected-tab {
+    background-color: #ececef;
+    color: #0a0a0b;
+  }
+}
+
+/* Appointment card - elevated look in dark mode */
+.appointment-card {
+  background-color: #ffffff;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+[data-theme="dark"] .appointment-card {
+  background-color: #181819;
+  border: 1px solid #2a2a2e;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+@media (prefers-color-scheme: dark) {
+  [data-theme="system"] .appointment-card {
+    background-color: #181819;
+    border: 1px solid #2a2a2e;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  }
+}
+
+/* Timeline time labels - better visibility */
+.timeline-time {
+  color: #9ca3af;
+}
+.timeline-time-hour {
+  color: #6b7280;
+}
+[data-theme="dark"] .timeline-time {
+  color: #5c5c66;
+}
+[data-theme="dark"] .timeline-time-hour {
+  color: #9898a0;
+}
+@media (prefers-color-scheme: dark) {
+  [data-theme="system"] .timeline-time {
+    color: #5c5c66;
+  }
+  [data-theme="system"] .timeline-time-hour {
+    color: #9898a0;
+  }
+}
+
+/* Timeline grid lines - subtle in dark mode */
+.timeline-grid-hour {
+  background-color: #e5e7eb;
+}
+.timeline-grid-minor {
+  background-color: #f3f4f6;
+}
+[data-theme="dark"] .timeline-grid-hour {
+  background-color: #1e1e22;
+}
+[data-theme="dark"] .timeline-grid-minor {
+  background-color: #141416;
+}
+@media (prefers-color-scheme: dark) {
+  [data-theme="system"] .timeline-grid-hour {
+    background-color: #1e1e22;
+  }
+  [data-theme="system"] .timeline-grid-minor {
+    background-color: #141416;
+  }
+}
+
+/* Phone icon in cards - more visible */
+.card-phone-icon {
+  color: #9ca3af;
+}
+.card-phone-icon:hover {
+  color: #6b7280;
+}
+[data-theme="dark"] .card-phone-icon {
+  color: #5c5c66;
+}
+[data-theme="dark"] .card-phone-icon:hover {
+  color: #9898a0;
+}
+@media (prefers-color-scheme: dark) {
+  [data-theme="system"] .card-phone-icon {
+    color: #5c5c66;
+  }
+  [data-theme="system"] .card-phone-icon:hover {
+    color: #9898a0;
+  }
+}
+
 @layer base {
   html {
     scroll-behavior: smooth;
@@ -19,8 +316,9 @@
   }
   
   body {
-    @apply text-gray-900;
-    background-color: #faf9f7;
+    color: var(--color-text-primary);
+    background-color: var(--color-bg-primary);
+    transition: background-color 0.2s ease, color 0.2s ease;
     /* Prevent swipe-to-navigate gestures (horizontal only) */
     overscroll-behavior-x: none;
     /* Allow pull-to-refresh (vertical overscroll) */
@@ -241,6 +539,23 @@
 }
 
 @layer components {
+  /* Theme-aware utility classes */
+  .theme-bg-primary { background-color: var(--color-bg-primary); }
+  .theme-bg-secondary { background-color: var(--color-bg-secondary); }
+  .theme-bg-tertiary { background-color: var(--color-bg-tertiary); }
+  .theme-bg-hover { background-color: var(--color-bg-hover); }
+  
+  .theme-text-primary { color: var(--color-text-primary); }
+  .theme-text-secondary { color: var(--color-text-secondary); }
+  .theme-text-tertiary { color: var(--color-text-tertiary); }
+  
+  .theme-border { border-color: var(--color-border-primary); }
+  .theme-border-secondary { border-color: var(--color-border-secondary); }
+  
+  /* Hover states */
+  .hover\:theme-bg-hover:hover { background-color: var(--color-bg-hover); }
+  .hover\:theme-bg-tertiary:hover { background-color: var(--color-bg-tertiary); }
+
   .btn-primary {
     @apply bg-gradient-to-r from-primary-600 to-primary-700 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-lg font-semibold text-base sm:text-lg hover:from-primary-700 hover:to-primary-800 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1;
   }

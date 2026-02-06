@@ -16,6 +16,7 @@ import { subscribeToBusinessSettings, type BusinessSettings, DEFAULT_SETTINGS } 
 import ConfirmationModal from "../components/ConfirmationModal";
 import { useToast } from "../lib/hooks/useToast";
 import { useTranslation } from "@/app/i18n";
+import { useScrollLock } from "@/app/lib/hooks/useScrollLock";
 
 interface ServiceDisplay {
   id: string;
@@ -56,6 +57,7 @@ export default function ServicesPage() {
   const [formError, setFormError] = useState<string | null>(null);
   const { showToast } = useToast();
   const { t, language } = useTranslation();
+  useScrollLock(modalOpen);
 
   // Subscribe to settings
   useEffect(() => {
@@ -212,7 +214,7 @@ export default function ServicesPage() {
         {[0, 1, 2, 3].map((i) => (
           <div 
             key={i} 
-            className="bg-white rounded-2xl border border-gray-200 p-4"
+            className="theme-bg-secondary rounded-2xl border theme-border p-4"
           >
             {/* Top row: Name + Price */}
             <div className="flex items-center justify-between gap-4 mb-3">
@@ -224,7 +226,7 @@ export default function ServicesPage() {
               </div>
             </div>
             {/* Description */}
-            <div className="h-3.5 w-3/4 bg-gray-100 rounded mb-3 overflow-hidden relative">
+            <div className="h-3.5 w-3/4 theme-bg-tertiary rounded mb-3 overflow-hidden relative">
               <div className="absolute inset-0 bg-gradient-to-r from-gray-100 via-gray-50 to-gray-100 animate-shimmer" />
             </div>
             {/* Bottom row: Duration */}
@@ -244,8 +246,8 @@ export default function ServicesPage() {
       {/* Desktop Header */}
       <div className="hidden lg:flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">{t('services.title')}</h1>
-          <p className="text-sm text-gray-500">{services.length} {t('services.activeServices')}</p>
+          <h1 className="text-2xl font-bold theme-text-primary">{t('services.title')}</h1>
+          <p className="text-sm theme-text-secondary">{services.length} {t('services.activeServices')}</p>
         </div>
         <button
           onClick={openAddModal}
@@ -263,7 +265,7 @@ export default function ServicesPage() {
         transition={{ delay: 0.2, type: "spring", stiffness: 400, damping: 25 }}
         whileTap={{ scale: 0.92 }}
         onClick={openAddModal}
-        className="lg:hidden fixed right-5 z-30 w-14 h-14 bg-white text-gray-900 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.12)] border border-gray-200 flex items-center justify-center"
+        className="lg:hidden fixed right-5 z-30 w-14 h-14 theme-bg-secondary theme-text-primary rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.12)] border theme-border flex items-center justify-center"
         style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 72px)' }}
       >
         <Plus className="w-6 h-6 stroke-[2.5]" />
@@ -274,13 +276,13 @@ export default function ServicesPage() {
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white rounded-2xl border border-gray-200 p-10 text-center"
+          className="theme-bg-secondary rounded-2xl border theme-border p-10 text-center"
         >
-          <div className="w-14 h-14 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+          <div className="w-14 h-14 theme-bg-tertiary rounded-2xl flex items-center justify-center mx-auto mb-4">
             <Clock className="w-7 h-7 text-gray-400" />
           </div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-1">{t('services.noServices')}</h3>
-          <p className="text-sm text-gray-500 mb-5">{t('services.addFirst')}</p>
+          <h3 className="text-lg font-semibold theme-text-primary mb-1">{t('services.noServices')}</h3>
+          <p className="text-sm theme-text-secondary mb-5">{t('services.addFirst')}</p>
           <button
             onClick={openAddModal}
             className="inline-flex items-center gap-2 px-5 py-2.5 bg-gray-900 text-white text-sm font-semibold rounded-xl"
@@ -295,29 +297,29 @@ export default function ServicesPage() {
             <div
               key={service.id}
               onClick={() => openEditModal(service)}
-              className="bg-white rounded-2xl border border-gray-200 p-4 cursor-pointer lg:hover:shadow-md lg:hover:border-gray-300 active:scale-[0.98] transition-all duration-200"
+              className="theme-bg-secondary rounded-2xl border theme-border p-4 cursor-pointer lg:hover:shadow-md lg:hover:border-gray-300 active:scale-[0.98] transition-all duration-200"
             >
               {/* Top row: Name + Price */}
               <div className="flex items-center justify-between gap-4 mb-3">
-                <h3 className="text-[17px] font-semibold text-gray-900 leading-tight">
+                <h3 className="text-[17px] font-semibold theme-text-primary leading-tight">
                   {service.name}
                 </h3>
-                <span className="text-[16px] font-bold text-gray-900 tabular-nums flex-shrink-0">
+                <span className="text-[16px] font-bold theme-text-primary tabular-nums flex-shrink-0">
                   {currencySymbol}{service.price}
                 </span>
               </div>
 
               {/* Description */}
               {service.description && (
-                <p className="text-[14px] text-gray-500 leading-relaxed mb-3 line-clamp-2">
+                <p className="text-[14px] theme-text-secondary leading-relaxed mb-3 line-clamp-2">
                   {service.description}
                 </p>
               )}
 
               {/* Bottom row: Duration badge */}
               <div className="flex items-center justify-between">
-                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 rounded-full">
-                  <Clock className="w-3.5 h-3.5 text-gray-500" />
+                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 theme-bg-tertiary rounded-full">
+                  <Clock className="w-3.5 h-3.5 theme-text-secondary" />
                   <span className="text-[13px] font-medium text-gray-600">
                     {formatDuration(service.duration)}
                   </span>
@@ -340,7 +342,7 @@ export default function ServicesPage() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setModalOpen(false)}
-              className="fixed inset-0 bg-black/40 z-[9999]"
+              className="fixed inset-0 bg-black/40 z-[9999] touch-none"
             />
 
             <motion.div
@@ -348,20 +350,20 @@ export default function ServicesPage() {
               animate={{ y: 0 }}
               exit={{ y: "100%" }}
               transition={{ type: "tween", duration: 0.3, ease: [0.32, 0.72, 0, 1] }}
-              className="fixed bottom-0 left-0 right-0 z-[10000]"
+              className="fixed bottom-0 left-0 right-0 z-[10000] touch-none"
             >
-              <div className="bg-[#fafafa] rounded-t-[28px] max-h-[90vh] flex flex-col">
+              <div className="bg-[#fafafa] rounded-t-[28px] max-h-[90vh] flex flex-col touch-auto">
                 {/* Handle */}
                 <div className="flex justify-center pt-3 pb-1">
-                  <div className="w-10 h-1 bg-gray-300 rounded-full" />
+                  <div className="w-10 h-1 modal-handle rounded-full" />
                 </div>
 
                 {/* Header with Language Selector */}
                 <div className="px-5 py-3 flex items-center justify-between">
-                  <h2 className="text-[17px] font-bold text-gray-900">
+                  <h2 className="text-[17px] font-bold theme-text-primary">
                     {editingService ? t('services.editService') : t('services.newService')}
                   </h2>
-                  <div className="flex items-center bg-gray-100 rounded-lg p-0.5">
+                  <div className="flex items-center theme-bg-tertiary rounded-lg p-0.5">
                     {LANGUAGES.map((lang) => (
                       <button
                         key={lang.code}
@@ -369,7 +371,7 @@ export default function ServicesPage() {
                         onClick={() => setActiveLang(lang.code)}
                         className={`h-7 px-3 rounded-md text-[12px] font-semibold transition-all ${
                           activeLang === lang.code
-                            ? 'bg-white text-gray-900 shadow-sm'
+                            ? 'theme-bg-secondary theme-text-primary shadow-sm'
                             : formData.names[lang.code] 
                               ? 'text-gray-600' 
                               : 'text-gray-400'
@@ -382,13 +384,13 @@ export default function ServicesPage() {
                 </div>
 
                 {/* Form */}
-                <div className="flex-1 overflow-y-auto px-5 overscroll-contain">
+                <div className="flex-1 overflow-y-auto px-5 overscroll-contain touch-auto">
                   {formError && (
                     <p className="text-[13px] text-red-500 bg-red-50 px-3 py-2 rounded-xl mb-4">{formError}</p>
                   )}
 
                   {/* Main Content Card */}
-                  <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+                  <div className="theme-bg-secondary rounded-2xl border theme-border overflow-hidden">
                     {/* Name Field */}
                     <div className="p-4 border-b border-gray-100">
                       <label className="block text-[11px] font-medium text-gray-400 uppercase tracking-wide mb-2">
@@ -403,7 +405,7 @@ export default function ServicesPage() {
                           names: { ...formData.names, [activeLang]: e.target.value }
                         })}
                         placeholder={t('services.serviceNamePlaceholder')}
-                        className="w-full text-[17px] font-medium text-gray-900 placeholder-gray-300 outline-none bg-transparent"
+                        className="w-full text-[17px] font-medium theme-text-primary placeholder-gray-300 outline-none bg-transparent"
                       />
                     </div>
 
@@ -439,7 +441,7 @@ export default function ServicesPage() {
                             className={`h-9 rounded-xl text-[13px] font-semibold transition-all ${
                               formData.duration === dur
                                 ? 'bg-gray-900 text-white'
-                                : 'bg-gray-50 text-gray-600 active:bg-gray-100'
+                                : 'bg-gray-50 text-gray-600 active:theme-bg-tertiary'
                             }`}
                           >
                             {formatDuration(dur)}
@@ -460,7 +462,7 @@ export default function ServicesPage() {
                           value={formData.price}
                           onChange={(e) => setFormData({ ...formData, price: e.target.value })}
                           placeholder="0"
-                          className="flex-1 text-[28px] font-bold text-gray-900 placeholder-gray-300 outline-none bg-transparent [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          className="flex-1 text-[28px] font-bold theme-text-primary placeholder-gray-300 outline-none bg-transparent [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         />
                       </div>
                     </div>
@@ -478,7 +480,7 @@ export default function ServicesPage() {
                         setModalOpen(false);
                         setTimeout(() => setDeleteConfirm({ open: true, id: editingService.id, name: editingService.name }), 200);
                       }}
-                      className="w-12 h-12 bg-white border border-gray-200 text-gray-400 rounded-2xl flex items-center justify-center active:bg-gray-50 transition-colors"
+                      className="w-12 h-12 theme-bg-secondary border theme-border text-gray-400 rounded-2xl flex items-center justify-center active:bg-gray-50 transition-colors"
                     >
                       <Trash2 className="w-5 h-5" />
                     </button>
@@ -486,7 +488,7 @@ export default function ServicesPage() {
                   <button
                     onClick={handleSubmit}
                     disabled={!formData.names.en || !formData.price || !/^\d+(\.\d+)?$/.test(formData.price.trim()) || processing.size > 0}
-                    className="flex-1 h-12 bg-gray-900 text-white font-semibold text-[15px] rounded-2xl disabled:bg-gray-300 disabled:text-gray-500 flex items-center justify-center gap-2 active:scale-[0.98] transition-all"
+                    className="flex-1 h-12 bg-gray-900 text-white font-semibold text-[15px] rounded-2xl disabled:bg-gray-300 disabled:theme-text-secondary flex items-center justify-center gap-2 active:scale-[0.98] transition-all"
                   >
                     {processing.size > 0 ? (
                       <Loader2 className="w-5 h-5 animate-spin" />

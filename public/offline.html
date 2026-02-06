@@ -7,7 +7,25 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>Offline - Calendi</title>
-  <link rel="icon" href="/icons/icon-192.svg" type="image/svg+xml">
+  <link rel="icon" href="/icons/icon-192.png" type="image/png">
+  <script>
+    // Theme detection before styles load to prevent flash
+    // Adds .theme-resolved so CSS @media fallback only fires when JS fails entirely
+    (function() {
+      try {
+        var theme = localStorage.getItem('calendi_theme') || 'system';
+        var isDark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+        document.documentElement.classList.add('theme-resolved');
+        if (isDark) {
+          document.documentElement.classList.add('dark');
+          var meta = document.querySelector('meta[name="theme-color"]');
+          if (meta) meta.setAttribute('content', '#0a0a0b');
+        }
+      } catch(e) {
+        // localStorage unavailable — CSS @media (prefers-color-scheme: dark) fallback below
+      }
+    })();
+  </script>
   <style>
     * {
       margin: 0;
@@ -15,11 +33,47 @@
       box-sizing: border-box;
     }
     
+    :root {
+      --bg-primary: #faf9f7;
+      --bg-secondary: #f3f2ef;
+      --bg-tertiary: #e8e5e0;
+      --text-primary: #1e1a16;
+      --text-secondary: #847d73;
+      --text-tertiary: #b0a9a0;
+      --accent: #1e1a16;
+      --accent-hover: #332e28;
+    }
+    
+    .dark {
+      --bg-primary: #0a0a0b;
+      --bg-secondary: #141416;
+      --bg-tertiary: #1c1c1f;
+      --text-primary: #ececef;
+      --text-secondary: #9898a0;
+      --text-tertiary: #5c5c66;
+      --accent: #ececef;
+      --accent-hover: #d4d4d8;
+    }
+
+    /* Fallback: only applies when JS failed (no .theme-resolved class) */
+    @media (prefers-color-scheme: dark) {
+      :root:not(.theme-resolved) {
+        --bg-primary: #0a0a0b;
+        --bg-secondary: #141416;
+        --bg-tertiary: #1c1c1f;
+        --text-primary: #ececef;
+        --text-secondary: #9898a0;
+        --text-tertiary: #5c5c66;
+        --accent: #ececef;
+        --accent-hover: #d4d4d8;
+      }
+    }
+    
     html, body {
       height: 100%;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-      background-color: #faf9f7;
-      color: #111827;
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
       overflow: hidden;
@@ -40,8 +94,15 @@
     .bg-circle {
       position: absolute;
       border-radius: 50%;
-      background: #9ca3af;
+      background: var(--text-tertiary);
       opacity: 0.03;
+    }
+    
+    .dark .bg-circle {
+      opacity: 0.05;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root:not(.theme-resolved) .bg-circle { opacity: 0.05; }
     }
     
     .bg-circle-1 {
@@ -78,7 +139,7 @@
       top: -10px;
       left: -10px;
       border-radius: 40px;
-      background: #d1d5db;
+      background: var(--bg-tertiary);
       animation: pulse 3s ease-in-out infinite;
     }
     
@@ -91,7 +152,7 @@
       position: relative;
       width: 120px;
       height: 120px;
-      background: linear-gradient(135deg, #f3f4f6 0%, #f9fafb 50%, #e5e7eb 100%);
+      background: var(--bg-secondary);
       border-radius: 32px;
       display: flex;
       align-items: center;
@@ -100,17 +161,31 @@
       animation: fadeInUp 0.5s ease-out 0.1s both;
     }
     
+    .dark .icon-container {
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.4);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root:not(.theme-resolved) .icon-container { box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.4); }
+    }
+    
     .icon-glow {
       position: absolute;
       inset: 8px;
       border-radius: 24px;
-      background: linear-gradient(135deg, rgba(255,255,255,0.6) 0%, transparent 100%);
+      background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, transparent 100%);
+    }
+    
+    .dark .icon-glow {
+      background: linear-gradient(135deg, rgba(255,255,255,0.05) 0%, transparent 100%);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root:not(.theme-resolved) .icon-glow { background: linear-gradient(135deg, rgba(255,255,255,0.05) 0%, transparent 100%); }
     }
     
     .icon {
       width: 56px;
       height: 56px;
-      color: #6b7280;
+      color: var(--text-secondary);
       animation: iconFloat 2.5s ease-in-out infinite;
     }
     
@@ -127,7 +202,7 @@
     h1 {
       font-size: 24px;
       font-weight: 700;
-      color: #111827;
+      color: var(--text-primary);
       margin-bottom: 12px;
       letter-spacing: -0.02em;
       animation: fadeInUp 0.5s ease-out 0.2s both;
@@ -135,7 +210,7 @@
     
     .description {
       font-size: 15px;
-      color: #6b7280;
+      color: var(--text-secondary);
       max-width: 300px;
       line-height: 1.5;
       margin-bottom: 16px;
@@ -147,7 +222,7 @@
       align-items: center;
       gap: 8px;
       padding: 10px 16px;
-      background: rgba(243, 244, 246, 0.8);
+      background: var(--bg-secondary);
       border-radius: 12px;
       margin-bottom: 32px;
       animation: fadeInUp 0.5s ease-out 0.35s both;
@@ -156,12 +231,12 @@
     .tip-box svg {
       width: 16px;
       height: 16px;
-      color: #9ca3af;
+      color: var(--text-tertiary);
     }
     
     .tip-box span {
       font-size: 12px;
-      color: #6b7280;
+      color: var(--text-secondary);
     }
     
     .retry-button {
@@ -169,8 +244,8 @@
       align-items: center;
       gap: 10px;
       padding: 16px 32px;
-      background-color: #111827;
-      color: white;
+      background-color: var(--accent);
+      color: var(--bg-primary);
       font-size: 15px;
       font-weight: 600;
       border: none;
@@ -178,12 +253,12 @@
       cursor: pointer;
       transition: all 0.2s ease;
       -webkit-tap-highlight-color: transparent;
-      box-shadow: 0 10px 15px -3px rgba(17, 24, 39, 0.2);
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2);
       animation: fadeInUp 0.5s ease-out 0.4s both;
     }
     
     .retry-button:hover {
-      background-color: #1f2937;
+      background-color: var(--accent-hover);
     }
     
     .retry-button:active {
@@ -208,18 +283,18 @@
       width: 20px;
       height: 20px;
       border-radius: 6px;
-      background: linear-gradient(135deg, #d1d5db 0%, #9ca3af 100%);
+      background: var(--accent);
       display: flex;
       align-items: center;
       justify-content: center;
       font-size: 10px;
       font-weight: 700;
-      color: white;
+      color: var(--bg-primary);
     }
     
     .footer span {
       font-size: 12px;
-      color: #9ca3af;
+      color: var(--text-tertiary);
       font-weight: 500;
     }
 

@@ -5,6 +5,7 @@ import { Calendar, Clock, Plus, X, Check, ChevronLeft, ChevronRight, CalendarDay
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "../lib/hooks/useToast";
 import { useTranslation } from "@/app/i18n";
+import { useScrollLock } from "@/app/lib/hooks/useScrollLock";
 import {
   getWeeklyTemplate,
   subscribeToWeeklyTemplate,
@@ -90,6 +91,8 @@ export default function AvailabilityPage() {
     recurringPattern: "yearly",
     isClosed: true,
   });
+
+  useScrollLock(showSpecialModal);
 
   // Load data from Firestore on mount
   useEffect(() => {
@@ -605,17 +608,17 @@ export default function AvailabilityPage() {
     <div className="space-y-4">
       {/* Header */}
       <div className="hidden lg:block">
-        <h1 className="text-2xl font-semibold text-gray-900">{t('availability.title')}</h1>
+        <h1 className="text-2xl font-semibold theme-text-primary">{t('availability.title')}</h1>
       </div>
 
       {/* Tabs */}
-      <div className="bg-white border border-gray-200 rounded-2xl p-1 flex gap-1">
+      <div className="theme-bg-secondary border theme-border rounded-2xl p-1 flex gap-1">
         <button
           onClick={() => setActiveTab("weekly")}
           className={`flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all ${
             activeTab === "weekly"
-              ? "bg-gray-800 text-white"
-              : "text-gray-600 hover:text-gray-900"
+              ? "selected-tab"
+              : "theme-text-secondary hover:theme-text-primary"
           }`}
         >
           {t('availability.tabs.weekly')}
@@ -624,13 +627,13 @@ export default function AvailabilityPage() {
           onClick={() => setActiveTab("planning")}
           className={`flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all ${
             activeTab === "planning"
-              ? "bg-gray-800 text-white"
-              : "text-gray-600 hover:text-gray-900"
+              ? "selected-tab"
+              : "theme-text-secondary hover:theme-text-primary"
           }`}
         >
           {t('availability.tabs.planning')}
           {Object.keys(customDates).length > 0 && (
-            <span className="px-1.5 py-0.5 bg-white/20 text-xs rounded-full">
+            <span className="px-1.5 py-0.5 theme-bg-secondary/20 text-xs rounded-full">
               {Object.keys(customDates).length}
             </span>
           )}
@@ -639,13 +642,13 @@ export default function AvailabilityPage() {
           onClick={() => setActiveTab("specials")}
           className={`flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all ${
             activeTab === "specials"
-              ? "bg-gray-800 text-white"
-              : "text-gray-600 hover:text-gray-900"
+              ? "selected-tab"
+              : "theme-text-secondary hover:theme-text-primary"
           }`}
         >
           {t('availability.tabs.specials')}
           {specialDays.length > 0 && (
-            <span className="px-1.5 py-0.5 bg-white/20 text-xs rounded-full">
+            <span className="px-1.5 py-0.5 theme-bg-secondary/20 text-xs rounded-full">
               {specialDays.length}
             </span>
           )}
@@ -729,7 +732,7 @@ export default function AvailabilityPage() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setShowSpecialModal(false)}
-              className="fixed left-0 right-0 bottom-0 bg-black/50 z-50"
+              className="fixed left-0 right-0 bottom-0 bg-black/50 z-50 touch-none"
               style={{ top: 'calc(-1 * env(safe-area-inset-top, 0px))' }}
             />
 
@@ -739,25 +742,25 @@ export default function AvailabilityPage() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: "100%" }}
               transition={{ duration: 0.3, ease: [0.32, 0.72, 0, 1] }}
-              className="fixed inset-x-0 bottom-0 lg:inset-0 lg:flex lg:items-center lg:justify-center z-50"
+              className="fixed inset-x-0 bottom-0 lg:inset-0 lg:flex lg:items-center lg:justify-center z-50 touch-none"
             >
-              <div className="bg-white rounded-t-3xl lg:rounded-2xl max-w-lg w-full mx-auto lg:max-h-[90vh] overflow-hidden shadow-2xl">
+              <div className="theme-bg-secondary rounded-t-3xl lg:rounded-2xl max-w-lg w-full mx-auto lg:max-h-[90vh] overflow-hidden shadow-2xl touch-auto">
                 {/* Handle bar (mobile) */}
                 <div className="lg:hidden flex justify-center pt-3 pb-2">
-                  <div className="w-10 h-1 bg-gray-300 rounded-full" />
+                  <div className="w-10 h-1 modal-handle rounded-full" />
                 </div>
 
                 {/* Header */}
-                <div className="px-6 py-4 border-b border-gray-200">
+                <div className="px-6 py-4 border-b theme-border">
                   <div className="flex items-center justify-between">
-                    <h2 className="text-xl font-semibold text-gray-900">
+                    <h2 className="text-xl font-semibold theme-text-primary">
                       {editingSpecial ? t('availability.specials.editSpecialDay') : t('availability.specials.addSpecialDay')}
                     </h2>
                     <button
                       onClick={() => setShowSpecialModal(false)}
-                      className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                      className="p-2 hover:theme-bg-tertiary rounded-lg transition-colors"
                     >
-                      <X className="w-5 h-5 text-gray-600" />
+                      <X className="w-5 h-5 theme-text-secondary" />
                     </button>
                   </div>
                 </div>
@@ -766,7 +769,7 @@ export default function AvailabilityPage() {
                 <div className="px-6 py-6 space-y-5 overflow-y-auto max-h-[60vh] lg:max-h-[500px]">
                   {/* Event Name */}
                   <div>
-                    <label className="block text-sm font-semibold text-gray-900 mb-2">
+                    <label className="block text-sm font-semibold theme-text-primary mb-2">
                       {t('availability.specials.eventName')}
                     </label>
                     <input
@@ -774,39 +777,39 @@ export default function AvailabilityPage() {
                       value={specialForm.name}
                       onChange={(e) => setSpecialForm({ ...specialForm, name: e.target.value })}
                       placeholder={t('availability.specials.eventNamePlaceholder')}
-                      className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-800 focus:bg-white transition-colors"
+                      className="w-full px-4 py-3 theme-bg-tertiary border theme-border rounded-xl text-sm theme-text-primary placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-800 focus:theme-bg-secondary transition-colors"
                     />
                   </div>
 
                   {/* Date */}
                   <div>
-                    <label className="block text-sm font-semibold text-gray-900 mb-2">
+                    <label className="block text-sm font-semibold theme-text-primary mb-2">
                       {t('availability.specials.date')}
                     </label>
                     <input
                       type="date"
                       value={specialForm.date}
                       onChange={(e) => setSpecialForm({ ...specialForm, date: e.target.value })}
-                      className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-800 focus:bg-white transition-colors"
+                      className="w-full px-4 py-3 theme-bg-tertiary border theme-border rounded-xl text-sm theme-text-primary focus:outline-none focus:ring-2 focus:ring-gray-800 focus:theme-bg-secondary transition-colors"
                     />
                   </div>
 
                   {/* Recurring Toggle */}
-                  <div className="bg-gray-50 rounded-xl p-4">
+                  <div className="theme-bg-tertiary rounded-xl p-4">
                     <div className="flex items-center justify-between mb-3">
                       <div>
-                        <p className="text-sm font-semibold text-gray-900">{t('availability.specials.recurringEvent')}</p>
-                        <p className="text-xs text-gray-500 mt-0.5">{t('availability.specials.recurringDesc')}</p>
+                        <p className="text-sm font-semibold theme-text-primary">{t('availability.specials.recurringEvent')}</p>
+                        <p className="text-xs theme-text-secondary mt-0.5">{t('availability.specials.recurringDesc')}</p>
                       </div>
                       <button
                         onClick={() => setSpecialForm({ ...specialForm, recurring: !specialForm.recurring })}
                         dir="ltr"
                         className={`toggle-switch relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors ${
-                          specialForm.recurring ? "bg-gray-800" : "bg-gray-300"
+                          specialForm.recurring ? "toggle-on" : "toggle-off"
                         }`}
                       >
                         <span
-                          className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-sm transition-transform ${
+                          className={`inline-block h-5 w-5 transform rounded-full theme-bg-secondary shadow-sm transition-transform ${
                             specialForm.recurring ? 'translate-x-[22px]' : 'translate-x-[2px]'
                           }`}
                         />
@@ -820,7 +823,7 @@ export default function AvailabilityPage() {
                         animate={{ opacity: 1, height: "auto" }}
                         exit={{ opacity: 0, height: 0 }}
                       >
-                        <label className="block text-xs font-medium text-gray-700 mb-2">
+                        <label className="block text-xs font-medium theme-text-secondary mb-2">
                           {t('availability.specials.repeatPattern')}
                         </label>
                         <div className="flex gap-2">
@@ -828,8 +831,8 @@ export default function AvailabilityPage() {
                             onClick={() => setSpecialForm({ ...specialForm, recurringPattern: "weekly" })}
                             className={`flex-1 px-3 py-2 text-xs font-semibold rounded-lg transition-colors ${
                               specialForm.recurringPattern === "weekly"
-                                ? "bg-gray-800 text-white"
-                                : "bg-white border border-gray-200 text-gray-700 hover:bg-gray-100"
+                                ? "selected-tab"
+                                : "theme-bg-secondary border theme-border theme-text-secondary hover:theme-bg-tertiary"
                             }`}
                           >
                             {t('availability.specials.weekly')}
@@ -838,8 +841,8 @@ export default function AvailabilityPage() {
                             onClick={() => setSpecialForm({ ...specialForm, recurringPattern: "monthly" })}
                             className={`flex-1 px-3 py-2 text-xs font-semibold rounded-lg transition-colors ${
                               specialForm.recurringPattern === "monthly"
-                                ? "bg-gray-800 text-white"
-                                : "bg-white border border-gray-200 text-gray-700 hover:bg-gray-100"
+                                ? "selected-tab"
+                                : "theme-bg-secondary border theme-border theme-text-secondary hover:theme-bg-tertiary"
                             }`}
                           >
                             {t('availability.specials.monthly')}
@@ -848,8 +851,8 @@ export default function AvailabilityPage() {
                             onClick={() => setSpecialForm({ ...specialForm, recurringPattern: "yearly" })}
                             className={`flex-1 px-3 py-2 text-xs font-semibold rounded-lg transition-colors ${
                               specialForm.recurringPattern === "yearly"
-                                ? "bg-gray-800 text-white"
-                                : "bg-white border border-gray-200 text-gray-700 hover:bg-gray-100"
+                                ? "selected-tab"
+                                : "theme-bg-secondary border theme-border theme-text-secondary hover:theme-bg-tertiary"
                             }`}
                           >
                             {t('availability.specials.yearly')}
@@ -863,7 +866,7 @@ export default function AvailabilityPage() {
 
                 {/* Footer */}
                 <div 
-                  className="px-6 py-4 border-t border-gray-200"
+                  className="px-6 py-4 border-t theme-border"
                   style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 16px)' }}
                 >
                   {/* Delete button (only when editing) */}
@@ -883,14 +886,14 @@ export default function AvailabilityPage() {
                   <div className="flex gap-3">
                     <button
                       onClick={() => setShowSpecialModal(false)}
-                      className="flex-1 px-4 py-3 text-sm font-semibold text-gray-700 bg-white border-2 border-gray-300 rounded-xl hover:bg-gray-50 transition-colors"
+                      className="flex-1 px-4 py-3 text-sm font-semibold theme-text-secondary theme-bg-secondary border-2 border-gray-300 rounded-xl hover:theme-bg-hover transition-colors"
                     >
                       {t('common.cancel')}
                     </button>
                     <button
                       onClick={handleSaveSpecial}
                       disabled={!specialForm.name || !specialForm.date}
-                      className="flex-1 px-4 py-3 text-sm font-semibold text-white bg-gray-800 rounded-xl hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="flex-1 px-4 py-3 text-sm font-semibold btn-action rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {editingSpecial ? t('settings.common.saveChanges') : t('availability.specials.addSpecialDay')}
                     </button>
@@ -935,24 +938,24 @@ function WeeklyScheduleTab({
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.2, ease: "easeOut" }}
-        className="bg-white border border-gray-200 rounded-2xl overflow-hidden"
+        className="theme-bg-secondary border theme-border rounded-2xl overflow-hidden"
       >
-        <div className="px-4 lg:px-6 py-4 border-b border-gray-200">
-          <div className="h-5 w-40 bg-gray-200 rounded animate-pulse" />
-          <div className="h-4 w-64 bg-gray-100 rounded animate-pulse mt-2" />
+        <div className="px-4 lg:px-6 py-4 border-b theme-border">
+          <div className="h-5 w-40 theme-bg-tertiary rounded animate-pulse" />
+          <div className="h-4 w-64 theme-bg-tertiary rounded animate-pulse mt-2" />
         </div>
-        <div className="divide-y divide-gray-200">
+        <div className="divide-y divide-theme">
           {[1, 2, 3, 4, 5, 6, 7].map((i) => (
             <div key={i} className="p-4 lg:p-6">
               <div className="flex items-center gap-3">
-                <div className="h-6 w-11 bg-gray-200 rounded-full animate-pulse" />
+                <div className="h-6 w-11 theme-bg-tertiary rounded-full animate-pulse" />
                 <div className="flex-1 space-y-2">
-                  <div className="h-4 w-24 bg-gray-200 rounded animate-pulse" />
-                  <div className="h-3 w-16 bg-gray-100 rounded animate-pulse" />
+                  <div className="h-4 w-24 theme-bg-tertiary rounded animate-pulse" />
+                  <div className="h-3 w-16 theme-bg-tertiary rounded animate-pulse" />
                 </div>
                 <div className="hidden lg:flex items-center gap-2">
-                  <div className="h-6 w-20 bg-gray-100 rounded-lg animate-pulse" />
-                  <div className="h-6 w-20 bg-gray-100 rounded-lg animate-pulse" />
+                  <div className="h-6 w-20 theme-bg-tertiary rounded-lg animate-pulse" />
+                  <div className="h-6 w-20 theme-bg-tertiary rounded-lg animate-pulse" />
                 </div>
               </div>
             </div>
@@ -967,16 +970,16 @@ function WeeklyScheduleTab({
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.2, ease: "easeOut" }}
-      className="bg-white border border-gray-200 rounded-2xl overflow-hidden"
+      className="theme-bg-secondary border theme-border rounded-2xl overflow-hidden"
     >
-      <div className="px-4 lg:px-6 py-4 border-b border-gray-200">
-        <h2 className="text-base font-semibold text-gray-900">{t('availability.weekly.title')}</h2>
-        <p className="text-sm text-gray-500 mt-1">
+      <div className="px-4 lg:px-6 py-4 border-b theme-border">
+        <h2 className="text-base font-semibold theme-text-primary">{t('availability.weekly.title')}</h2>
+        <p className="text-sm theme-text-secondary mt-1">
           {t('availability.weekly.subtitle')}
         </p>
       </div>
 
-      <div className="divide-y divide-gray-200">
+      <div className="divide-y divide-theme">
         {daysOfWeek.map((day: any, index: number) => {
           const isEnabled = weekSchedule[day.id as keyof typeof weekSchedule];
           const daySlots = timeSlots[day.id] || [];
@@ -988,7 +991,7 @@ function WeeklyScheduleTab({
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.2, delay: index * 0.03, ease: "easeOut" }}
-              className={`${!isEnabled ? "bg-gray-50" : ""}`}
+              className={`${!isEnabled ? "disabled-row-bg" : ""}`}
             >
               <div className="p-4 lg:p-6">
                 <div className="flex items-center gap-3">
@@ -996,20 +999,20 @@ function WeeklyScheduleTab({
                     onClick={() => toggleDay(day.id)}
                     dir="ltr"
                     className={`toggle-switch relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors ${
-                      isEnabled ? "bg-gray-800" : "bg-gray-300"
+                      isEnabled ? "toggle-on" : "toggle-off"
                     }`}
                   >
                     <span
-                      className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-sm transition-transform ${
+                      className={`inline-block h-5 w-5 transform rounded-full theme-bg-secondary shadow-sm transition-transform ${
                         isEnabled ? 'translate-x-[22px]' : 'translate-x-[2px]'
                       }`}
                     />
                   </button>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm lg:text-base font-semibold text-gray-900 truncate">
+                    <p className="text-sm lg:text-base font-semibold theme-text-primary truncate">
                       {day.label}
                     </p>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs theme-text-secondary">
                       {isEnabled ? (
                         daySlots.length > 0 ? (
                           <span className="lg:hidden">
@@ -1030,24 +1033,24 @@ function WeeklyScheduleTab({
                         {daySlots.slice(0, 2).map((slot: any, i: number) => (
                           <span
                             key={i}
-                            className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded-lg font-medium"
+                            className="text-xs theme-bg-tertiary theme-text-secondary px-2 py-1 rounded-lg font-medium"
                           >
                             {slot.start}-{slot.end}
                           </span>
                         ))}
                         {daySlots.length > 2 && (
-                          <span className="text-xs text-gray-500">+{daySlots.length - 2}</span>
+                          <span className="text-xs theme-text-secondary">+{daySlots.length - 2}</span>
                         )}
                       </div>
 
                       <button
                         onClick={() => toggleExpandDay(day.id)}
-                        className="p-2 hover:bg-gray-100 rounded-lg transition-colors lg:hidden"
+                        className="p-2 hover:theme-bg-tertiary rounded-lg transition-colors lg:hidden"
                       >
                         {isExpanded ? (
-                          <ChevronUp className="w-5 h-5 text-gray-600" />
+                          <ChevronUp className="w-5 h-5 theme-text-secondary" />
                         ) : (
-                          <ChevronDown className="w-5 h-5 text-gray-600" />
+                          <ChevronDown className="w-5 h-5 theme-text-secondary" />
                         )}
                       </button>
                     </div>
@@ -1080,20 +1083,20 @@ function WeeklyScheduleTab({
                       >
                         <div className="mt-4 space-y-3">
                         {daySlots.length === 0 ? (
-                          <p className="text-sm text-gray-500 italic">{t('availability.weekly.noTimeSlots')}</p>
+                          <p className="text-sm theme-text-secondary italic">{t('availability.weekly.noTimeSlots')}</p>
                         ) : (
                           daySlots.map((slot: any, slotIndex: number) => (
                             <div key={slotIndex} className="group flex items-center gap-3">
-                              <div className="flex items-center gap-3 bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 flex-1 hover:border-gray-300 transition-colors">
+                              <div className="flex items-center gap-3 theme-bg-tertiary border theme-border rounded-xl px-4 py-2.5 flex-1 hover:border-gray-300 transition-colors">
                                 <input
                                   type="time"
                                   value={slot.start}
                                   onChange={(e) =>
                                     updateTimeSlot(day.id, slotIndex, "start", e.target.value)
                                   }
-                                  className="bg-transparent text-sm font-semibold text-gray-900 focus:outline-none w-20"
+                                  className="bg-transparent text-sm font-semibold theme-text-primary focus:outline-none w-20"
                                 />
-                                <svg className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <svg className="w-3.5 h-3.5 theme-text-tertiary flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                                 </svg>
                                 <input
@@ -1102,12 +1105,12 @@ function WeeklyScheduleTab({
                                   onChange={(e) =>
                                     updateTimeSlot(day.id, slotIndex, "end", e.target.value)
                                   }
-                                  className="bg-transparent text-sm font-semibold text-gray-900 focus:outline-none w-20"
+                                  className="bg-transparent text-sm font-semibold theme-text-primary focus:outline-none w-20"
                                 />
                               </div>
                               <button
                                 onClick={() => removeTimeSlot(day.id, slotIndex)}
-                                className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all lg:opacity-0 lg:group-hover:opacity-100"
+                                className="p-2 theme-text-tertiary hover:text-red-600 hover:bg-red-50 rounded-xl transition-all lg:opacity-0 lg:group-hover:opacity-100"
                               >
                                 <X className="w-4 h-4" />
                               </button>
@@ -1118,7 +1121,7 @@ function WeeklyScheduleTab({
                         <div className="flex items-center gap-2 pt-2">
                           <button
                             onClick={() => addTimeSlot(day.id)}
-                            className="inline-flex items-center gap-2 px-3 py-2 text-sm font-semibold text-white bg-gray-800 rounded-xl hover:bg-gray-700 transition-colors shadow-sm"
+                            className="inline-flex items-center gap-2 px-3 py-2 text-sm font-semibold btn-action rounded-xl transition-colors shadow-sm"
                           >
                             <Plus className="w-4 h-4" />
                             {t('availability.weekly.addSlot')}
@@ -1126,7 +1129,7 @@ function WeeklyScheduleTab({
                           {daySlots.length > 0 && (
                             <button
                               onClick={() => copyToAllDays(day.id)}
-                              className="inline-flex items-center gap-2 px-3 py-2 text-sm font-semibold text-gray-700 bg-white border-2 border-gray-300 rounded-xl hover:bg-gray-50 transition-colors"
+                              className="inline-flex items-center gap-2 px-3 py-2 text-sm font-semibold theme-text-secondary theme-bg-secondary border-2 border-gray-300 rounded-xl hover:theme-bg-hover transition-colors"
                             >
                               <Copy className="w-4 h-4" />
                               {t('availability.weekly.copyToAll')}
@@ -1161,18 +1164,18 @@ function WeeklyScheduleTab({
                         opacity: { duration: 0.15 }
                       }
                     }}
-                    className="lg:hidden border-t border-gray-200 bg-gray-50/50 overflow-hidden"
+                    className="lg:hidden border-t theme-border theme-bg-tertiary/50 overflow-hidden"
                   >
                     <div className="p-4 space-y-3">
                     {daySlots.length === 0 ? (
-                      <p className="text-sm text-gray-500 text-center italic py-2">
+                      <p className="text-sm theme-text-secondary text-center italic py-2">
                         {t('availability.weekly.noTimeSlots')}
                       </p>
                     ) : (
                       daySlots.map((slot: any, slotIndex: number) => (
                         <div
                           key={slotIndex}
-                          className="group bg-white border border-gray-200 rounded-xl p-4 hover:border-gray-300 hover:shadow-sm transition-all"
+                          className="group theme-bg-secondary border theme-border rounded-xl p-4 hover:border-gray-300 hover:shadow-sm transition-all"
                         >
                           <div className="flex items-center gap-3">
                             <div className="flex-1 flex items-center gap-3">
@@ -1182,10 +1185,10 @@ function WeeklyScheduleTab({
                                 onChange={(e) =>
                                   updateTimeSlot(day.id, slotIndex, "start", e.target.value)
                                 }
-                                className="flex-1 px-4 py-3 bg-gray-50 border-0 rounded-xl text-sm font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-800 focus:bg-white transition-colors"
+                                className="flex-1 px-4 py-3 theme-bg-tertiary border-0 rounded-xl text-sm font-semibold theme-text-primary focus:outline-none focus:ring-2 focus:ring-gray-800 focus:theme-bg-secondary transition-colors"
                               />
-                              <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-gray-100">
-                                <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <div className="flex items-center justify-center w-8 h-8 rounded-lg theme-bg-tertiary">
+                                <svg className="w-4 h-4 theme-text-tertiary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                                 </svg>
                               </div>
@@ -1195,12 +1198,12 @@ function WeeklyScheduleTab({
                                 onChange={(e) =>
                                   updateTimeSlot(day.id, slotIndex, "end", e.target.value)
                                 }
-                                className="flex-1 px-4 py-3 bg-gray-50 border-0 rounded-xl text-sm font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-800 focus:bg-white transition-colors"
+                                className="flex-1 px-4 py-3 theme-bg-tertiary border-0 rounded-xl text-sm font-semibold theme-text-primary focus:outline-none focus:ring-2 focus:ring-gray-800 focus:theme-bg-secondary transition-colors"
                               />
                             </div>
                             <button
                               onClick={() => removeTimeSlot(day.id, slotIndex)}
-                              className="p-3 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all"
+                              className="p-3 theme-text-tertiary hover:text-red-600 hover:bg-red-50 rounded-xl transition-all"
                             >
                               <X className="w-5 h-5" />
                             </button>
@@ -1212,7 +1215,7 @@ function WeeklyScheduleTab({
                     <div className="flex gap-2 pt-2">
                       <button
                         onClick={() => addTimeSlot(day.id)}
-                        className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 text-sm font-semibold text-white bg-gray-800 rounded-xl hover:bg-gray-700 active:scale-95 transition-all"
+                        className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 text-sm font-semibold btn-action rounded-xl active:scale-95 transition-all"
                       >
                         <Plus className="w-4 h-4" />
                         {t('availability.weekly.addSlot')}
@@ -1220,7 +1223,7 @@ function WeeklyScheduleTab({
                       {daySlots.length > 0 && (
                         <button
                           onClick={() => copyToAllDays(day.id)}
-                          className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 text-sm font-semibold text-gray-700 bg-white border-2 border-gray-300 rounded-xl hover:bg-gray-50 active:scale-95 transition-all"
+                          className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 text-sm font-semibold theme-text-secondary theme-bg-secondary border-2 border-gray-300 rounded-xl hover:theme-bg-hover active:scale-95 transition-all"
                         >
                           <Copy className="w-4 h-4" />
                           {t('availability.weekly.copyToAll')}
@@ -1237,11 +1240,11 @@ function WeeklyScheduleTab({
       </div>
 
       {/* Save Button */}
-      <div className="border-t border-gray-200 p-4 lg:p-6 bg-gray-50">
+      <div className="border-t theme-border p-4 lg:p-6 theme-bg-tertiary">
         <button
           onClick={onSave}
           disabled={saving || !hasAnySlots}
-          className={`w-full inline-flex items-center justify-center gap-2 px-6 py-3 bg-gray-800 text-white text-sm font-semibold rounded-xl hover:bg-gray-700 transition-all active:scale-95 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed ${isRTL ? 'flex-row-reverse' : ''}`}
+          className={`w-full inline-flex items-center justify-center gap-2 px-6 py-3 btn-action text-sm font-semibold rounded-xl transition-all active:scale-95 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed ${isRTL ? 'flex-row-reverse' : ''}`}
           title={!hasAnySlots ? t('availability.weekly.addSlotToSave') : ""}
         >
           {saving ? (
@@ -1257,7 +1260,7 @@ function WeeklyScheduleTab({
           )}
         </button>
         {!hasAnySlots && (
-          <p className="text-xs text-gray-500 text-center mt-2">
+          <p className="text-xs theme-text-secondary text-center mt-2">
             {t('availability.weekly.addSlotToSave')}
           </p>
         )}
@@ -1310,31 +1313,31 @@ function PlanningTab({
         className="grid grid-cols-1 lg:grid-cols-3 gap-4"
       >
         {/* Calendar Skeleton */}
-        <div className="lg:col-span-1 bg-white border border-gray-200 rounded-2xl p-4">
+        <div className="lg:col-span-1 theme-bg-secondary border theme-border rounded-2xl p-4">
           <div className="flex items-center justify-between mb-4">
-            <div className="h-5 w-32 bg-gray-200 rounded animate-pulse" />
+            <div className="h-5 w-32 theme-bg-tertiary rounded animate-pulse" />
             <div className="flex items-center gap-1">
-              <div className="h-8 w-8 bg-gray-100 rounded-lg animate-pulse" />
-              <div className="h-8 w-8 bg-gray-100 rounded-lg animate-pulse" />
+              <div className="h-8 w-8 theme-bg-tertiary rounded-lg animate-pulse" />
+              <div className="h-8 w-8 theme-bg-tertiary rounded-lg animate-pulse" />
             </div>
           </div>
           <div className="grid grid-cols-7 gap-1">
             {["S", "M", "T", "W", "T", "F", "S"].map((day, i) => (
-              <div key={i} className="text-center text-xs font-medium text-gray-500 py-2">
+              <div key={i} className="text-center text-xs font-medium theme-text-secondary py-2">
                 {day}
               </div>
             ))}
             {Array.from({ length: 35 }).map((_, i) => (
               <div key={i} className="aspect-square flex items-center justify-center">
-                <div className="h-8 w-8 bg-gray-100 rounded-lg animate-pulse" />
+                <div className="h-8 w-8 theme-bg-tertiary rounded-lg animate-pulse" />
               </div>
             ))}
           </div>
         </div>
         {/* Selected Date Skeleton */}
-        <div className="lg:col-span-2 bg-white border border-gray-200 rounded-2xl p-6">
-          <div className="h-5 w-48 bg-gray-200 rounded animate-pulse mb-4" />
-          <div className="h-4 w-64 bg-gray-100 rounded animate-pulse" />
+        <div className="lg:col-span-2 theme-bg-secondary border theme-border rounded-2xl p-6">
+          <div className="h-5 w-48 theme-bg-tertiary rounded animate-pulse mb-4" />
+          <div className="h-4 w-64 theme-bg-tertiary rounded animate-pulse" />
         </div>
       </motion.div>
     );
@@ -1348,23 +1351,23 @@ function PlanningTab({
       className="grid grid-cols-1 lg:grid-cols-3 gap-4"
     >
       {/* Calendar */}
-      <div className="lg:col-span-1 bg-white border border-gray-200 rounded-2xl p-4">
+      <div className="lg:col-span-1 theme-bg-secondary border theme-border rounded-2xl p-4">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-base font-semibold text-gray-900">
+          <h2 className="text-base font-semibold theme-text-primary">
             {currentMonth.toLocaleDateString(getLocale(), { month: "long", year: "numeric" })}
           </h2>
           <div className="flex items-center gap-1">
             <button
               onClick={previousMonth}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              className="p-2 hover:theme-bg-tertiary rounded-lg transition-colors"
             >
-              <ChevronLeft className={`w-4 h-4 text-gray-600 ${isRTL ? 'rotate-180' : ''}`} />
+              <ChevronLeft className={`w-4 h-4 theme-text-secondary ${isRTL ? 'rotate-180' : ''}`} />
             </button>
             <button
               onClick={nextMonth}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              className="p-2 hover:theme-bg-tertiary rounded-lg transition-colors"
             >
-              <ChevronRight className={`w-4 h-4 text-gray-600 ${isRTL ? 'rotate-180' : ''}`} />
+              <ChevronRight className={`w-4 h-4 theme-text-secondary ${isRTL ? 'rotate-180' : ''}`} />
             </button>
           </div>
         </div>
@@ -1379,7 +1382,7 @@ function PlanningTab({
             t('days.calFri'),
             t('days.calSat')
           ].map((day, i) => (
-            <div key={i} className={`text-center font-medium text-gray-500 py-2 ${language === 'ar' ? 'text-[10px]' : 'text-xs'}`}>
+            <div key={i} className={`text-center font-medium theme-text-secondary py-2 ${language === 'ar' ? 'text-[10px]' : 'text-xs'}`}>
               {day}
             </div>
           ))}
@@ -1402,14 +1405,14 @@ function PlanningTab({
                 disabled={isPastDate}
                 className={`aspect-square rounded-xl text-sm font-medium transition-all relative ${
                   isPastDate
-                    ? "text-gray-300 cursor-not-allowed"
+                    ? "theme-text-tertiary cursor-not-allowed"
                     : isSelected
-                    ? "bg-gray-800 text-white"
+                    ? "selected-tab"
                     : isTodayDate
                     ? "bg-blue-50 text-blue-700 ring-2 ring-blue-500"
                     : hasCustom
                     ? "bg-amber-50 text-amber-900"
-                    : "hover:bg-gray-100 text-gray-900"
+                    : "hover:theme-bg-tertiary theme-text-primary"
                 }`}
               >
                 {date.getDate()}
@@ -1425,14 +1428,14 @@ function PlanningTab({
       {/* Date Details */}
       <div className="lg:col-span-2">
         {selectedDateObj && selectedDateData ? (
-          <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
+          <div className="theme-bg-secondary border theme-border rounded-2xl overflow-hidden">
             {/* Header */}
-            <div className="px-4 lg:px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+            <div className="px-4 lg:px-6 py-4 border-b theme-border flex items-center justify-between">
               <div>
-                <h3 className="text-base font-semibold text-gray-900">
+                <h3 className="text-base font-semibold theme-text-primary">
                   {formatDateDisplay(selectedDateObj)}
                 </h3>
-                <p className="text-sm text-gray-500 mt-1">
+                <p className="text-sm theme-text-secondary mt-1">
                   {selectedDateData.slots.length === 0 
                     ? t('availability.planning.closedNoSlots') 
                     : `${selectedDateData.slots.length} ${selectedDateData.slots.length > 1 ? t('availability.planning.timeSlots') : t('availability.planning.timeSlot')}`}
@@ -1449,32 +1452,32 @@ function PlanningTab({
             {/* Time Slots */}
             <div className="p-4 lg:p-6 space-y-3">
               {selectedDateData.slots.length === 0 ? (
-                <p className="text-sm text-gray-500 text-center italic py-8">
+                <p className="text-sm theme-text-secondary text-center italic py-8">
                   {t('availability.planning.noTimeSlotsForDate')}
                 </p>
               ) : (
                 selectedDateData.slots.map((slot: any, index: number) => (
                   <div key={index} className="group flex items-center gap-3">
-                    <div className="flex items-center gap-3 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 flex-1 hover:border-gray-300 transition-colors">
+                    <div className="flex items-center gap-3 theme-bg-tertiary border theme-border rounded-xl px-4 py-3 flex-1 hover:border-gray-300 transition-colors">
                       <input
                         type="time"
                         value={slot.start}
                         onChange={(e) => updateCustomSlot(index, "start", e.target.value)}
-                        className="bg-transparent text-sm font-semibold text-gray-900 focus:outline-none w-20"
+                        className="bg-transparent text-sm font-semibold theme-text-primary focus:outline-none w-20"
                       />
-                      <svg className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <svg className="w-3.5 h-3.5 theme-text-tertiary flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                       </svg>
                       <input
                         type="time"
                         value={slot.end}
                         onChange={(e) => updateCustomSlot(index, "end", e.target.value)}
-                        className="bg-transparent text-sm font-semibold text-gray-900 focus:outline-none w-20"
+                        className="bg-transparent text-sm font-semibold theme-text-primary focus:outline-none w-20"
                       />
                     </div>
                     <button
                       onClick={() => removeCustomSlot(index)}
-                      className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all"
+                      className="p-2 theme-text-tertiary hover:text-red-600 hover:bg-red-50 rounded-xl transition-all"
                     >
                       <X className="w-4 h-4" />
                     </button>
@@ -1484,7 +1487,7 @@ function PlanningTab({
 
               <button
                 onClick={addCustomSlot}
-                className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 text-sm font-semibold text-white bg-gray-800 rounded-xl hover:bg-gray-700 transition-colors shadow-sm"
+                className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 text-sm font-semibold btn-action rounded-xl transition-colors shadow-sm"
               >
                 <Plus className="w-4 h-4" />
                 {t('availability.planning.addTimeSlot')}
@@ -1492,11 +1495,11 @@ function PlanningTab({
             </div>
 
             {/* Save Button */}
-            <div className="border-t border-gray-200 p-4 lg:p-6 bg-gray-50">
+            <div className="border-t theme-border p-4 lg:p-6 theme-bg-tertiary">
               <button
                 onClick={onSave}
                 disabled={saving || !selectedDate}
-                className={`w-full inline-flex items-center justify-center gap-2 px-6 py-3 bg-gray-800 text-white text-sm font-semibold rounded-xl hover:bg-gray-700 transition-all active:scale-95 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed ${isRTL ? 'flex-row-reverse' : ''}`}
+                className={`w-full inline-flex items-center justify-center gap-2 px-6 py-3 btn-action text-sm font-semibold rounded-xl transition-all active:scale-95 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed ${isRTL ? 'flex-row-reverse' : ''}`}
               >
                 {saving ? (
                   <>
@@ -1513,10 +1516,10 @@ function PlanningTab({
             </div>
           </div>
         ) : (
-          <div className="bg-gray-50 border-2 border-dashed border-gray-300 rounded-2xl p-12 text-center h-full flex flex-col items-center justify-center">
-            <CalendarDays className="w-16 h-16 text-gray-400 mb-4" />
-            <p className="text-base font-medium text-gray-900 mb-2">{t('availability.planning.selectDateToStart')}</p>
-            <p className="text-sm text-gray-500">
+          <div className="theme-bg-tertiary border-2 border-dashed border-gray-300 rounded-2xl p-12 text-center h-full flex flex-col items-center justify-center">
+            <CalendarDays className="w-16 h-16 theme-text-tertiary mb-4" />
+            <p className="text-base font-medium theme-text-primary mb-2">{t('availability.planning.selectDateToStart')}</p>
+            <p className="text-sm theme-text-secondary">
               {t('availability.planning.selectDateDesc')}
             </p>
           </div>
@@ -1542,13 +1545,13 @@ function SpecialsTab({ specialDays, deleteSpecialDay, openAddSpecialModal, openE
       >
         <div className="space-y-3 lg:space-y-0 lg:grid lg:grid-cols-2 lg:gap-4">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="bg-white border border-gray-200 rounded-2xl p-4">
+            <div key={i} className="theme-bg-secondary border theme-border rounded-2xl p-4">
               <div className="flex items-start gap-4">
-                <div className="w-12 h-12 bg-gray-100 rounded-xl animate-pulse" />
+                <div className="w-12 h-12 theme-bg-tertiary rounded-xl animate-pulse" />
                 <div className="flex-1 space-y-2">
-                  <div className="h-4 w-32 bg-gray-200 rounded animate-pulse" />
-                  <div className="h-3 w-24 bg-gray-100 rounded animate-pulse" />
-                  <div className="h-5 w-16 bg-gray-100 rounded-full animate-pulse mt-2" />
+                  <div className="h-4 w-32 theme-bg-tertiary rounded animate-pulse" />
+                  <div className="h-3 w-24 theme-bg-tertiary rounded animate-pulse" />
+                  <div className="h-5 w-16 theme-bg-tertiary rounded-full animate-pulse mt-2" />
                 </div>
               </div>
             </div>
@@ -1567,19 +1570,19 @@ function SpecialsTab({ specialDays, deleteSpecialDay, openAddSpecialModal, openE
     >
       {/* Special Days List - Native Mobile Style */}
       {specialDays.length === 0 ? (
-        <div className="bg-white border border-gray-200 rounded-2xl p-12 text-center">
-          <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <Calendar className="w-8 h-8 text-gray-400" />
+        <div className="theme-bg-secondary border theme-border rounded-2xl p-12 text-center">
+          <div className="w-16 h-16 theme-bg-tertiary rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <Calendar className="w-8 h-8 theme-text-tertiary" />
           </div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">
+          <h3 className="text-lg font-semibold theme-text-primary mb-2">
             {t('availability.specials.noSpecialDays')}
           </h3>
-          <p className="text-sm text-gray-500 mb-6 max-w-sm mx-auto">
+          <p className="text-sm theme-text-secondary mb-6 max-w-sm mx-auto">
             {t('availability.specials.noSpecialDaysDesc')}
           </p>
           <button
             onClick={openAddSpecialModal}
-            className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-white bg-gray-800 rounded-xl hover:bg-gray-700 transition-colors shadow-sm"
+            className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold btn-action rounded-xl transition-colors shadow-sm"
           >
             <Plus className="w-4 h-4" />
             {t('availability.specials.addFirstSpecialDay')}
@@ -1591,10 +1594,10 @@ function SpecialsTab({ specialDays, deleteSpecialDay, openAddSpecialModal, openE
           {recurringDays.length > 0 && (
             <div>
               <div className="flex items-center justify-between mb-3 px-1">
-                <h3 className="text-sm font-semibold text-gray-900">
+                <h3 className="text-sm font-semibold theme-text-primary">
                   {t('availability.specials.recurringEvents')}
                 </h3>
-                <span className="text-xs font-medium text-gray-500 bg-gray-100 px-2.5 py-1 rounded-full">
+                <span className="text-xs font-medium theme-text-secondary theme-bg-tertiary px-2.5 py-1 rounded-full">
                   {recurringDays.length}
                 </span>
               </div>
@@ -1618,10 +1621,10 @@ function SpecialsTab({ specialDays, deleteSpecialDay, openAddSpecialModal, openE
           {oneTimeDays.length > 0 && (
             <div>
               <div className="flex items-center justify-between mb-3 px-1">
-                <h3 className="text-sm font-semibold text-gray-900">
+                <h3 className="text-sm font-semibold theme-text-primary">
                   {t('availability.specials.oneTimeEvents')}
                 </h3>
-                <span className="text-xs font-medium text-gray-500 bg-gray-100 px-2.5 py-1 rounded-full">
+                <span className="text-xs font-medium theme-text-secondary theme-bg-tertiary px-2.5 py-1 rounded-full">
                   {oneTimeDays.length}
                 </span>
               </div>
@@ -1650,7 +1653,7 @@ function SpecialsTab({ specialDays, deleteSpecialDay, openAddSpecialModal, openE
         transition={{ delay: 0.3, type: "spring", stiffness: 400, damping: 25 }}
         whileTap={{ scale: 0.92 }}
         onClick={openAddSpecialModal}
-        className="lg:hidden fixed right-5 z-30 w-14 h-14 bg-white text-gray-900 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.15)] border border-gray-200 flex items-center justify-center"
+        className="lg:hidden fixed right-5 z-30 w-14 h-14 theme-bg-secondary theme-text-primary rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.15)] border theme-border flex items-center justify-center"
         style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 72px)' }}
       >
         <Plus className="w-6 h-6 stroke-[2.5]" />
@@ -1662,7 +1665,7 @@ function SpecialsTab({ specialDays, deleteSpecialDay, openAddSpecialModal, openE
         animate={{ opacity: 1, scale: 1 }}
         transition={{ delay: 0.2, duration: 0.2 }}
         onClick={openAddSpecialModal}
-        className="hidden lg:flex fixed bottom-8 right-8 items-center gap-2 px-5 py-3 text-sm font-semibold text-white bg-gray-900 rounded-xl hover:bg-gray-800 transition-colors shadow-lg z-10"
+        className="hidden lg:flex fixed bottom-8 right-8 items-center gap-2 px-5 py-3 text-sm font-semibold btn-action rounded-xl transition-colors shadow-lg z-10"
       >
         <Plus className="w-5 h-5" />
         {t('availability.specials.addSpecialDay')}
@@ -1688,27 +1691,27 @@ function SpecialDayCard({ special, index, openEditSpecialModal, deleteSpecialDay
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.03 }}
       onClick={() => openEditSpecialModal(special)}
-      className="bg-white border border-gray-200 rounded-2xl overflow-hidden group hover:shadow-sm transition-shadow cursor-pointer active:scale-[0.99]"
+      className="theme-bg-secondary border theme-border rounded-2xl overflow-hidden group hover:shadow-sm transition-shadow cursor-pointer active:scale-[0.99]"
     >
       <div className="p-4 lg:p-5">
         <div className="flex items-center gap-3">
           {/* Icon - Clean consistent style */}
-          <div className="w-11 h-11 lg:w-12 lg:h-12 rounded-xl bg-gray-100 flex items-center justify-center flex-shrink-0">
+          <div className="w-11 h-11 lg:w-12 lg:h-12 rounded-xl theme-bg-tertiary flex items-center justify-center flex-shrink-0">
             {special.recurring ? (
-              <RefreshCcw className="w-5 h-5 lg:w-6 lg:h-6 text-gray-700" />
+              <RefreshCcw className="w-5 h-5 lg:w-6 lg:h-6 theme-text-secondary" />
             ) : (
-              <Calendar className="w-5 h-5 lg:w-6 lg:h-6 text-gray-700" />
+              <Calendar className="w-5 h-5 lg:w-6 lg:h-6 theme-text-secondary" />
             )}
           </div>
 
           {/* Content */}
           <div className="flex-1 min-w-0">
-            <h3 className="text-base font-semibold text-gray-900 truncate mb-1">
+            <h3 className="text-base font-semibold theme-text-primary truncate mb-1">
               {special.name}
             </h3>
             
             {/* Date - Prominent */}
-            <p className="text-sm text-gray-600 mb-1.5">
+            <p className="text-sm theme-text-secondary mb-1.5">
               {special.dates.map((date: string, i: number) => (
                 <span key={i}>
                   {new Date(date).toLocaleDateString(getLocale(), {
@@ -1723,7 +1726,7 @@ function SpecialDayCard({ special, index, openEditSpecialModal, deleteSpecialDay
             
             {/* Pattern (if recurring) */}
             {special.recurring && special.recurringPattern && (
-              <p className="text-xs text-gray-500">
+              <p className="text-xs theme-text-secondary">
                 {special.recurringPattern}
               </p>
             )}
@@ -1731,7 +1734,7 @@ function SpecialDayCard({ special, index, openEditSpecialModal, deleteSpecialDay
 
           {/* Chevron arrow - native iOS/Android style */}
           <div className="flex-shrink-0 self-center">
-            <svg className={`w-5 h-5 text-gray-400 ${isRTL ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className={`w-5 h-5 theme-text-tertiary ${isRTL ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
           </div>

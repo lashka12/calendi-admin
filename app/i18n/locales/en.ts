@@ -19,6 +19,7 @@ const en = {
     tomorrow: 'Tomorrow',
     yesterday: 'Yesterday',
     call: 'Call',
+    soon: 'Soon',
   },
 
   // Navigation / DashboardLayout
@@ -93,6 +94,7 @@ const en = {
       startsIn: 'Starts in',
       minSession: 'min session',
       viewFullDetails: 'View Full Details',
+      addToCustomers: 'Add to Customers',
     },
     weekDayModal: {
       noSessions: 'No sessions',
@@ -493,6 +495,10 @@ const en = {
       regional: 'Regional Settings',
       regionalDesc: 'Customize your regional preferences',
       language: 'Language',
+      theme: 'Theme',
+      themeLight: 'Light',
+      themeDark: 'Dark',
+      themeSystem: 'System',
       dateFormat: 'Date Format',
       timeFormat: 'Time Format',
       time12h: '12-hour (AM/PM)',
