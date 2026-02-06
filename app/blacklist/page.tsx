@@ -12,6 +12,7 @@ import {
 import { useToast } from "../lib/hooks/useToast";
 import ConfirmationModal from "../components/ConfirmationModal";
 import { useTranslation } from "@/app/i18n";
+import { useScrollLock } from "@/app/lib/hooks/useScrollLock";
 
 interface BlacklistedClient {
   id: string;
@@ -51,6 +52,7 @@ export default function BlacklistPage() {
   });
   const { showToast } = useToast();
   const { t, isRTL } = useTranslation();
+  useScrollLock(modalOpen);
 
   useEffect(() => {
     const unsubscribe = subscribeToBlacklist((firebaseClients) => {
@@ -162,16 +164,16 @@ export default function BlacklistPage() {
   if (loading) {
     return (
       <div className="pt-2 pb-16 lg:pt-0 lg:pb-6">
-        <div className="h-11 bg-white border border-gray-200 rounded-xl mb-4" />
-        <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+        <div className="h-11 theme-bg-secondary border theme-border rounded-xl mb-4" />
+        <div className="theme-bg-secondary rounded-2xl border theme-border overflow-hidden">
           {[0, 1, 2, 3].map((i) => (
             <div key={i} className={`p-4 ${i > 0 ? 'border-t border-gray-100' : ''}`}>
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-gray-100 rounded-full overflow-hidden relative">
+                <div className="w-12 h-12 theme-bg-tertiary rounded-full overflow-hidden relative">
                   <div className="absolute inset-0 bg-gradient-to-r from-gray-100 via-gray-50 to-gray-100 animate-shimmer" />
                 </div>
                 <div className="flex-1">
-                  <div className="h-4 w-28 bg-gray-100 rounded mb-2 overflow-hidden relative">
+                  <div className="h-4 w-28 theme-bg-tertiary rounded mb-2 overflow-hidden relative">
                     <div className="absolute inset-0 bg-gradient-to-r from-gray-100 via-gray-50 to-gray-100 animate-shimmer" />
                   </div>
                   <div className="h-3 w-20 bg-gray-50 rounded overflow-hidden relative">
@@ -194,8 +196,8 @@ export default function BlacklistPage() {
       {/* Desktop Header */}
       <div className="hidden lg:flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">{t('blacklist.title')}</h1>
-          <p className="text-sm text-gray-500">{t('blacklist.subtitle').replace('{count}', String(blacklistedClients.length))}</p>
+          <h1 className="text-2xl font-bold theme-text-primary">{t('blacklist.title')}</h1>
+          <p className="text-sm theme-text-secondary">{t('blacklist.subtitle').replace('{count}', String(blacklistedClients.length))}</p>
         </div>
         <button
           onClick={openAddModal}
@@ -213,21 +215,21 @@ export default function BlacklistPage() {
         transition={{ delay: 0.2 }}
         whileTap={{ scale: 0.92 }}
         onClick={openAddModal}
-        className="lg:hidden fixed right-5 z-30 w-14 h-14 bg-white text-gray-900 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.12)] border border-gray-200 flex items-center justify-center"
+        className="lg:hidden fixed right-5 z-30 w-14 h-14 theme-bg-secondary theme-text-primary rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.12)] border theme-border flex items-center justify-center"
         style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 72px)' }}
       >
         <Plus className="w-6 h-6 stroke-[2.5]" />
       </motion.button>
 
       {/* Info Header */}
-      <div className="mb-4 bg-white rounded-2xl border border-gray-200 p-4" dir={isRTL ? 'rtl' : 'ltr'}>
+      <div className="mb-4 theme-bg-secondary rounded-2xl border theme-border p-4" dir={isRTL ? 'rtl' : 'ltr'}>
         <div className="flex gap-3">
           <div className="w-10 h-10 bg-gray-900 rounded-xl flex items-center justify-center flex-shrink-0">
             <Bell className="w-5 h-5 text-white" />
           </div>
           <div className="flex-1 min-w-0">
-            <h3 className="text-[15px] font-semibold text-gray-900 mb-1">{t('blacklist.infoTitle')}</h3>
-            <p className="text-[13px] text-gray-500 leading-relaxed">
+            <h3 className="text-[15px] font-semibold theme-text-primary mb-1">{t('blacklist.infoTitle')}</h3>
+            <p className="text-[13px] theme-text-secondary leading-relaxed">
               {t('blacklist.infoDesc')}
             </p>
           </div>
@@ -238,8 +240,8 @@ export default function BlacklistPage() {
           <div className="mt-3 pt-3 border-t border-gray-100 flex items-center gap-4">
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 bg-gray-400 rounded-full" />
-              <span className="text-[13px] text-gray-500">
-                <span className="font-semibold text-gray-900">{blacklistedClients.length}</span> {t('blacklist.flagged')}
+              <span className="text-[13px] theme-text-secondary">
+                <span className="font-semibold theme-text-primary">{blacklistedClients.length}</span> {t('blacklist.flagged')}
               </span>
             </div>
           </div>
@@ -249,20 +251,20 @@ export default function BlacklistPage() {
       {/* Search */}
       {(blacklistedClients.length > 0 || searchTerm) && (
         <div className="relative mb-4" dir={isRTL ? 'rtl' : 'ltr'}>
-          <Search className={`absolute top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 ${isRTL ? 'right-4' : 'left-4'}`} />
+          <Search className={`absolute top-1/2 -translate-y-1/2 w-4 h-4 theme-text-tertiary ${isRTL ? 'right-4' : 'left-4'}`} />
           <input
             type="text"
             placeholder={t('blacklist.searchPlaceholder')}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className={`w-full h-11 bg-white border border-gray-200 rounded-xl text-[15px] text-gray-900 placeholder-gray-400 outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all ${isRTL ? 'pr-11 pl-4' : 'pl-11 pr-4'}`}
+            className={`w-full h-11 theme-bg-secondary border theme-border rounded-xl text-[15px] theme-text-primary placeholder-gray-400 outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all ${isRTL ? 'pr-11 pl-4' : 'pl-11 pr-4'}`}
           />
           {searchTerm && (
             <button
               onClick={() => setSearchTerm("")}
-              className={`absolute top-1/2 -translate-y-1/2 w-6 h-6 bg-gray-100 rounded-full flex items-center justify-center ${isRTL ? 'left-3' : 'right-3'}`}
+              className={`absolute top-1/2 -translate-y-1/2 w-6 h-6 theme-bg-tertiary rounded-full flex items-center justify-center ${isRTL ? 'left-3' : 'right-3'}`}
             >
-              <X className="w-3.5 h-3.5 text-gray-500" />
+              <X className="w-3.5 h-3.5 theme-text-secondary" />
             </button>
           )}
         </div>
@@ -271,11 +273,11 @@ export default function BlacklistPage() {
       {/* Empty State */}
       {filteredClients.length === 0 && !searchTerm ? (
         <div className="flex flex-col items-center justify-center py-16 px-6">
-          <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-5">
+          <div className="w-20 h-20 theme-bg-tertiary rounded-full flex items-center justify-center mb-5">
             <UserX className="w-10 h-10 text-gray-300" />
           </div>
-          <h3 className="text-[18px] font-semibold text-gray-900 mb-2">{t('blacklist.emptyTitle')}</h3>
-          <p className="text-[14px] text-gray-500 text-center mb-6 max-w-[260px]">
+          <h3 className="text-[18px] font-semibold theme-text-primary mb-2">{t('blacklist.emptyTitle')}</h3>
+          <p className="text-[14px] theme-text-secondary text-center mb-6 max-w-[260px]">
             {t('blacklist.emptyDesc')}
           </p>
           <button
@@ -287,15 +289,15 @@ export default function BlacklistPage() {
         </div>
       ) : filteredClients.length === 0 && searchTerm ? (
         <div className="flex flex-col items-center justify-center py-16 px-6">
-          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+          <div className="w-16 h-16 theme-bg-tertiary rounded-full flex items-center justify-center mb-4">
             <Search className="w-7 h-7 text-gray-300" />
           </div>
-          <h3 className="text-[17px] font-semibold text-gray-900 mb-1">{t('blacklist.noResults')}</h3>
-          <p className="text-[14px] text-gray-500">{t('blacklist.noResultsDesc')}</p>
+          <h3 className="text-[17px] font-semibold theme-text-primary mb-1">{t('blacklist.noResults')}</h3>
+          <p className="text-[14px] theme-text-secondary">{t('blacklist.noResultsDesc')}</p>
         </div>
       ) : (
         /* List */
-        <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+        <div className="theme-bg-secondary rounded-2xl border theme-border overflow-hidden">
           {filteredClients.map((client, index) => (
             <div
               key={client.id}
@@ -325,7 +327,7 @@ export default function BlacklistPage() {
                 }}
                 animate={{ x: swipedId === client.id ? -80 : 0 }}
                 transition={{ type: "tween", duration: 0.2 }}
-                className="relative bg-white p-4 cursor-grab active:cursor-grabbing"
+                className="relative theme-bg-secondary p-4 cursor-grab active:cursor-grabbing"
                 onClick={() => swipedId === client.id && handleSwipe('')}
               >
                 <div className="flex items-center gap-3">
@@ -339,18 +341,18 @@ export default function BlacklistPage() {
                   {/* Info */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-0.5">
-                      <h3 className="text-[16px] font-semibold text-gray-900 truncate">
+                      <h3 className="text-[16px] font-semibold theme-text-primary truncate">
                         {client.name}
                       </h3>
                     </div>
-                    <p className="text-[14px] text-gray-500 truncate">
+                    <p className="text-[14px] theme-text-secondary truncate">
                       {client.phone}
                     </p>
                   </div>
 
                   {/* Date & Arrow */}
                   <div className="flex items-center gap-1 flex-shrink-0">
-                    <span className="text-[13px] text-gray-400">
+                    <span className="text-[13px] theme-text-tertiary">
                       {formatDate(client.dateAdded)}
                     </span>
                     <ChevronRight className="w-4 h-4 text-gray-300" />
@@ -360,7 +362,7 @@ export default function BlacklistPage() {
                 {/* Reason (if exists and not empty) */}
                 {client.reason && client.reason !== "No reason provided" && (
                   <div className="mt-2.5 pl-[60px]">
-                    <p className="text-[13px] text-gray-400 line-clamp-1">
+                    <p className="text-[13px] theme-text-tertiary line-clamp-1">
                       "{client.reason}"
                     </p>
                   </div>
@@ -372,7 +374,7 @@ export default function BlacklistPage() {
           {/* Swipe hint */}
           {filteredClients.length > 0 && (
             <div className="lg:hidden px-4 py-3 bg-gray-50 border-t border-gray-100">
-              <p className="text-[12px] text-gray-400 text-center">
+              <p className="text-[12px] theme-text-tertiary text-center">
                 {t('blacklist.swipeHint')}
               </p>
             </div>
@@ -389,7 +391,7 @@ export default function BlacklistPage() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setModalOpen(false)}
-              className="fixed inset-0 bg-black/40 z-[9999]"
+              className="fixed inset-0 bg-black/40 z-[9999] touch-none"
             />
 
             <motion.div
@@ -397,38 +399,38 @@ export default function BlacklistPage() {
               animate={{ y: 0 }}
               exit={{ y: "100%" }}
               transition={{ type: "tween", duration: 0.3, ease: [0.32, 0.72, 0, 1] }}
-              className="fixed bottom-0 left-0 right-0 z-[10000]"
+              className="fixed bottom-0 left-0 right-0 z-[10000] touch-none"
             >
-              <div className="bg-[#fafafa] rounded-t-[28px] max-h-[85vh] flex flex-col">
+              <div className="bg-[#fafafa] rounded-t-[28px] max-h-[85vh] flex flex-col touch-auto">
                 {/* Handle */}
                 <div className="flex justify-center pt-3 pb-1">
-                  <div className="w-10 h-1 bg-gray-300 rounded-full" />
+                  <div className="w-10 h-1 modal-handle rounded-full" />
                 </div>
 
                 {/* Header */}
                 <div className="px-5 py-3 flex items-center justify-between" dir={isRTL ? 'rtl' : 'ltr'}>
                   <div>
-                    <h2 className="text-[17px] font-bold text-gray-900">{t('blacklist.addModalTitle')}</h2>
-                    <p className="text-[13px] text-gray-500">{t('blacklist.addModalDesc')}</p>
+                    <h2 className="text-[17px] font-bold theme-text-primary">{t('blacklist.addModalTitle')}</h2>
+                    <p className="text-[13px] theme-text-secondary">{t('blacklist.addModalDesc')}</p>
                   </div>
                   <button 
                     onClick={() => setModalOpen(false)}
-                    className="w-8 h-8 flex items-center justify-center text-gray-400"
+                    className="w-8 h-8 flex items-center justify-center theme-text-tertiary"
                   >
                     <X className="w-5 h-5" />
                   </button>
                 </div>
 
                 {/* Form */}
-                <div className="flex-1 overflow-y-auto px-5 overscroll-contain">
+                <div className="flex-1 overflow-y-auto px-5 overscroll-contain touch-auto">
                   {error && (
                     <p className="text-[13px] text-red-500 bg-red-50 px-3 py-2 rounded-xl mb-4">{error}</p>
                   )}
 
-                  <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden" dir={isRTL ? 'rtl' : 'ltr'}>
+                  <div className="theme-bg-secondary rounded-2xl border theme-border overflow-hidden" dir={isRTL ? 'rtl' : 'ltr'}>
                     {/* Name */}
                     <div className="p-4 border-b border-gray-100">
-                      <label className="block text-[11px] font-medium text-gray-400 uppercase tracking-wide mb-2">
+                      <label className="block text-[11px] font-medium theme-text-tertiary uppercase tracking-wide mb-2">
                         {t('blacklist.nameLabel')} <span className="text-red-400">*</span>
                       </label>
                       <input
@@ -436,13 +438,13 @@ export default function BlacklistPage() {
                         value={formData.name}
                         onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                         placeholder={t('blacklist.namePlaceholder')}
-                        className="w-full text-[17px] font-medium text-gray-900 placeholder-gray-300 outline-none bg-transparent"
+                        className="w-full text-[17px] font-medium theme-text-primary placeholder-gray-300 outline-none bg-transparent"
                       />
                     </div>
 
                     {/* Phone */}
                     <div className="p-4 border-b border-gray-100">
-                      <label className="block text-[11px] font-medium text-gray-400 uppercase tracking-wide mb-2">
+                      <label className="block text-[11px] font-medium theme-text-tertiary uppercase tracking-wide mb-2">
                         {t('blacklist.phoneLabel')} <span className="text-red-400">*</span>
                       </label>
                       <input
@@ -450,7 +452,7 @@ export default function BlacklistPage() {
                         value={formData.phone}
                         onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                         placeholder={t('blacklist.phonePlaceholder')}
-                        className="w-full text-[17px] font-medium text-gray-900 placeholder-gray-300 outline-none bg-transparent"
+                        className="w-full text-[17px] font-medium theme-text-primary placeholder-gray-300 outline-none bg-transparent"
                         dir="ltr"
                       />
                       {formData.phone && !isPhoneValid && (
@@ -460,7 +462,7 @@ export default function BlacklistPage() {
 
                     {/* Reason */}
                     <div className="p-4">
-                      <label className="block text-[11px] font-medium text-gray-400 uppercase tracking-wide mb-2">
+                      <label className="block text-[11px] font-medium theme-text-tertiary uppercase tracking-wide mb-2">
                         {t('blacklist.reasonLabel')} <span className="text-gray-300">({t('blacklist.optional')})</span>
                       </label>
                       <textarea
@@ -482,14 +484,14 @@ export default function BlacklistPage() {
                 >
                   <button
                     onClick={() => setModalOpen(false)}
-                    className="flex-1 h-12 bg-white border border-gray-200 text-gray-700 font-semibold text-[15px] rounded-2xl active:bg-gray-50 transition-colors"
+                    className="flex-1 h-12 theme-bg-secondary border theme-border text-gray-700 font-semibold text-[15px] rounded-2xl active:bg-gray-50 transition-colors"
                   >
                     {t('blacklist.cancel')}
                   </button>
                   <button
                     onClick={handleSubmit}
                     disabled={!formData.name || !isPhoneValid || processing.has('new')}
-                    className="flex-1 h-12 bg-gray-900 text-white font-semibold text-[15px] rounded-2xl disabled:bg-gray-300 disabled:text-gray-500 active:scale-[0.98] transition-all"
+                    className="flex-1 h-12 bg-gray-900 text-white font-semibold text-[15px] rounded-2xl disabled:bg-gray-300 disabled:theme-text-secondary active:scale-[0.98] transition-all"
                   >
                     {processing.has('new') ? t('blacklist.adding') : t('blacklist.add')}
                   </button>

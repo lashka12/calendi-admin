@@ -292,12 +292,12 @@ export default function RequestsPage() {
     return (
       <div className="space-y-6">
         <div className="hidden lg:block">
-          <h1 className="text-2xl font-semibold text-gray-900">{t('requests.title')}</h1>
-          <p className="text-sm text-gray-500 mt-1">{t('requests.subtitle')}</p>
+          <h1 className="text-2xl font-semibold theme-text-primary">{t('requests.title')}</h1>
+          <p className="text-sm theme-text-secondary mt-1">{t('requests.subtitle')}</p>
         </div>
-        <div className="bg-white border border-gray-200 rounded-xl p-12 lg:p-16 text-center">
-          <Loader2 className="w-8 h-8 text-gray-400 animate-spin mx-auto mb-4" />
-          <p className="text-sm text-gray-500">{t('requests.loading')}</p>
+        <div className="theme-bg-secondary border theme-border rounded-xl p-12 lg:p-16 text-center">
+          <Loader2 className="w-8 h-8 theme-text-tertiary animate-spin mx-auto mb-4" />
+          <p className="text-sm theme-text-secondary">{t('requests.loading')}</p>
         </div>
       </div>
     );
@@ -307,8 +307,8 @@ export default function RequestsPage() {
     <div className="space-y-6">
       {/* Header - hidden on mobile */}
       <div className="hidden lg:block">
-        <h1 className="text-2xl font-semibold text-gray-900">{t('requests.title')}</h1>
-        <p className="text-sm text-gray-500 mt-1">{t('requests.subtitle')}</p>
+        <h1 className="text-2xl font-semibold theme-text-primary">{t('requests.title')}</h1>
+        <p className="text-sm theme-text-secondary mt-1">{t('requests.subtitle')}</p>
       </div>
 
       {/* Error message */}
@@ -320,17 +320,17 @@ export default function RequestsPage() {
 
       {/* Stats - hidden on mobile */}
       <div className="hidden lg:grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-white border border-gray-200 rounded-xl p-6">
+        <div className="theme-bg-secondary border theme-border rounded-xl p-6">
           <p className="text-sm font-medium text-gray-600">{t('requests.stats.pending')}</p>
-          <p className="text-2xl font-semibold text-gray-900 mt-2">{requests.length}</p>
+          <p className="text-2xl font-semibold theme-text-primary mt-2">{requests.length}</p>
         </div>
-        <div className="bg-white border border-gray-200 rounded-xl p-6">
+        <div className="theme-bg-secondary border theme-border rounded-xl p-6">
           <p className="text-sm font-medium text-gray-600">{t('requests.stats.approvedToday')}</p>
-          <p className="text-2xl font-semibold text-gray-900 mt-2">28</p>
+          <p className="text-2xl font-semibold theme-text-primary mt-2">28</p>
         </div>
-        <div className="bg-white border border-gray-200 rounded-xl p-6">
+        <div className="theme-bg-secondary border theme-border rounded-xl p-6">
           <p className="text-sm font-medium text-gray-600">{t('requests.stats.approvalRate')}</p>
-          <p className="text-2xl font-semibold text-gray-900 mt-2">92%</p>
+          <p className="text-2xl font-semibold theme-text-primary mt-2">92%</p>
         </div>
       </div>
 
@@ -342,21 +342,21 @@ export default function RequestsPage() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95 }}
             transition={{ duration: 0.3 }}
-            className="bg-white border border-gray-200 rounded-xl p-12 lg:p-16 text-center"
+            className="theme-bg-secondary border theme-border rounded-xl p-12 lg:p-16 text-center"
           >
             <motion.div
               initial={{ scale: 0.8 }}
               animate={{ scale: 1 }}
               transition={{ delay: 0.1, type: "spring", stiffness: 200 }}
-              className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6"
+              className="w-20 h-20 theme-bg-tertiary rounded-full flex items-center justify-center mx-auto mb-6"
             >
-              <Check className="w-10 h-10 text-gray-900" strokeWidth={2.5} />
+              <Check className="w-10 h-10 theme-text-primary" strokeWidth={2.5} />
             </motion.div>
             <motion.h3
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.2 }}
-              className="text-2xl font-bold text-gray-900 mb-2"
+              className="text-2xl font-bold theme-text-primary mb-2"
             >
               {t('requests.empty.title')}
             </motion.h3>
@@ -364,7 +364,7 @@ export default function RequestsPage() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.3 }}
-              className="text-base text-gray-500 max-w-md mx-auto"
+              className="text-base theme-text-secondary max-w-md mx-auto"
             >
               {t('requests.empty.message')}
             </motion.p>
@@ -379,7 +379,7 @@ export default function RequestsPage() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, x: -100 }}
                 transition={{ delay: index * 0.05 }}
-                className={`bg-white border border-gray-200 rounded-2xl overflow-hidden ${
+                className={`theme-bg-secondary border theme-border rounded-2xl overflow-hidden ${
                   request.isExpired ? 'opacity-50' : ''
                 }`}
               >
@@ -393,26 +393,26 @@ export default function RequestsPage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <h3 className="text-[15px] font-semibold text-gray-900 truncate">{request.client}</h3>
+                        <h3 className="text-[15px] font-semibold theme-text-primary truncate">{request.client}</h3>
                         {request.isExpired && (
                           <span className="px-1.5 py-0.5 bg-red-100 text-red-600 text-[9px] font-bold rounded uppercase">
                             {t('requests.expired')}
                           </span>
                         )}
                       </div>
-                      <p className="text-xs text-gray-500 flex items-center gap-1.5 mt-0.5">
+                      <p className="text-xs theme-text-secondary flex items-center gap-1.5 mt-0.5">
                         <Phone className="w-3 h-3" />
                         {request.phone}
                       </p>
                     </div>
                     {request.amount && (
-                      <span className="text-sm font-bold text-gray-900">{request.amount}</span>
+                      <span className="text-sm font-bold theme-text-primary">{request.amount}</span>
                     )}
                   </div>
 
                   {/* Booking details - compact */}
                   <div className="bg-gray-50 rounded-xl p-3 mb-3">
-                    <p className="text-sm font-medium text-gray-900 mb-2">{request.service}</p>
+                    <p className="text-sm font-medium theme-text-primary mb-2">{request.service}</p>
                     <div className="flex items-center gap-2 text-sm text-gray-600">
                       <span>{request.date}</span>
                       <span className="text-gray-300">·</span>
@@ -420,19 +420,19 @@ export default function RequestsPage() {
                       {request.duration && (
                         <>
                           <span className="text-gray-300">·</span>
-                          <span className="text-gray-500">{request.duration} mins</span>
+                          <span className="theme-text-secondary">{request.duration} mins</span>
                         </>
                       )}
                     </div>
                     {request.notes && (
-                      <p className="mt-2 pt-2 border-t border-gray-200 text-xs text-gray-600 italic">
+                      <p className="mt-2 pt-2 border-t theme-border text-xs text-gray-600 italic">
                         "{request.notes}"
                       </p>
                     )}
                   </div>
 
                   {/* Meta: Requested time */}
-                  <div className="flex items-center gap-1.5 text-[11px] text-gray-400 mb-3">
+                  <div className="flex items-center gap-1.5 text-[11px] theme-text-tertiary mb-3">
                     <Clock className="w-3 h-3" />
                     {request.requestedDate}
                   </div>
@@ -444,7 +444,7 @@ export default function RequestsPage() {
                       disabled={isProcessing(request.id) || request.isExpired}
                       className={`flex-[2] inline-flex items-center justify-center gap-2 h-12 text-sm font-semibold rounded-xl active:scale-[0.98] transition-all disabled:cursor-not-allowed ${
                         request.isExpired
-                          ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                          ? 'theme-bg-tertiary theme-text-tertiary cursor-not-allowed'
                           : 'bg-gray-900 text-white hover:bg-gray-800 disabled:opacity-50'
                       }`}
                     >
@@ -458,7 +458,7 @@ export default function RequestsPage() {
                     <button
                       onClick={() => handleDecline(request.id)}
                       disabled={isProcessing(request.id)}
-                      className="flex-1 inline-flex items-center justify-center gap-2 h-12 bg-white border border-gray-200 text-gray-600 text-sm font-semibold rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="flex-1 inline-flex items-center justify-center gap-2 h-12 theme-bg-secondary border theme-border text-gray-600 text-sm font-semibold rounded-xl hover:bg-gray-50 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {processing.has(`decline:${request.id}`) ? (
                         <Loader2 className="w-4 h-4 animate-spin" />

@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { AlertTriangle, Trash2, Loader2 } from "lucide-react";
 import Portal from "./Portal";
 import { useTranslation } from "../i18n";
+import { useScrollLock } from "@/app/lib/hooks/useScrollLock";
 
 interface ConfirmationModalProps {
   isOpen: boolean;
@@ -31,6 +32,7 @@ export default function ConfirmationModal({
   variant = "danger",
 }: ConfirmationModalProps) {
   const { t } = useTranslation();
+  useScrollLock(isOpen);
   const variantStyles = {
     danger: {
       iconBg: "bg-red-100",
@@ -67,7 +69,7 @@ export default function ConfirmationModal({
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2, ease: "easeOut" }}
               onClick={onClose}
-              className="absolute inset-0 bg-gray-900/60 pointer-events-auto"
+              className="absolute inset-0 bg-gray-900/60 pointer-events-auto touch-none"
               style={{ 
                 height: '140vh', 
                 top: '-20vh',
@@ -82,10 +84,10 @@ export default function ConfirmationModal({
               exit={{ y: "100%", opacity: 0 }}
               transition={{ duration: 0.3, ease: [0.32, 0.72, 0, 1] }}
               onPointerDown={(e) => e.stopPropagation()}
-              className="relative w-full lg:fixed lg:bottom-auto lg:left-1/2 lg:top-1/2 lg:-translate-x-1/2 lg:-translate-y-1/2 lg:w-full lg:max-w-md z-[10002] bg-white rounded-t-[32px] lg:rounded-2xl shadow-2xl flex flex-col pointer-events-auto overflow-hidden"
+              className="relative w-full lg:fixed lg:bottom-auto lg:left-1/2 lg:top-1/2 lg:-translate-x-1/2 lg:-translate-y-1/2 lg:w-full lg:max-w-md z-[10002] bg-white rounded-t-[32px] lg:rounded-2xl shadow-2xl flex flex-col pointer-events-auto overflow-hidden touch-none"
               style={{ backgroundColor: 'white' }}
             >
-              <div className="flex flex-col h-full overflow-hidden">
+              <div className="flex flex-col h-full overflow-hidden touch-auto">
                 {/* Handle bar for mobile */}
                 <div 
                   className="lg:hidden flex justify-center pt-4 pb-2 flex-shrink-0"
@@ -95,7 +97,7 @@ export default function ConfirmationModal({
                 </div>
 
                 {/* Content */}
-                <div className="px-6 py-6 lg:py-6 flex-1 overflow-y-auto">
+                <div className="px-6 py-6 lg:py-6 flex-1 overflow-y-auto touch-auto">
                   {/* Icon and Title */}
                   <div className="flex flex-col items-center text-center mb-6">
                     <div className={`w-16 h-16 ${styles.iconBg} rounded-full flex items-center justify-center mb-4 ${styles.iconColor}`}>

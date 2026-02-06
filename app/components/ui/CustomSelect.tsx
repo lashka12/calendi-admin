@@ -84,18 +84,20 @@ export default function CustomSelect({
         disabled={disabled}
         className={`
           w-full flex items-center justify-between gap-2 px-4 py-3
-          bg-white border border-gray-200 rounded-xl
-          text-sm text-gray-900
+          theme-bg-secondary theme-border border rounded-xl
+          text-sm theme-text-primary
           transition-all duration-200
-          ${isOpen ? 'border-gray-400' : 'hover:border-gray-300'}
           ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
         `}
+        style={{
+          borderColor: isOpen ? 'var(--color-text-tertiary)' : undefined,
+        }}
       >
-        <span className={selectedOption ? 'text-gray-900' : 'text-gray-400'}>
+        <span className={selectedOption ? 'theme-text-primary' : 'theme-text-tertiary'}>
           {selectedOption?.label || placeholder}
         </span>
         <ChevronDown 
-          className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} 
+          className={`w-4 h-4 theme-text-tertiary transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} 
         />
       </button>
 
@@ -108,10 +110,10 @@ export default function CustomSelect({
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
             transition={{ duration: 0.12 }}
-            className="absolute z-50 mt-1 w-full bg-white rounded-xl shadow-xl border border-gray-200 overflow-hidden max-h-[240px] overflow-y-auto"
+            className="absolute z-50 mt-1 w-full theme-bg-secondary rounded-xl shadow-xl theme-border border overflow-hidden max-h-[240px] overflow-y-auto"
             style={{
               scrollbarWidth: 'thin',
-              scrollbarColor: '#d1d5db transparent',
+              scrollbarColor: 'var(--color-text-tertiary) transparent',
             }}
           >
             {options.map((option) => {
@@ -126,14 +128,14 @@ export default function CustomSelect({
                     w-full flex items-center justify-between gap-3 px-4 py-2.5
                     text-sm transition-colors text-start
                     ${isSelected 
-                      ? 'bg-gray-100 text-gray-900 font-medium' 
-                      : 'text-gray-700 hover:bg-gray-50 active:bg-gray-100'
+                      ? 'theme-bg-tertiary theme-text-primary font-medium' 
+                      : 'theme-text-secondary hover:theme-bg-hover'
                     }
                   `}
                 >
                   <span>{option.label}</span>
                   {isSelected && (
-                    <Check className="w-4 h-4 text-gray-900 flex-shrink-0" />
+                    <Check className="w-4 h-4 theme-text-primary flex-shrink-0" />
                   )}
                 </button>
               );

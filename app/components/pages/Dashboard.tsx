@@ -23,6 +23,7 @@ import { subscribeToSessions, Session } from "@/app/lib/firebase/sessions";
 import { subscribeToPendingBookings, PendingBooking } from "@/app/lib/firebase/requests";
 import { subscribeToServices, getServiceName, Service } from "@/app/lib/firebase/services";
 import { useTranslation } from "@/app/i18n";
+import { useScrollLock } from "@/app/lib/hooks/useScrollLock";
 import { 
   LineChart,
   Line,
@@ -63,17 +64,8 @@ export default function DashboardPage() {
     return () => clearInterval(interval);
   }, []);
 
-  // Lock body scroll when modal is open
-  useEffect(() => {
-    if (selectedSession || selectedWeekDay) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'unset';
-    }
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
-  }, [selectedSession, selectedWeekDay]);
+  // Lock body scroll when modal is open - iOS compatible
+  useScrollLock(!!(selectedSession || selectedWeekDay));
 
   // Helper: Get display service name using serviceId for multi-language support
   const getDisplayServiceName = (session: Session): string => {
@@ -133,18 +125,18 @@ export default function DashboardPage() {
     return `${displayHours}:${String(minutes).padStart(2, '0')} ${period}`;
   };
 
-  const getTimeUntil = (time: string): { value: string; isNow: boolean } => {
+  const getTimeUntil = (time: string): { value: string; isNow: boolean; minutes: number } => {
     const [hours, minutes] = time.split(':').map(Number);
     const appointmentTime = new Date();
     appointmentTime.setHours(hours, minutes, 0, 0);
     const diffMs = appointmentTime.getTime() - currentTime.getTime();
     const diffMins = Math.floor(diffMs / 60000);
-    if (diffMins <= 0) return { value: t('time.now'), isNow: true };
-    if (diffMins < 60) return { value: `${diffMins} ${t('time.minuteShort')}`, isNow: false };
+    if (diffMins <= 0) return { value: t('time.now'), isNow: true, minutes: 0 };
+    if (diffMins < 60) return { value: `${diffMins} ${t('time.minuteShort')}`, isNow: false, minutes: diffMins };
     const diffHours = Math.floor(diffMins / 60);
     const remainingMins = diffMins % 60;
-    if (remainingMins === 0) return { value: `${diffHours} ${t('time.hourShort')}`, isNow: false };
-    return { value: `${diffHours} ${t('time.hourShort')} ${remainingMins} ${t('time.minuteShort')}`, isNow: false };
+    if (remainingMins === 0) return { value: `${diffHours} ${t('time.hourShort')}`, isNow: false, minutes: diffMins };
+    return { value: `${diffHours} ${t('time.hourShort')} ${remainingMins} ${t('time.minuteShort')}`, isNow: false, minutes: diffMins };
   };
 
   const dateInfo = useMemo(() => {
@@ -400,7 +392,7 @@ export default function DashboardPage() {
               <TimeIcon className="w-5 h-5 text-amber-400" />
             </div>
             <div>
-              <p className="text-gray-400 text-xs">{dateInfo}</p>
+              <p className="theme-text-tertiary text-xs">{dateInfo}</p>
               <h1 className="text-white text-lg sm:text-xl font-semibold">{greeting}</h1>
             </div>
           </div>
@@ -410,7 +402,7 @@ export default function DashboardPage() {
             <div className="flex items-center gap-3">
               <div className="text-right">
                 <p className="text-white text-sm font-semibold">{todayProgress.completed}/{todayProgress.total}</p>
-                <p className="text-gray-400 text-[10px]">{t('dashboard.schedule.completed')}</p>
+                <p className="theme-text-tertiary text-[10px]">{t('dashboard.schedule.completed')}</p>
               </div>
               <div className="relative w-11 h-11">
                 {/* Background circle */}
@@ -469,7 +461,7 @@ export default function DashboardPage() {
             ) : (
               <p className="text-2xl sm:text-3xl font-bold text-white">{stats.today}</p>
             )}
-            <p className="text-gray-400 text-[10px] mt-0.5">{t('dashboard.stats.todaySessions')}</p>
+            <p className="theme-text-tertiary text-[10px] mt-0.5">{t('dashboard.stats.todaySessions')}</p>
           </div>
           <div className="w-px h-8 bg-gray-700" />
           <div className="min-w-[40px]">
@@ -478,7 +470,7 @@ export default function DashboardPage() {
             ) : (
               <p className="text-2xl sm:text-3xl font-bold text-white">{stats.week}</p>
             )}
-            <p className="text-gray-400 text-[10px] mt-0.5">{t('dashboard.stats.thisWeek')}</p>
+            <p className="theme-text-tertiary text-[10px] mt-0.5">{t('dashboard.stats.thisWeek')}</p>
           </div>
           {(loading || stats.pending > 0) && (
             <>
@@ -491,7 +483,7 @@ export default function DashboardPage() {
                     {stats.pending}
                   </p>
                 )}
-                <p className="text-gray-400 text-[10px] mt-0.5">{t('dashboard.stats.pending')}</p>
+                <p className="theme-text-tertiary text-[10px] mt-0.5">{t('dashboard.stats.pending')}</p>
               </Link>
             </>
           )}
@@ -507,27 +499,27 @@ export default function DashboardPage() {
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.05 }}
-            className="bg-white rounded-2xl border border-gray-200"
+            className="theme-bg-secondary rounded-2xl border theme-border"
           >
-            <div className="flex items-center justify-between p-4 border-b border-gray-100">
-              <h3 className="font-semibold text-gray-900">{t('dashboard.schedule.title')}</h3>
-              <Link href="/calendar" className="text-xs text-gray-500 lg:hover:text-gray-900 flex items-center gap-1">
+            <div className="flex items-center justify-between p-4 border-b theme-border">
+              <h3 className="font-semibold theme-text-primary">{t('dashboard.schedule.title')}</h3>
+              <Link href="/calendar" className="text-xs theme-text-secondary lg:hover:theme-text-primary flex items-center gap-1">
                 {t('dashboard.schedule.viewAll')} <ArrowRight className={`w-3 h-3 ${isRTL ? 'rotate-180' : ''}`} />
               </Link>
             </div>
 
             {loading ? (
-              <div className="divide-y divide-gray-100">
+              <div className="divide-y divide-theme">
                 {[1, 2, 3].map((i) => (
                   <div key={i} className="flex items-center gap-4 p-4">
                     <div className="w-14 flex flex-col items-center gap-1">
-                      <div className="h-4 w-10 bg-gray-200 rounded animate-pulse" />
-                      <div className="h-2 w-6 bg-gray-100 rounded animate-pulse" />
+                      <div className="h-4 w-10 theme-bg-tertiary rounded animate-pulse" />
+                      <div className="h-2 w-6 theme-bg-tertiary rounded animate-pulse" />
                     </div>
-                    <div className="w-px h-8 bg-gray-200" />
+                    <div className="w-px h-8 theme-bg-tertiary" />
                     <div className="flex-1 space-y-2">
-                      <div className="h-4 w-32 bg-gray-200 rounded animate-pulse" />
-                      <div className="h-3 w-24 bg-gray-100 rounded animate-pulse" />
+                      <div className="h-4 w-32 theme-bg-tertiary rounded animate-pulse" />
+                      <div className="h-3 w-24 theme-bg-tertiary rounded animate-pulse" />
                     </div>
                   </div>
                 ))}
@@ -535,10 +527,10 @@ export default function DashboardPage() {
             ) : todaysSessions.length === 0 ? (
               <div className="p-8 text-center">
                 <Calendar className="w-8 h-8 text-gray-300 mx-auto mb-2" />
-                <p className="text-gray-500 text-sm">{t('dashboard.schedule.noSessions')}</p>
+                <p className="theme-text-secondary text-sm">{t('dashboard.schedule.noSessions')}</p>
               </div>
             ) : (
-              <div className="divide-y divide-gray-100">
+              <div className="divide-y divide-theme">
                 {todaysSessions.map((booking, index) => (
                   <motion.button
                     key={booking.id}
@@ -547,23 +539,23 @@ export default function DashboardPage() {
                     transition={{ delay: 0.1 + index * 0.05 }}
                     onClick={() => setSelectedSession(booking)}
                     dir={isRTL ? 'rtl' : 'ltr'}
-                    className={`w-full flex items-center gap-4 p-4 lg:hover:bg-gray-100 active:bg-gray-100 transition-colors ${
-                      index === 0 ? 'bg-gray-50' : ''
+                    className={`w-full flex items-center gap-4 p-4 lg:hover:theme-bg-tertiary active:theme-bg-tertiary transition-colors ${
+                      index === 0 ? 'theme-bg-tertiary' : ''
                     }`}
                   >
                     <div className="w-14 text-center flex-shrink-0">
-                      <p className="font-semibold text-sm text-gray-900">{booking.time.split(' ')[0]}</p>
-                      <p className="text-[10px] text-gray-400">{booking.time.split(' ')[1]}</p>
+                      <p className="font-semibold text-sm theme-text-primary">{booking.time.split(' ')[0]}</p>
+                      <p className="text-[10px] theme-text-tertiary">{booking.time.split(' ')[1]}</p>
                     </div>
-                    <div className={`w-px h-8 flex-shrink-0 ${index === 0 ? 'bg-gray-900' : 'bg-gray-200'}`} />
+                    <div className={`w-px h-8 flex-shrink-0 ${index === 0 ? 'selected-tab' : 'theme-bg-tertiary'}`} />
                     <div className={`flex-1 min-w-0 ${isRTL ? 'text-right' : 'text-left'}`}>
-                      <p className="font-medium text-gray-900 truncate">{booking.client}</p>
-                      <p className="text-sm text-gray-500 truncate">{booking.service}</p>
+                      <p className="font-medium theme-text-primary truncate">{booking.client}</p>
+                      <p className="text-sm theme-text-secondary truncate">{booking.service}</p>
                     </div>
                     {index === 0 && (() => {
                       const timeUntil = getTimeUntil(booking.rawTime);
                       return (
-                        <span className="text-xs font-semibold text-white bg-gray-900 px-2.5 py-1 rounded-full flex-shrink-0">
+                        <span className="text-xs font-semibold selected-tab px-2.5 py-1 rounded-full flex-shrink-0">
                           {timeUntil.isNow ? timeUntil.value : `${t('time.in')} ${timeUntil.value}`}
                         </span>
                       );
@@ -581,10 +573,10 @@ export default function DashboardPage() {
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
-              className="bg-white rounded-2xl border border-gray-200 p-4"
+              className="theme-bg-secondary rounded-2xl border theme-border p-4"
             >
               <div className="flex items-center justify-between mb-3">
-                <h3 className="font-semibold text-gray-900">{t('dashboard.weekChart.title')}</h3>
+                <h3 className="font-semibold theme-text-primary">{t('dashboard.weekChart.title')}</h3>
               </div>
               <div className="flex gap-1">
                 {currentWeekData.map((item, index) => (
@@ -603,30 +595,30 @@ export default function DashboardPage() {
                     disabled={item.isPast}
                     className={`flex-1 flex flex-col items-center gap-0.5 py-2.5 rounded-3xl transition-colors ${
                       item.isToday 
-                        ? 'bg-gray-900 text-white' 
+                        ? 'selected-tab' 
                         : item.isPast
                           ? 'text-gray-300 cursor-not-allowed'
                           : item.count === 0 
-                            ? 'text-gray-500 hover:bg-gray-100 active:bg-gray-200' 
-                            : 'text-gray-900 hover:bg-gray-100 active:bg-gray-200'
+                            ? 'theme-text-secondary hover:theme-bg-tertiary active:theme-bg-active' 
+                            : 'theme-text-primary hover:theme-bg-tertiary active:theme-bg-active'
                     }`}
                   >
-                    <p className={`text-[10px] font-medium uppercase ${item.isToday ? 'text-gray-400' : ''}`}>
+                    <p className={`text-[10px] font-medium uppercase ${item.isToday ? 'theme-text-tertiary' : ''}`}>
                       {item.day}
                     </p>
                     <p className="text-lg font-semibold">
                       {item.date}
                     </p>
                     {loading ? (
-                      <p className={`text-[10px] ${item.isToday ? 'text-gray-500' : 'text-gray-300'}`}>...</p>
+                      <p className={`text-[10px] ${item.isToday ? 'theme-text-secondary' : 'text-gray-300'}`}>...</p>
                     ) : item.isPast ? (
                       <p className="text-[10px] text-gray-300">-</p>
                     ) : item.count > 0 ? (
-                      <p className={`text-[10px] font-medium ${item.isToday ? 'text-gray-400' : 'text-gray-500'}`}>
+                      <p className={`text-[10px] font-medium ${item.isToday ? 'theme-text-tertiary' : 'theme-text-secondary'}`}>
                         {item.count}
                       </p>
                     ) : (
-                      <p className={`text-[10px] ${item.isToday ? 'text-gray-500' : 'text-gray-400'}`}>-</p>
+                      <p className={`text-[10px] ${item.isToday ? 'theme-text-secondary' : 'theme-text-tertiary'}`}>-</p>
                     )}
                   </motion.button>
                 ))}
@@ -638,11 +630,11 @@ export default function DashboardPage() {
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.15 }}
-              className="bg-white rounded-2xl border border-gray-200 p-4"
+              className="theme-bg-secondary rounded-2xl border theme-border p-4"
             >
               <div className="flex items-center justify-between mb-4" dir={isRTL ? 'rtl' : 'ltr'}>
-                <h3 className="font-semibold text-gray-900">{t('dashboard.monthlyTrend.title')}</h3>
-                <span className="text-xs text-gray-400 font-medium">{t('dashboard.monthlyTrend.lastWeeks')}</span>
+                <h3 className="font-semibold theme-text-primary">{t('dashboard.monthlyTrend.title')}</h3>
+                <span className="text-xs theme-text-tertiary font-medium">{t('dashboard.monthlyTrend.lastWeeks')}</span>
               </div>
               <div className="h-28">
                 {loading ? (
@@ -650,10 +642,10 @@ export default function DashboardPage() {
                     {[40, 65, 45, 80].map((height, i) => (
                       <div key={i} className="flex-1 flex flex-col items-center gap-2">
                         <div 
-                          className="w-full bg-gray-100 rounded animate-pulse" 
+                          className="w-full theme-bg-tertiary rounded animate-pulse" 
                           style={{ height: `${height}%` }}
                         />
-                        <div className="w-6 h-3 bg-gray-100 rounded animate-pulse" />
+                        <div className="w-6 h-3 theme-bg-tertiary rounded animate-pulse" />
                       </div>
                     ))}
                   </div>
@@ -683,8 +675,8 @@ export default function DashboardPage() {
           transition={{ delay: 0.1 }}
           className="space-y-4"
         >
-          <div className="bg-white rounded-2xl border border-gray-200 p-4">
-            <h3 className="font-semibold text-gray-900 mb-3">{t('dashboard.quickActions.title')}</h3>
+          <div className="theme-bg-secondary rounded-2xl border theme-border p-4">
+            <h3 className="font-semibold theme-text-primary mb-3">{t('dashboard.quickActions.title')}</h3>
             <div className="space-y-1">
               {quickActions.map((item, index) => (
                 <motion.div
@@ -695,7 +687,7 @@ export default function DashboardPage() {
                 >
                   <Link
                     href={item.href}
-                    className="flex items-center gap-3 p-3 rounded-xl lg:hover:bg-gray-50 transition-colors group"
+                    className="flex items-center gap-3 p-3 rounded-xl lg:hover:theme-bg-hover transition-colors group"
                   >
                     <div className="relative">
                       <div className={`w-9 h-9 ${item.color} rounded-lg flex items-center justify-center lg:group-hover:scale-105 transition-transform`}>
@@ -708,8 +700,8 @@ export default function DashboardPage() {
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium text-gray-900 text-sm">{item.label}</p>
-                      <p className="text-xs text-gray-500">{item.sub}</p>
+                      <p className="font-medium theme-text-primary text-sm">{item.label}</p>
+                      <p className="text-xs theme-text-secondary">{item.sub}</p>
                     </div>
                     <ChevronRight className={`w-4 h-4 text-gray-300 ${isRTL ? 'rotate-180' : ''}`} />
                   </Link>
@@ -722,12 +714,12 @@ export default function DashboardPage() {
                 transition={{ delay: 0.3 }}
               >
                 <button disabled className="flex items-center gap-3 p-3 rounded-xl opacity-40 cursor-not-allowed w-full">
-                  <div className="w-9 h-9 bg-gray-300 rounded-lg flex items-center justify-center">
-                    <UserPlus className="w-4 h-4 text-white" />
+                  <div className="w-9 h-9 theme-bg-tertiary rounded-lg flex items-center justify-center">
+                    <UserPlus className="w-4 h-4 theme-text-secondary" />
                   </div>
                   <div className="flex-1 text-left min-w-0">
-                    <p className="font-medium text-gray-500 text-sm">{t('dashboard.quickActions.addClient')}</p>
-                    <p className="text-xs text-gray-400">{t('dashboard.quickActions.comingSoon')}</p>
+                    <p className="font-medium theme-text-secondary text-sm">{t('dashboard.quickActions.addClient')}</p>
+                    <p className="text-xs theme-text-tertiary">{t('dashboard.quickActions.comingSoon')}</p>
                   </div>
                 </button>
               </motion.div>
@@ -741,138 +733,115 @@ export default function DashboardPage() {
       <AnimatePresence>
         {selectedWeekDay && (
           <>
-            {/* Backdrop - extended to cover safe areas */}
+            {/* Backdrop */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.15 }}
               onClick={() => setSelectedWeekDay(null)}
-              className="fixed -top-20 -left-4 -right-4 -bottom-20 bg-black/50 z-[9999]"
+              className="fixed -top-20 -left-4 -right-4 -bottom-20 bg-black/50 z-[9999] touch-none"
             />
 
             {/* Modal */}
             <motion.div
-              initial={{ y: "100%", opacity: 0.5 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: "100%", opacity: 0 }}
-              transition={{ type: "spring", damping: 32, stiffness: 400 }}
-              className="fixed bottom-0 left-0 right-0 md:bottom-auto md:left-1/2 md:top-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-full md:max-w-[380px] z-[10000]"
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", damping: 30, stiffness: 400 }}
+              className="fixed bottom-0 left-0 right-0 z-[10000] touch-none"
             >
-              <div className="bg-white rounded-t-2xl md:rounded-2xl shadow-2xl max-h-[75vh] flex flex-col">
-                {/* Drag handle - mobile only */}
-                <div className="md:hidden flex justify-center pt-3">
-                  <div className="w-9 h-1 bg-gray-300 rounded-full" />
-                </div>
-
+              <div className="theme-bg-secondary rounded-t-2xl shadow-2xl max-h-[70vh] flex flex-col touch-auto">
                 {/* Header */}
-                <div className="px-5 pt-4 pb-3 flex-shrink-0">
+                <div className="px-5 pt-5 pb-3">
+                  <div className="md:hidden flex justify-center mb-4">
+                    <div className="w-9 h-1 modal-handle rounded-full" />
+                  </div>
                   <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="text-[17px] font-semibold text-gray-900">
-                        {selectedWeekDay.isToday ? t('common.today') : selectedWeekDay.dayName}
-                      </h3>
-                      <p className="text-[13px] text-gray-500">{selectedWeekDay.fullDate}</p>
-                    </div>
+                    <h3 className="text-[17px] font-semibold theme-text-primary">
+                      {selectedWeekDay.isToday ? t('common.today') : selectedWeekDay.dayName}, {selectedWeekDay.fullDate}
+                    </h3>
                     <button
                       onClick={() => setSelectedWeekDay(null)}
-                      className="w-8 h-8 flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                      className="w-8 h-8 flex items-center justify-center theme-bg-tertiary hover:theme-bg-active rounded-full transition-colors"
                     >
-                      <X className="w-4 h-4 text-gray-500" />
+                      <X className="w-4 h-4 theme-text-secondary" />
                     </button>
                   </div>
                 </div>
 
-                {/* Sessions List */}
-                <div className="flex-1 overflow-y-auto border-t border-gray-100">
+                {/* Sessions */}
+                <div 
+                  className="flex-1 overflow-y-auto px-4 pb-2"
+                  style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 12px)' }}
+                >
                   {(() => {
                     const daySessions = getSessionsForDate(selectedWeekDay.dateStr);
                     
                     if (daySessions.length === 0) {
                       return (
-                        <div className="py-10 px-5 text-center">
-                          <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-3">
-                            <Calendar className="w-5 h-5 text-gray-400" />
-                          </div>
-                          <p className="text-[15px] font-medium text-gray-900">{t('dashboard.weekDayModal.noSessions')}</p>
-                          <p className="text-[13px] text-gray-500 mt-0.5">{t('dashboard.weekDayModal.scheduleClear')}</p>
+                        <div className="py-8 text-center">
+                          <p className="text-[14px] theme-text-tertiary">{t('dashboard.weekDayModal.noSessions')}</p>
                         </div>
                       );
                     }
 
                     return (
-                      <div className="divide-y divide-gray-100">
-                        {daySessions.map((session, index) => (
-                          <motion.div
+                      <div className="space-y-2">
+                        {daySessions.map((session) => (
+                          <button
                             key={session.id}
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            transition={{ delay: index * 0.02 }}
-                            className="flex items-center gap-4 px-5 py-3.5"
+                            onClick={() => {
+                              setSelectedWeekDay(null);
+                              setSelectedSession(session);
+                            }}
+                            className="w-full theme-bg-tertiary hover:theme-bg-active rounded-xl p-3 text-left transition-colors"
                           >
-                            {/* Time */}
-                            <div className="w-14 flex-shrink-0 text-center">
-                              <p className="text-[15px] font-semibold text-gray-900">
-                                {session.time.split(' ')[0]}
-                              </p>
-                              <p className="text-[10px] text-gray-400 uppercase tracking-wide">
-                                {session.time.split(' ')[1]}
-                              </p>
-                            </div>
-
-                            {/* Vertical line */}
-                            <div className="w-0.5 h-9 bg-gray-200 rounded-full flex-shrink-0" />
-
-                            {/* Details */}
-                            <div className="flex-1 min-w-0">
-                              <p className="text-[15px] font-medium text-gray-900 truncate">
+                            <div className="flex items-center justify-between mb-1">
+                              <p className="text-[15px] font-semibold theme-text-primary">
                                 {session.client}
                               </p>
-                              <p className="text-[13px] text-gray-500 truncate">
-                                {session.service}
-                                {session.duration && (
-                                  <span className="text-gray-400"> · {session.duration}m</span>
-                                )}
+                              <p className="text-[14px] font-medium theme-text-primary">
+                                {session.time}
                               </p>
                             </div>
-                          </motion.div>
+                            <p className="text-[13px] theme-text-secondary">
+                              {session.service}
+                              {session.duration && <span> · {session.duration} min</span>}
+                            </p>
+                          </button>
                         ))}
+                        
+                        {/* View in Calendar link */}
+                        <Link
+                          href={`/calendar?date=${selectedWeekDay.dateStr}`}
+                          onClick={() => setSelectedWeekDay(null)}
+                          className="w-full flex items-center justify-center gap-1 py-3 text-[14px] font-medium theme-text-secondary hover:theme-text-primary transition-colors"
+                        >
+                          {t('dashboard.weekDayModal.openInCalendar')}
+                          <ArrowRight className="w-4 h-4" />
+                        </Link>
                       </div>
                     );
                   })()}
                 </div>
-
-                {/* Footer */}
-                <div className="px-5 py-4 border-t border-gray-100 flex-shrink-0">
-                  <Link
-                    href={`/calendar?date=${selectedWeekDay.dateStr}`}
-                    onClick={() => setSelectedWeekDay(null)}
-                    className="w-full flex items-center justify-center h-11 bg-gray-900 hover:bg-gray-800 active:bg-gray-700 text-white font-medium text-[15px] rounded-xl transition-colors"
-                  >
-                    {t('dashboard.weekDayModal.openInCalendar')}
-                  </Link>
-                </div>
-
-                {/* Safe area for iPhone */}
-                <div className="h-6 md:hidden" />
               </div>
             </motion.div>
           </>
         )}
       </AnimatePresence>
 
-      {/* Session Details Modal - Premium Design */}
+      {/* Session Details Modal */}
       <AnimatePresence>
         {selectedSession && (
           <>
-            {/* Backdrop - extended to cover safe areas */}
+            {/* Backdrop */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.15 }}
               onClick={() => setSelectedSession(null)}
-              className="fixed -top-20 -left-4 -right-4 -bottom-20 bg-black/50 z-[9999]"
+              className="fixed -top-20 -left-4 -right-4 -bottom-20 bg-black/50 z-[9999] touch-none"
             />
 
             {/* Modal - Bottom sheet on mobile, centered on desktop */}
@@ -881,53 +850,56 @@ export default function DashboardPage() {
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: "100%", opacity: 0 }}
               transition={{ type: "spring", damping: 32, stiffness: 400 }}
-              className="fixed bottom-0 left-0 right-0 md:bottom-auto md:left-1/2 md:top-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-full md:max-w-[360px] z-[10000]"
+              className="fixed bottom-0 left-0 right-0 md:bottom-auto md:left-1/2 md:top-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-full md:max-w-[360px] z-[10000] touch-none"
             >
-              <div className="bg-white rounded-t-2xl md:rounded-2xl shadow-2xl">
+              <div className="theme-bg-secondary rounded-t-2xl md:rounded-2xl shadow-2xl touch-auto">
                 {/* Drag handle - mobile only */}
                 <div className="md:hidden flex justify-center pt-3">
-                  <div className="w-9 h-1 bg-gray-300 rounded-full" />
+                  <div className="w-9 h-1 modal-handle rounded-full" />
                 </div>
 
                 {/* Content */}
-                <div className="px-5 pt-5 pb-6">
+                <div 
+                  className="px-5 pt-5"
+                  style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px))' }}
+                >
                   {/* Header row */}
                   <div className="flex items-start justify-between mb-5">
                     <div className="flex items-center gap-3">
                       {/* Avatar with initial */}
-                      <div className="w-12 h-12 rounded-full bg-gray-900 flex items-center justify-center text-white font-semibold text-[15px]">
+                      <div className="w-12 h-12 rounded-full selected-tab flex items-center justify-center font-semibold text-[15px]">
                         {selectedSession.client.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
                       </div>
                       <div>
-                        <h3 className="text-[17px] font-semibold text-gray-900 leading-tight">
+                        <h3 className="text-[17px] font-semibold theme-text-primary leading-tight">
                           {selectedSession.client}
                         </h3>
-                        <p className="text-[13px] text-gray-500 mt-0.5">{selectedSession.service}</p>
+                        <p className="text-[13px] theme-text-secondary mt-0.5">{selectedSession.service}</p>
                       </div>
                     </div>
                     <button
                       onClick={() => setSelectedSession(null)}
-                      className="w-8 h-8 flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                      className="w-8 h-8 flex items-center justify-center theme-bg-tertiary hover:theme-bg-active rounded-full transition-colors"
                     >
-                      <X className="w-4 h-4 text-gray-500" />
+                      <X className="w-4 h-4 theme-text-secondary" />
                     </button>
                   </div>
 
-                  {/* Time display - clean and prominent */}
-                  <div className="flex items-center justify-between py-4 border-y border-gray-100">
+                  {/* Time display */}
+                  <div className="flex items-center justify-between py-4 border-y theme-border">
                     <div>
-                      <p className="text-[28px] font-semibold text-gray-900 tracking-tight leading-none">
+                      <p className="text-[28px] font-semibold theme-text-primary tracking-tight leading-none">
                         {selectedSession.time}
                       </p>
                       {selectedSession.duration && (
-                        <p className="text-[13px] text-gray-400 mt-1">
+                        <p className="text-[13px] theme-text-tertiary mt-1">
                           {selectedSession.duration} {t('dashboard.sessionModal.minSession')}
                         </p>
                       )}
                     </div>
                     <div className="text-right">
-                      <p className="text-[13px] text-gray-400">{t('dashboard.sessionModal.startsIn')}</p>
-                      <p className="text-[17px] font-semibold text-gray-900">{getTimeUntil(selectedSession.rawTime).value}</p>
+                      <p className="text-[13px] theme-text-tertiary">{t('dashboard.sessionModal.startsIn')}</p>
+                      <p className="text-[17px] font-semibold theme-text-primary">{getTimeUntil(selectedSession.rawTime).value}</p>
                     </div>
                   </div>
 
@@ -936,24 +908,21 @@ export default function DashboardPage() {
                     {selectedSession.phone && (
                       <a
                         href={`tel:${selectedSession.phone.replace(/\D/g, '')}`}
-                        className="h-12 w-12 flex items-center justify-center bg-gray-100 hover:bg-gray-200 active:bg-gray-300 rounded-xl transition-colors"
+                        className="h-12 w-12 flex items-center justify-center theme-bg-tertiary hover:theme-bg-active rounded-xl transition-colors"
                         aria-label="Call client"
                       >
-                        <Phone className="w-5 h-5 text-gray-700" />
+                        <Phone className="w-5 h-5 theme-text-secondary" />
                       </a>
                     )}
                     <Link
                       href={`/calendar?date=${selectedSession.date}`}
                       onClick={() => setSelectedSession(null)}
-                      className="flex-1 flex items-center justify-center gap-2 h-12 bg-gray-900 hover:bg-gray-800 active:bg-gray-700 text-white font-medium text-[15px] rounded-xl transition-colors"
+                      className="flex-1 flex items-center justify-center gap-2 h-12 btn-action font-medium text-[15px] rounded-xl transition-colors"
                     >
                       {t('dashboard.sessionModal.viewFullDetails')}
                     </Link>
                   </div>
                 </div>
-
-                {/* Safe area for iPhone */}
-                <div className="h-6 md:hidden" />
               </div>
             </motion.div>
           </>

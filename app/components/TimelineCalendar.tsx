@@ -333,18 +333,18 @@ export default function TimelineCalendar({
             onClick={() => setIsMonthExpanded(!isMonthExpanded)}
             className="flex items-center gap-2 active:opacity-70 transition-opacity"
           >
-            <h1 className="text-2xl font-bold text-gray-900 tracking-tight">
+            <h1 className="text-2xl font-bold theme-text-primary tracking-tight">
               {dateInfo.month}
             </h1>
-            <span className="text-2xl font-light text-gray-400">{dateInfo.year}</span>
-            <ChevronDown className={`w-5 h-5 text-gray-400 transition-transform duration-200 ${isMonthExpanded ? 'rotate-180' : ''}`} />
+            <span className="text-2xl font-light theme-text-secondary">{dateInfo.year}</span>
+            <ChevronDown className={`w-5 h-5 theme-text-secondary transition-transform duration-200 ${isMonthExpanded ? 'rotate-180' : ''}`} />
           </button>
           
           {/* Today button - only shows when not viewing current week */}
           {!isMonthExpanded && !isCurrentWeek && (
             <button
               onClick={() => onDateChange(formatDateString(new Date()))}
-              className="px-3 py-1.5 text-[12px] font-semibold text-gray-600 bg-white border border-gray-200 rounded-full hover:border-gray-300 hover:text-gray-900 active:scale-95 transition-all shadow-sm"
+              className="px-3 py-1.5 text-[12px] font-semibold theme-text-secondary theme-bg-secondary border theme-border rounded-full hover:theme-text-primary active:scale-95 transition-all shadow-sm"
             >
               {t('common.today')}
             </button>
@@ -353,21 +353,21 @@ export default function TimelineCalendar({
 
         {/* Month Picker Dropdown */}
         {isMonthExpanded && (
-          <div className="bg-white rounded-2xl p-4 mb-4 shadow-sm border border-gray-200">
+          <div className="theme-bg-secondary rounded-2xl p-4 mb-4 shadow-sm border theme-border">
             {/* Month Navigation */}
             <div className="flex items-center justify-between mb-4">
               <button
                 onClick={() => navigateMonth('prev')}
-                className="w-9 h-9 flex items-center justify-center text-gray-500 hover:text-gray-900 rounded-full hover:bg-gray-100 active:scale-95 transition-all"
+                className="w-9 h-9 flex items-center justify-center theme-text-secondary hover:theme-text-primary rounded-full hover:theme-bg-tertiary active:scale-95 transition-all"
               >
                 <ChevronLeft className={`w-5 h-5 ${isRTL ? 'rotate-180' : ''}`} />
               </button>
-              <span className="text-base font-semibold text-gray-900">
+              <span className="text-base font-semibold theme-text-primary">
                 {monthNames[displayedMonth.month]} {displayedMonth.year}
               </span>
               <button
                 onClick={() => navigateMonth('next')}
-                className="w-9 h-9 flex items-center justify-center text-gray-500 hover:text-gray-900 rounded-full hover:bg-gray-100 active:scale-95 transition-all"
+                className="w-9 h-9 flex items-center justify-center theme-text-secondary hover:theme-text-primary rounded-full hover:theme-bg-tertiary active:scale-95 transition-all"
               >
                 <ChevronRight className={`w-5 h-5 ${isRTL ? 'rotate-180' : ''}`} />
               </button>
@@ -376,7 +376,7 @@ export default function TimelineCalendar({
             {/* Day Headers */}
             <div className="grid grid-cols-7 gap-1 mb-2">
               {shortDayNames.map((day, i) => (
-                <div key={i} className={`text-center font-semibold text-gray-400 py-1 ${language === 'ar' ? 'text-[9px]' : 'text-[11px] uppercase'}`}>
+                <div key={i} className={`text-center font-semibold theme-text-tertiary py-1 ${language === 'ar' ? 'text-[9px]' : 'text-[11px] uppercase'}`}>
                   {day}
                 </div>
               ))}
@@ -390,18 +390,18 @@ export default function TimelineCalendar({
                   onClick={() => selectDateFromPicker(day.dateStr)}
                   className={`aspect-square flex flex-col items-center justify-center rounded-xl text-[13px] font-medium transition-all ${
                     day.isSelected
-                      ? 'bg-gray-900 text-white shadow-md'
+                      ? 'selected-tab shadow-md'
                       : day.isToday
-                        ? 'bg-gray-100 text-gray-900 font-bold'
+                        ? 'theme-bg-tertiary theme-text-primary font-bold'
                         : day.isCurrentMonth
-                          ? 'text-gray-700 hover:bg-gray-50 active:scale-95'
-                          : 'text-gray-300'
+                          ? 'theme-text-secondary hover:theme-bg-tertiary active:scale-95'
+                          : 'theme-text-tertiary'
                   }`}
                 >
                   <span>{day.date}</span>
                   {day.hasAppointments && (
                     <span className={`mt-0.5 w-1.5 h-1.5 rounded-full shrink-0 ${
-                      day.isSelected ? 'bg-white/80' : 'bg-gray-900'
+                      day.isSelected ? 'bg-white/80' : 'selected-tab'
                     }`} />
                   )}
                 </button>
@@ -409,13 +409,13 @@ export default function TimelineCalendar({
             </div>
                 
             {/* Quick Actions */}
-            <div className="flex justify-center mt-4 pt-3 border-t border-gray-100">
+            <div className="flex justify-center mt-4 pt-3 border-t theme-border">
               <button
                 onClick={() => {
                   onDateChange(formatDateString(new Date()));
                   setIsMonthExpanded(false);
                 }}
-                className="px-4 py-2 text-[13px] font-semibold text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-all"
+                className="px-4 py-2 text-[13px] font-semibold theme-text-secondary hover:theme-text-primary hover:theme-bg-tertiary rounded-lg transition-all"
               >
                 {t('common.today')}
               </button>
@@ -425,7 +425,7 @@ export default function TimelineCalendar({
 
         {/* Week Strip - Matches Dashboard Style */}
         {!isMonthExpanded && (
-          <div className="bg-white rounded-t-2xl p-2 pt-3 shadow-sm border border-gray-200/80 border-b-0">
+          <div className="theme-bg-secondary rounded-t-2xl p-2 pt-3 shadow-sm border theme-border">
             <div className="flex gap-1">
               {weekDates.map((day) => {
                 const isSelected = day.date === selectedDate;
@@ -438,14 +438,14 @@ export default function TimelineCalendar({
                     onClick={() => onDateChange(day.date)}
                     className={`flex-1 flex flex-col items-center gap-0.5 py-2.5 rounded-3xl transition-colors active:scale-95 ${
                       isSelected
-                        ? 'bg-gray-900 text-white'
+                        ? 'selected-tab'
                         : day.isToday
-                        ? 'bg-gray-100 text-gray-900'
-                        : 'text-gray-700 hover:bg-gray-100 active:bg-gray-200'
+                        ? 'theme-bg-tertiary theme-text-primary'
+                        : 'theme-text-secondary hover:theme-bg-tertiary active:theme-bg-active'
                     }`}
                   >
                     <p className={`text-[10px] font-medium uppercase ${
-                      isSelected ? 'text-gray-400' : ''
+                      isSelected ? 'opacity-60' : ''
                     }`}>
                       {day.dayName}
                     </p>
@@ -454,12 +454,12 @@ export default function TimelineCalendar({
                     </p>
                     {hasAppointments ? (
                       <p className={`text-[10px] font-medium ${
-                        isSelected ? 'text-gray-400' : 'text-gray-500'
+                        isSelected ? 'opacity-60' : 'theme-text-secondary'
                       }`}>
                         {appointmentCount}
                       </p>
                     ) : (
-                      <p className={`text-[10px] ${isSelected ? 'text-gray-500' : 'text-gray-400'}`}>-</p>
+                      <p className={`text-[10px] ${isSelected ? 'opacity-50' : 'theme-text-tertiary'}`}>-</p>
                     )}
                   </button>
                 );
@@ -474,7 +474,7 @@ export default function TimelineCalendar({
         <motion.div 
           ref={scrollContainerRef} 
           dir="ltr" 
-          className={`flex-1 bg-white border-x border-gray-200/80 relative ${scrollLock ? "overflow-hidden touch-none" : "overflow-y-auto"}`}
+          className={`flex-1 theme-bg-secondary border-x theme-border relative ${scrollLock ? "overflow-hidden touch-none" : "overflow-y-auto"}`}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.2 }}
@@ -488,13 +488,13 @@ export default function TimelineCalendar({
                 transition={{ delay: 0.2 }}
                 className="text-center px-6"
               >
-                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 flex items-center justify-center">
-                  <CalendarIcon className="w-8 h-8 text-gray-300" />
+                <div className="w-16 h-16 mx-auto mb-4 rounded-full theme-bg-tertiary flex items-center justify-center">
+                  <CalendarIcon className="w-8 h-8 theme-text-tertiary" />
                 </div>
-                <p className="text-[15px] font-medium text-gray-400">
+                <p className="text-[15px] font-medium theme-text-tertiary">
                   {t('calendar.noAppointments')}
                 </p>
-                <p className="text-[13px] text-gray-300 mt-1">
+                <p className="text-[13px] theme-text-tertiary mt-1">
                   {t('calendar.emptyDayHint')}
                 </p>
               </motion.div>
@@ -517,11 +517,11 @@ export default function TimelineCalendar({
                   style={{ top: position }}
                 >
                   <span className={`w-12 text-right pr-3 tabular-nums ${
-                    type === 'hour' ? 'text-[11px] font-semibold text-gray-400' : 'text-[10px] text-gray-300'
+                    type === 'hour' ? 'text-[11px] font-semibold timeline-time-hour' : 'text-[10px] timeline-time'
                   }`}>
                     {time}
                   </span>
-                  <div className={`flex-1 h-px ${type === 'hour' ? 'bg-gray-200' : 'bg-gray-100'}`} />
+                  <div className={`flex-1 h-px ${type === 'hour' ? 'timeline-grid-hour' : 'timeline-grid-minor'}`} />
                 </div>
               ))}
 
@@ -579,27 +579,27 @@ export default function TimelineCalendar({
                       >
                         <div className={`group h-full rounded-xl overflow-hidden transition-all duration-200 ${
                           isNow
-                            ? 'bg-gray-900 shadow-lg shadow-gray-900/25'
+                            ? 'selected-tab shadow-lg'
                             : isPending
                             ? 'bg-amber-50 border-2 border-dashed border-amber-300 hover:border-amber-400 hover:shadow-md'
                             : apt.isPast
-                            ? 'bg-gray-100 ring-1 ring-gray-200/50 opacity-60'
-                            : 'bg-white ring-1 ring-gray-300 shadow-md'
+                            ? 'theme-bg-tertiary border theme-border opacity-50'
+                            : 'appointment-card'
                         }`}>
                           <div className={`h-full flex ${isRTL ? 'flex-row-reverse' : ''}`}>
                             {/* Accent Bar */}
-                            <div className={`w-1 flex-shrink-0 ${
-                              isNow ? 'bg-white/20' : isPending ? 'bg-amber-400' : apt.isPast ? 'bg-gray-300' : apt.avatar.color
+                            <div className={`w-1.5 flex-shrink-0 rounded-l-xl ${
+                              isNow ? 'bg-emerald-500' : isPending ? 'bg-amber-400' : apt.isPast ? 'theme-bg-active' : apt.avatar.color
                             }`} />
                             
                             {/* Content */}
                             <div className={`flex-1 px-2.5 flex flex-col justify-center min-w-0 ${isCompact ? 'py-0.5' : 'py-2'}`} dir={isRTL ? 'rtl' : 'ltr'}>
                               <div className="flex items-center gap-1.5">
-                                <p className={`font-semibold truncate ${isNow ? 'text-white' : isPending ? 'text-amber-900' : apt.isPast ? 'text-gray-400' : 'text-gray-900'} ${isCompact ? 'text-xs' : 'text-sm'}`}>
+                                <p className={`font-semibold truncate ${isNow ? '' : isPending ? 'text-amber-900' : apt.isPast ? 'theme-text-tertiary' : 'theme-text-primary'} ${isCompact ? 'text-xs' : 'text-sm'}`}>
                                   {apt.client}
                                 </p>
                                 {isNow && (
-                                  <span className="flex-shrink-0 w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                                  <span className="flex-shrink-0 w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                                 )}
                                 {isPending && (
                                   <span className="flex-shrink-0 px-1.5 py-0.5 text-[9px] font-bold text-amber-700 bg-amber-200 rounded-full uppercase tracking-wide">
@@ -612,19 +612,19 @@ export default function TimelineCalendar({
                                   </span>
                                 )}
                                 {apt.isPast && !isPending && (
-                                  <span className="flex-shrink-0 px-1.5 py-0.5 text-[9px] font-semibold text-gray-500 bg-gray-200 rounded-full">
+                                  <span className="flex-shrink-0 px-1.5 py-0.5 text-[9px] font-semibold theme-text-tertiary theme-bg-tertiary rounded-full">
                                     {t('dashboard.schedule.completed')}
                                   </span>
                                 )}
                               </div>
                               
                               {!isCompact && (
-                                <p className={`text-xs truncate mt-0.5 ${isNow ? 'text-white/60' : isPending ? 'text-amber-700/70' : apt.isPast ? 'text-gray-400' : 'text-gray-500'}`}>
+                                <p className={`text-xs truncate mt-0.5 ${isNow ? 'opacity-70' : isPending ? 'text-amber-700/70' : apt.isPast ? 'theme-text-tertiary' : 'theme-text-secondary'}`}>
                                   {apt.service}
                                 </p>
                               )}
                               
-                              <p className={`tabular-nums mt-0.5 ${isNow ? 'text-white/40' : apt.isPast ? 'text-gray-400' : 'text-gray-400'} ${isCompact ? 'text-[9px]' : 'text-[10px]'}`}>
+                              <p className={`tabular-nums mt-0.5 ${isNow ? 'opacity-50' : apt.isPast ? 'theme-text-tertiary' : 'theme-text-secondary'} ${isCompact ? 'text-[9px]' : 'text-[10px]'}`}>
                                 {apt.time} – {apt.endTime}
                               </p>
                             </div>
@@ -636,8 +636,8 @@ export default function TimelineCalendar({
                                 onClick={(e) => e.stopPropagation()}
                                 className={`flex-shrink-0 flex items-center px-3 transition-all duration-200 ${
                                   isNow 
-                                    ? 'text-white/50 hover:text-white' 
-                                    : 'text-gray-600 hover:text-gray-900'
+                                    ? 'opacity-50 hover:opacity-80' 
+                                    : 'card-phone-icon'
                                 }`}
                               >
                                 <Phone className="w-4 h-4" />
@@ -658,13 +658,13 @@ export default function TimelineCalendar({
       {/* Week View */}
       {viewMode === 'week' && (
         <motion.div 
-          className="hidden lg:flex lg:flex-col flex-1 overflow-hidden bg-white rounded-t-2xl border border-gray-200/80 shadow-sm"
+          className="hidden lg:flex lg:flex-col flex-1 overflow-hidden theme-bg-secondary rounded-t-2xl border theme-border shadow-sm"
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
         >
           {/* Week Header */}
-          <div className="grid grid-cols-7 border-b border-gray-100">
+          <div className="grid grid-cols-7 border-b theme-border">
             {weekDates.map((day, index) => (
               <motion.button
                 key={day.date}
@@ -672,19 +672,19 @@ export default function TimelineCalendar({
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.03 }}
                 onClick={() => { onDateChange(day.date); setViewMode('day'); }}
-                className={`py-3.5 text-center transition-all duration-200 hover:bg-gray-50 ${
-                  day.isToday ? 'bg-gray-900 text-white hover:bg-gray-800' : ''
-                } ${day.isSelected && !day.isToday ? 'bg-gray-50' : ''}`}
+                className={`py-3.5 text-center transition-all duration-200 hover:theme-bg-tertiary ${
+                  day.isToday ? 'selected-tab' : ''
+                } ${day.isSelected && !day.isToday ? 'theme-bg-tertiary' : ''}`}
               >
-                <p className={`text-[10px] font-semibold uppercase tracking-wide ${day.isToday ? 'text-gray-500' : 'text-gray-400'}`}>
+                <p className={`text-[10px] font-semibold uppercase tracking-wide ${day.isToday ? 'opacity-60' : 'theme-text-tertiary'}`}>
                   {day.dayName}
                 </p>
-                <p className={`text-lg font-bold mt-0.5 ${day.isToday ? 'text-white' : 'text-gray-900'}`}>
+                <p className={`text-lg font-bold mt-0.5 ${day.isToday ? '' : 'theme-text-primary'}`}>
                   {day.dayNum}
                 </p>
                 {day.appointments.length > 0 && (
                   <div className="flex justify-center mt-1.5">
-                    <span className={`w-1 h-1 rounded-full ${day.isToday ? 'bg-white/50' : 'bg-gray-400'}`} />
+                    <span className={`w-1 h-1 rounded-full ${day.isToday ? 'bg-white/50' : 'theme-text-tertiary'}`} />
                   </div>
                 )}
               </motion.button>
@@ -693,7 +693,7 @@ export default function TimelineCalendar({
           
           {/* Week Grid */}
           <div className="flex-1 overflow-y-auto">
-            <div className="grid grid-cols-7 divide-x divide-gray-100" style={{ minHeight: 500 }}>
+            <div className="grid grid-cols-7 divide-x divide-theme" style={{ minHeight: 500 }}>
               {weekDates.map((day) => {
                 const dayAppointments = day.appointments;
                 const start = workingHours.start * 60;
@@ -714,7 +714,7 @@ export default function TimelineCalendar({
                 return (
                   <div 
                     key={day.date} 
-                    className={`relative p-1 ${day.isSelected ? 'bg-gray-50/50' : ''}`} 
+                    className={`relative p-1 ${day.isSelected ? 'theme-bg-tertiary' : ''}`} 
                     style={{ height: timelineHeight * 0.4 }}
                   >
                     {dayBlocks.map((apt, i) => (
@@ -729,14 +729,14 @@ export default function TimelineCalendar({
                         } ${
                           apt.isPending 
                             ? 'bg-amber-100 hover:bg-amber-50' 
-                            : 'bg-gray-100 hover:bg-white'
+                            : 'theme-bg-tertiary hover:theme-bg-secondary'
                         }`}
                         style={{ top: apt.top, height: apt.height, minHeight: 22 }}
                       >
                         <div className="h-full flex">
                           <div className={`w-1 flex-shrink-0 ${apt.isPending ? 'bg-amber-400' : apt.avatar.color}`} />
                           <div className="flex-1 px-1.5 py-0.5 min-w-0 flex items-center">
-                            <p className="text-[10px] font-semibold text-gray-900 truncate leading-tight">
+                            <p className="text-[10px] font-semibold theme-text-primary truncate leading-tight">
                               {apt.client}
                             </p>
                           </div>

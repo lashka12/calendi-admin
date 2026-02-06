@@ -19,6 +19,7 @@ const he = {
     tomorrow: 'מחר',
     yesterday: 'אתמול',
     call: 'התקשר',
+    soon: 'בקרוב',
   },
 
   // Navigation / DashboardLayout
@@ -93,6 +94,7 @@ const he = {
       startsIn: 'מתחיל בעוד',
       minSession: 'דקות פגישה',
       viewFullDetails: 'צפה בפרטים המלאים',
+      addToCustomers: 'הוסף ללקוחות',
     },
     weekDayModal: {
       noSessions: 'אין פגישות',
@@ -493,6 +495,10 @@ const he = {
       regional: 'הגדרות אזוריות',
       regionalDesc: 'התאם את ההעדפות האזוריות שלך',
       language: 'שפה',
+      theme: 'ערכת נושא',
+      themeLight: 'בהיר',
+      themeDark: 'כהה',
+      themeSystem: 'מערכת',
       dateFormat: 'פורמט תאריך',
       timeFormat: 'פורמט שעה',
       time12h: '12 שעות (AM/PM)',
