@@ -2,16 +2,17 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { 
-  Save, User, Bell, CreditCard, Globe, 
+  User, Bell, CreditCard, Globe, 
   Building2, AlertTriangle, Camera, 
   X, Download, Upload,
   Shield, Smartphone, Monitor, Mail,
   Calendar, MapPin, Phone, Trash2,
   ExternalLink, Copy, CheckCircle2, Clock, MessageSquare,
   ChevronRight, ArrowLeft, Navigation, ChevronDown, Zap,
-  HelpCircle, Send, LogOut
+  HelpCircle, Send, LogOut, RefreshCw
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import CustomSelect from "../components/ui/CustomSelect";
 import { useSettings } from "../context/SettingsContext";
 import { useTranslation } from "@/app/i18n";
 import { db, requestNotificationPermission, onForegroundMessage } from "../lib/firebase/config";
@@ -350,7 +351,6 @@ export default function SettingsPage() {
     { id: "billing", name: t('settings.tabs.billing'), icon: CreditCard, description: t('settings.tabs.billingDesc'), comingSoon: true },
     { id: "preferences", name: t('settings.tabs.preferences'), icon: Globe, description: t('settings.tabs.preferencesDesc') },
     { id: "data", name: t('settings.tabs.data'), icon: Download, description: t('settings.tabs.dataDesc') },
-    { id: "contact", name: t('settings.tabs.contact'), icon: HelpCircle, description: t('settings.tabs.contactDesc') },
   ], [t]);
 
   const ToggleSwitch = ({ enabled, onChange }: { enabled: boolean; onChange: () => void }) => (
@@ -546,47 +546,69 @@ export default function SettingsPage() {
                   </div>
                 </motion.div>
 
-                {/* App Version */}
-                <div className="text-center pt-4">
-                  <p className="text-xs text-gray-400">Calendi Admin v1.0</p>
+                {/* App Version & Update */}
+                <div className="text-center pt-4 space-y-3">
+                  <p className="text-xs text-gray-400">Calendi Admin {t('settings.app.version')} 1.1</p>
+                  <button
+                    onClick={async () => {
+                      // Clear all browser caches
+                      if ('caches' in window) {
+                        const names = await caches.keys();
+                        await Promise.all(names.map(name => caches.delete(name)));
+                      }
+                      // Force reload with cache busting
+                      window.location.href = window.location.pathname + '?v=' + Date.now();
+                    }}
+                    className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 rounded-xl hover:bg-gray-200 active:scale-95 transition-all"
+                  >
+                    <RefreshCw className="w-4 h-4" />
+                    {t('settings.app.checkForUpdates')}
+                  </button>
                 </div>
               </motion.div>
             ) : (
               // Individual setting section view
               <motion.div
                 key={activeTab}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ 
-                  type: "spring",
-                  stiffness: 400,
-                  damping: 30,
-                  mass: 1
-                }}
-                className="space-y-4"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="min-h-full"
               >
-                {/* Enhanced header with better back button */}
-                <div className="flex items-center gap-3 mb-5 pb-4 border-b border-gray-200">
-                  <motion.button
-                    onClick={() => setMobileListMode(true)}
-                    whileTap={{ scale: 0.92 }}
-                    className="w-11 h-11 flex items-center justify-center rounded-xl bg-gray-50 active:bg-gray-100 border border-gray-200 transition-colors duration-150 touch-manipulation -ml-1"
-                  >
-                    <ArrowLeft className={`w-5 h-5 text-gray-700 ${isRTL ? 'rotate-180' : ''}`} />
-                  </motion.button>
-                  <div className="flex-1 min-w-0">
-                    <h1 className="text-xl font-semibold text-gray-900 leading-tight">
-                      {tabs.find(t => t.id === activeTab)?.name || t('settings.title')}
-                    </h1>
-                    <p className="text-xs text-gray-500 mt-1 truncate">
-                      {tabs.find(t => t.id === activeTab)?.description}
-                    </p>
+                {/* Fixed header */}
+                <div 
+                  className="fixed top-0 left-0 right-0 z-30 bg-[#faf9f7]/95 backdrop-blur-md border-b border-gray-200/60" 
+                  style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
+                  dir={isRTL ? 'rtl' : 'ltr'}
+                >
+                  <div className="flex items-center h-14 px-4">
+                    {/* Back button */}
+                    <motion.button
+                      onClick={() => setMobileListMode(true)}
+                      whileTap={{ scale: 0.95 }}
+                      className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-gray-100 active:bg-gray-200 transition-colors touch-manipulation"
+                    >
+                      <ArrowLeft className={`w-5 h-5 text-gray-600 ${isRTL ? 'rotate-180' : ''}`} />
+                    </motion.button>
+                    
+                    {/* Title - centered */}
+                    <div className="flex-1 text-center px-2">
+                      <h1 className="text-base font-semibold text-gray-900">
+                        {tabs.find(t => t.id === activeTab)?.name || t('settings.title')}
+                      </h1>
+                      <p className="text-[11px] text-gray-500 -mt-0.5">
+                        {tabs.find(t => t.id === activeTab)?.description}
+                      </p>
+                    </div>
+                    
+                    {/* Spacer for balance */}
+                    <div className="w-9 h-9" />
                   </div>
                 </div>
                 
-                {/* Mobile content - shown when in detail view */}
-                <div className="space-y-5">
+                {/* Mobile content */}
+                <div className="space-y-5 pt-14">
               {/* Profile Tab */}
               {activeTab === "profile" && (
                 <div className="space-y-5">
@@ -707,14 +729,13 @@ export default function SettingsPage() {
                           <button 
                             onClick={savePersonalData}
                             disabled={savingPersonal}
-                            className={`inline-flex items-center gap-2 px-5 py-2.5 bg-gray-800 text-white text-sm font-medium rounded-xl hover:bg-gray-700 transition-colors disabled:opacity-50 ${isRTL ? 'flex-row-reverse' : ''}`}
+                            className="px-6 py-2.5 bg-gray-900 text-white text-sm font-medium rounded-full hover:bg-gray-800 active:scale-[0.98] transition-all disabled:opacity-50"
                           >
                             {savingPersonal ? (
-                              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto" />
                             ) : (
-                              <Save className="w-4 h-4" />
+                              t('settings.common.saveChanges')
                             )}
-                            {t('settings.common.saveChanges')}
                           </button>
                         </div>
                       </>
@@ -790,20 +811,21 @@ export default function SettingsPage() {
                         <p className="text-sm text-gray-500 mb-3">
                           {t('settings.business.advanceBookingLimitDesc')}
                         </p>
-                        <select 
+                        <CustomSelect
                           value={advanceBookingLimit}
-                          onChange={(e) => setAdvanceBookingLimit(Number(e.target.value))}
-                          className="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-800 focus:border-transparent"
-                        >
-                          <option value={7}>{t('settings.preferences.week1')}</option>
-                          <option value={14}>{t('settings.preferences.weeks2')}</option>
-                          <option value={21}>{t('settings.preferences.weeks3')}</option>
-                          <option value={30}>{t('settings.preferences.month1')}</option>
-                          <option value={60}>{t('settings.preferences.months2')}</option>
-                          <option value={90}>{t('settings.preferences.months3')}</option>
-                          <option value={180}>{t('settings.preferences.months6')}</option>
-                          <option value={365}>{t('settings.preferences.year1')}</option>
-                        </select>
+                          onChange={(val) => setAdvanceBookingLimit(Number(val))}
+                          isRTL={isRTL}
+                          options={[
+                            { value: 7, label: t('settings.preferences.week1') },
+                            { value: 14, label: t('settings.preferences.weeks2') },
+                            { value: 21, label: t('settings.preferences.weeks3') },
+                            { value: 30, label: t('settings.preferences.month1') },
+                            { value: 60, label: t('settings.preferences.months2') },
+                            { value: 90, label: t('settings.preferences.months3') },
+                            { value: 180, label: t('settings.preferences.months6') },
+                            { value: 365, label: t('settings.preferences.year1') },
+                          ]}
+                        />
                       </div>
 
                       {/* Minimum Booking Notice */}
@@ -814,21 +836,22 @@ export default function SettingsPage() {
                         <p className="text-sm text-gray-500 mb-3">
                           {t('settings.business.minBookingNoticeDesc')}
                         </p>
-                        <select 
+                        <CustomSelect
                           value={minBookingNotice}
-                          onChange={(e) => setMinBookingNotice(Number(e.target.value))}
-                          className="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-800 focus:border-transparent"
-                        >
-                          <option value={0}>{t('settings.preferences.noMinimum')}</option>
-                          <option value={1}>{t('settings.preferences.hour1')}</option>
-                          <option value={2}>{t('settings.preferences.hours2')}</option>
-                          <option value={3}>{t('settings.preferences.hours3')}</option>
-                          <option value={4}>{t('settings.preferences.hours4')}</option>
-                          <option value={6}>{t('settings.preferences.hours6')}</option>
-                          <option value={12}>{t('settings.preferences.hours12')}</option>
-                          <option value={24}>{t('settings.preferences.hours24')}</option>
-                          <option value={48}>{t('settings.preferences.hours48')}</option>
-                        </select>
+                          onChange={(val) => setMinBookingNotice(Number(val))}
+                          isRTL={isRTL}
+                          options={[
+                            { value: 0, label: t('settings.preferences.noMinimum') },
+                            { value: 1, label: t('settings.preferences.hour1') },
+                            { value: 2, label: t('settings.preferences.hours2') },
+                            { value: 3, label: t('settings.preferences.hours3') },
+                            { value: 4, label: t('settings.preferences.hours4') },
+                            { value: 6, label: t('settings.preferences.hours6') },
+                            { value: 12, label: t('settings.preferences.hours12') },
+                            { value: 24, label: t('settings.preferences.hours24') },
+                            { value: 48, label: t('settings.preferences.hours48') },
+                          ]}
+                        />
                       </div>
 
                       {/* Show Prices */}
@@ -858,18 +881,12 @@ export default function SettingsPage() {
                       <button 
                         onClick={saveBookingSettings}
                         disabled={savingBookingSettings}
-                        className={`inline-flex items-center gap-2 px-5 py-2.5 bg-gray-800 text-white text-sm font-medium rounded-xl hover:bg-gray-700 transition-colors disabled:opacity-50 ${isRTL ? 'flex-row-reverse' : ''}`}
+                        className="px-6 py-2.5 bg-gray-900 text-white text-sm font-medium rounded-full hover:bg-gray-800 active:scale-[0.98] transition-all disabled:opacity-50"
                       >
                         {savingBookingSettings ? (
-                          <>
-                            <Clock className="w-4 h-4 animate-spin" />
-                            {t('settings.common.saving')}
-                          </>
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto" />
                         ) : (
-                          <>
-                            <Save className="w-4 h-4" />
-                            {t('settings.common.saveChanges')}
-                          </>
+                          t('settings.common.saveChanges')
                         )}
                       </button>
                     </div>
@@ -1055,12 +1072,6 @@ export default function SettingsPage() {
                       ))}
                     </div>
 
-                    <div className="mt-6 pt-6 border-t border-gray-200 flex justify-end">
-                      <button className={`inline-flex items-center gap-2 px-5 py-2.5 bg-gray-800 text-white text-sm font-medium rounded-xl hover:bg-gray-700 transition-colors ${isRTL ? 'flex-row-reverse' : ''}`}>
-                        <Save className="w-4 h-4" />
-                        {t('settings.notifications.savePreferences')}
-                      </button>
-                    </div>
                   </div>
 
                   {/* Daily Reminder Settings */}
@@ -1113,18 +1124,15 @@ export default function SettingsPage() {
                                   {t('settings.notifications.sendAt')}
                                 </label>
                               </div>
-                              <select
+                              <CustomSelect
                                 value={dailyReminder.hour}
-                                onChange={(e) => setDailyReminder({ ...dailyReminder, hour: parseInt(e.target.value) })}
-                                className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-800 focus:border-transparent appearance-none bg-white cursor-pointer"
-                                style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%239CA3AF'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: isRTL ? '12px center' : 'calc(100% - 12px) center', backgroundSize: '20px' }}
-                              >
-                                {Array.from({ length: 24 }, (_, i) => (
-                                  <option key={i} value={i}>
-                                    {formatHour(i)}
-                                  </option>
-                                ))}
-                              </select>
+                                onChange={(val) => setDailyReminder({ ...dailyReminder, hour: Number(val) })}
+                                isRTL={isRTL}
+                                options={Array.from({ length: 24 }, (_, i) => ({
+                                  value: i,
+                                  label: formatHour(i),
+                                }))}
+                              />
                               <p className="text-xs text-gray-500 mt-2">
                                 {t('settings.notifications.sendAtHint')}
                               </p>
@@ -1138,18 +1146,18 @@ export default function SettingsPage() {
                                   {t('settings.notifications.sendReminder')}
                                 </label>
                               </div>
-                              <select
+                              <CustomSelect
                                 value={dailyReminder.daysBefore}
-                                onChange={(e) => setDailyReminder({ ...dailyReminder, daysBefore: parseInt(e.target.value) })}
-                                className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-800 focus:border-transparent appearance-none bg-white cursor-pointer"
-                                style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%239CA3AF'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: isRTL ? '12px center' : 'calc(100% - 12px) center', backgroundSize: '20px' }}
-                              >
-                                <option value={0}>{t('settings.notifications.sameDay')}</option>
-                                <option value={1}>{t('settings.notifications.daysBefore').replace('{days}', '1')}</option>
-                                <option value={2}>{t('settings.notifications.daysBefore').replace('{days}', '2')}</option>
-                                <option value={3}>{t('settings.notifications.daysBefore').replace('{days}', '3')}</option>
-                                <option value={7}>{t('settings.notifications.weekBefore')}</option>
-                              </select>
+                                onChange={(val) => setDailyReminder({ ...dailyReminder, daysBefore: Number(val) })}
+                                isRTL={isRTL}
+                                options={[
+                                  { value: 0, label: t('settings.notifications.sameDay') },
+                                  { value: 1, label: t('settings.notifications.daysBefore').replace('{days}', '1') },
+                                  { value: 2, label: t('settings.notifications.daysBefore').replace('{days}', '2') },
+                                  { value: 3, label: t('settings.notifications.daysBefore').replace('{days}', '3') },
+                                  { value: 7, label: t('settings.notifications.weekBefore') },
+                                ]}
+                              />
                               <p className="text-xs text-gray-500 mt-2">
                                 {t('settings.notifications.daysBeforeHint')}
                               </p>
@@ -1168,18 +1176,12 @@ export default function SettingsPage() {
                           <button 
                             onClick={saveDailyReminderSettings}
                             disabled={savingReminder}
-                            className={`inline-flex items-center gap-2 px-5 py-2.5 bg-gray-900 text-white text-sm font-medium rounded-xl hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${isRTL ? 'flex-row-reverse' : ''}`}
+                            className="px-6 py-2.5 bg-gray-900 text-white text-sm font-medium rounded-full hover:bg-gray-800 active:scale-[0.98] transition-all disabled:opacity-50"
                           >
                             {savingReminder ? (
-                              <>
-                                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                {t('settings.common.saving')}
-                              </>
+                              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto" />
                             ) : (
-                              <>
-                                <Save className="w-4 h-4" />
-                                {t('settings.notifications.saveReminderSettings')}
-                              </>
+                              t('settings.notifications.saveReminderSettings')
                             )}
                           </button>
                         </div>
@@ -1320,47 +1322,49 @@ export default function SettingsPage() {
                         <label className="block text-sm font-medium text-gray-900 mb-2">
                           {t('settings.preferences.language')}
                         </label>
-                        <select 
+                        <CustomSelect
                           value={language}
-                          onChange={(e) => setLanguage(e.target.value as 'en' | 'he' | 'ar')}
-                          className="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-800 focus:border-transparent"
-                        >
-                          {Object.entries(languages).map(([code, lang]) => (
-                            <option key={code} value={code}>
-                              {lang.nativeName} ({lang.name})
-                            </option>
-                          ))}
-                        </select>
+                          onChange={(val) => setLanguage(val as 'en' | 'he' | 'ar')}
+                          isRTL={isRTL}
+                          options={Object.entries(languages).map(([code, lang]) => ({
+                            value: code,
+                            label: `${lang.nativeName} (${lang.name})`,
+                          }))}
+                        />
                       </div>
 
                       <div>
                         <label className="block text-sm font-medium text-gray-900 mb-2">
                           {t('settings.preferences.dateFormat')}
                         </label>
-                        <select className="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-800 focus:border-transparent">
-                          <option>MM/DD/YYYY</option>
-                          <option>DD/MM/YYYY</option>
-                          <option>YYYY-MM-DD</option>
-                        </select>
+                        <CustomSelect
+                          value="DD/MM/YYYY"
+                          onChange={() => {}}
+                          isRTL={isRTL}
+                          options={[
+                            { value: 'MM/DD/YYYY', label: 'MM/DD/YYYY' },
+                            { value: 'DD/MM/YYYY', label: 'DD/MM/YYYY' },
+                            { value: 'YYYY-MM-DD', label: 'YYYY-MM-DD' },
+                          ]}
+                        />
                       </div>
 
                       <div>
                         <label className="block text-sm font-medium text-gray-900 mb-2">
                           {t('settings.preferences.timeFormat')}
                         </label>
-                        <select className="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-800 focus:border-transparent">
-                          <option>{t('settings.preferences.time12h')}</option>
-                          <option>{t('settings.preferences.time24h')}</option>
-                        </select>
+                        <CustomSelect
+                          value="24h"
+                          onChange={() => {}}
+                          isRTL={isRTL}
+                          options={[
+                            { value: '12h', label: t('settings.preferences.time12h') },
+                            { value: '24h', label: t('settings.preferences.time24h') },
+                          ]}
+                        />
                       </div>
                     </div>
 
-                    <div className="mt-6 pt-6 border-t border-gray-200 flex justify-end">
-                      <button className={`inline-flex items-center gap-2 px-5 py-2.5 bg-gray-800 text-white text-sm font-medium rounded-xl hover:bg-gray-700 transition-colors ${isRTL ? 'flex-row-reverse' : ''}`}>
-                        <Save className="w-4 h-4" />
-                        {t('settings.preferences.savePreferences')}
-                      </button>
-                    </div>
                   </div>
                 </div>
               )}

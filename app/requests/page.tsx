@@ -188,7 +188,7 @@ export default function RequestsPage() {
       return t('common.tomorrow');
     }
     
-    const locale = language === 'he' ? 'he-IL' : language === 'ar' ? 'ar-SA' : 'en-US';
+    const locale = language === 'he' ? 'he-IL' : language === 'ar' ? 'ar-EG' : 'en-US';
     return date.toLocaleDateString(locale, { month: "short", day: "numeric" });
   }, [t, language]);
 

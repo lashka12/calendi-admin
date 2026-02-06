@@ -21,9 +21,10 @@
   body {
     @apply text-gray-900;
     background-color: #faf9f7;
-    /* Prevent swipe-to-navigate gestures */
+    /* Prevent swipe-to-navigate gestures (horizontal only) */
     overscroll-behavior-x: none;
-    touch-action: pan-y;
+    /* Allow pull-to-refresh (vertical overscroll) */
+    overscroll-behavior-y: auto;
     /* Prevent text selection on long press */
     -webkit-user-select: none;
     user-select: none;

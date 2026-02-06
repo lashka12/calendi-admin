@@ -1161,7 +1161,7 @@ export default function CalendarPage() {
                         >
                           <CalendarIcon className="w-4 h-4 text-gray-400" />
                           {editedAppointment.date 
-                            ? new Date(editedAppointment.date + 'T00:00:00').toLocaleDateString(language === 'he' ? 'he-IL' : language === 'ar' ? 'ar-SA' : 'en-US', { weekday: 'long', day: 'numeric', month: 'short' })
+                            ? new Date(editedAppointment.date + 'T00:00:00').toLocaleDateString(language === 'he' ? 'he-IL' : language === 'ar' ? 'ar-EG' : 'en-US', { weekday: 'long', day: 'numeric', month: 'short' })
                             : t('calendar.form.selectDate')}
                         </button>
                       </div>

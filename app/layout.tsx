@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import DashboardLayout from "./components/DashboardLayout";
 import SplashScreen from "./components/SplashScreen";
+import OfflineDetector from "./components/OfflineDetector";
 import { ToastProvider, useToast } from "./lib/hooks/useToast";
 import { ToastContainer } from "./components/Toast";
 import { onAuthChange } from "./lib/firebase/auth";
@@ -105,8 +106,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <html lang="en">
         <PwaHead />
         <body style={{ backgroundColor: '#faf9f7' }}>
-          <SplashScreen isVisible={showSplash} />
-          {showContent && children}
+          <OfflineDetector>
+            <SplashScreen isVisible={showSplash} />
+            {showContent && children}
+          </OfflineDetector>
         </body>
       </html>
     );
@@ -117,19 +120,21 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <PwaHead />
       <body style={{ backgroundColor: '#faf9f7' }}>
-        <SplashScreen isVisible={showSplash} />
-        {showContent && (
-          <>
-            <IOSPWAViewportFix />
-            <LanguageProvider>
-              <SettingsProvider>
-                <ToastProvider>
-                  <AppContent>{children}</AppContent>
-                </ToastProvider>
-              </SettingsProvider>
-            </LanguageProvider>
-          </>
-        )}
+        <OfflineDetector>
+          <SplashScreen isVisible={showSplash} />
+          {showContent && (
+            <>
+              <IOSPWAViewportFix />
+              <LanguageProvider>
+                <SettingsProvider>
+                  <ToastProvider>
+                    <AppContent>{children}</AppContent>
+                  </ToastProvider>
+                </SettingsProvider>
+              </LanguageProvider>
+            </>
+          )}
+        </OfflineDetector>
       </body>
     </html>
   );

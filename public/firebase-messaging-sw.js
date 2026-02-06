@@ -1,5 +1,8 @@
 // Service worker for PWA + Push Notifications
-// No offline caching - app requires internet connection
+// Minimal caching - only offline page for graceful degradation
+
+const CACHE_NAME = 'calendi-offline-v1';
+const OFFLINE_URL = '/offline.html';
 
 // Import Firebase scripts for push notifications
 importScripts('https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js');
@@ -63,16 +66,50 @@ self.addEventListener('notificationclick', (event) => {
   );
 });
 
-// PWA lifecycle events
-self.addEventListener('install', () => {
+// PWA lifecycle events - cache offline page on install
+self.addEventListener('install', (event) => {
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => {
+      return cache.add(new Request(OFFLINE_URL, { cache: 'reload' }));
+    })
+  );
   self.skipWaiting();
 });
 
+// Clean up old caches on activate
 self.addEventListener('activate', (event) => {
-  event.waitUntil(clients.claim());
+  event.waitUntil(
+    caches.keys().then((cacheNames) => {
+      return Promise.all(
+        cacheNames
+          .filter((name) => name !== CACHE_NAME)
+          .map((name) => caches.delete(name))
+      );
+    }).then(() => clients.claim())
+  );
 });
 
-// Pass through all fetch requests to network (no caching)
+// Network-first strategy: try network, fallback to offline page on failure
 self.addEventListener('fetch', (event) => {
-  event.respondWith(fetch(event.request));
+  // Only handle navigation requests (HTML pages)
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request)
+        .catch(() => {
+          // Network failed, show offline page
+          return caches.open(CACHE_NAME).then((cache) => {
+            return cache.match(OFFLINE_URL);
+          });
+        })
+    );
+    return;
+  }
+  
+  // For all other requests (JS, CSS, images, API calls), just try network
+  event.respondWith(
+    fetch(event.request).catch(() => {
+      // Return empty response for non-navigation requests that fail
+      return new Response('', { status: 503, statusText: 'Service Unavailable' });
+    })
+  );
 });

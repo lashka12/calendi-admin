@@ -149,7 +149,7 @@ export default function DashboardPage() {
 
   const dateInfo = useMemo(() => {
     const now = new Date();
-    const locale = language === 'he' ? 'he-IL' : language === 'ar' ? 'ar-SA' : 'en-US';
+    const locale = language === 'he' ? 'he-IL' : language === 'ar' ? 'ar-EG' : 'en-US';
     return now.toLocaleDateString(locale, { weekday: 'long', month: 'long', day: 'numeric' });
   }, [language]);
 
@@ -245,7 +245,7 @@ export default function DashboardPage() {
     const todayIndex = today.getDay();
     const dayKeys = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
     const fullDayKeys = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-    const locale = language === 'he' ? 'he-IL' : language === 'ar' ? 'ar-SA' : 'en-US';
+    const locale = language === 'he' ? 'he-IL' : language === 'ar' ? 'ar-EG' : 'en-US';
     
     // Get start of week (Sunday)
     const weekStart = new Date(today);

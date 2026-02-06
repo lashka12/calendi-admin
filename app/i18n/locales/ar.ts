@@ -534,6 +534,11 @@ const ar = {
       privacyPolicyDesc: 'مراجعة سياسة الخصوصية',
       comingSoon: 'قريبًا',
     },
+    app: {
+      version: 'الإصدار',
+      checkForUpdates: 'التحقق من التحديثات',
+      updating: 'جاري التحديث...',
+    },
   },
 
   // Blacklist Page
@@ -625,6 +630,15 @@ const ar = {
       monthly: 'شهري',
       yearly: 'سنوي',
     },
+  },
+
+  // Offline
+  offline: {
+    title: 'أنت غير متصل',
+    description: 'لم يتم اكتشاف اتصال بالإنترنت. يرجى التحقق من إعدادات الشبكة والمحاولة مرة أخرى.',
+    tryAgain: 'حاول مرة أخرى',
+    checking: 'جارٍ التحقق...',
+    tip: 'نصيحة: تأكد من تفعيل Wi-Fi أو بيانات الجوال',
   },
 
   // Services
